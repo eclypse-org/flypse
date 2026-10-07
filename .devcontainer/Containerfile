@@ -1,0 +1,15 @@
+ARG PYTHON_VERSION=3.11
+ARG DEBIAN_VERSION=bookworm
+ARG UV_VERSION=0.12.23
+
+FROM ghcr.io/astral-sh/uv:${UV_VERSION} AS uv
+
+FROM mcr.microsoft.com/devcontainers/python:${PYTHON_VERSION}-${DEBIAN_VERSION}
+
+COPY --from=uv /uv /uvx /bin/
+
+ENV UV_PROJECT_ENVIRONMENT=.venv \
+    UV_LINK_MODE=copy \
+    UV_COMPILE_BYTECODE=1
+
+USER vscode

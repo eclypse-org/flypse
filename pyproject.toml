@@ -1,0 +1,155 @@
+[project]
+name = "flypse"
+version = "0.1.0"
+description = "Federated Learning framework based on ECLYPSE"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license-files = ["LICENSE"]
+
+authors = [
+    { name = "Valerio De Caro", email = "valerio@valeriodecaro.com" },
+    { name = "Jacopo Massa", email = "jacopo.massa@di.unipi.it" }
+]
+
+maintainers = [
+    { name = "Valerio De Caro", email = "valerio@valeriodecaro.com" },
+    { name = "Jacopo Massa", email = "jacopo.massa@di.unipi.it" }
+]
+
+dependencies = [
+    "eclypse>=0.9.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/eclypse-org/flypse"
+Repository = "https://github.com/eclypse-org/flypse"
+
+
+# Dependency Groups
+[dependency-groups]
+dev = [
+    "commitizen>=4.18.0",
+    "isort>=9.0.0",
+    "mypy>=2.3.1",
+    "pre-commit>=4.6.2",
+    "ruff>=0.16.4",
+]
+
+deploy = [
+    "twine>=7.0.0",
+]
+
+test = [
+    "polars>=2.0.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "pytest-xdist>=3.8.0",
+    "ray[default]>=2.59.0",
+    "tensorboardx>=2.6.5",
+]
+
+docs = [
+    "docformatter[tomli]>=1.7.8",
+    "jinja2>=3.1.6",
+    "myst-parser>=5.1.0",
+    "pydata-sphinx-theme>=0.22.0",
+    "sphinx>=9.0.4",
+    "sphinx-autobuild>=2025.8.25",
+    "sphinx-copybutton>=0.5.2",
+    "sphinx-design>=0.7.0",
+    "sphinx-favicon>=1.1.0",
+    "sphinx-icon>=0.2.2",
+]
+
+# Build backend
+[build-system]
+requires = ["uv_build>=0.11.8,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = "."
+module-name = "flypse"
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
+
+
+# -------------------------
+# Third-party tool settings
+# -------------------------
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = "0.1.0"
+tag_format = "$version"
+version_files = [
+    "pyproject.toml:^version",
+    "flypse/__init__.py:__version__",
+    "CITATION.cff:version",
+]
+
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 2
+filter_files = true
+skip = ["__init__.py"]
+
+[tool.mypy]
+python_version = "3.11"
+
+[[tool.mypy.overrides]]
+module = [
+    "ray",
+    "ray.*",
+    "polars",
+    "polars.*",
+    "tensorboardX",
+    "networkx",
+    "networkx.*",
+    "pandas",
+    "pandas.*",
+    "numpy",
+    "numpy.*",
+    "loguru",
+    "loguru.*",
+    "eclypse",
+    "eclypse.*",
+]
+ignore_missing_imports = true
+
+# --------------------------
+# Pytest and Coverage settings
+# --------------------------
+
+#
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=flypse --cov-report=xml --cov-report=term-missing -n auto"
+asyncio_mode = "auto"
+filterwarnings = ["ignore::DeprecationWarning", "ignore::FutureWarning"]
+markers = [
+    "integration: end-to-end integration tests",
+    "emulation: ray-backed remote integration tests",
+    "optional: tests that exercise optional dependencies",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["flypse"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+    "raise NotImplementedError",
+]

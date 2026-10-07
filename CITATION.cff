@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use FLYPSE in your work or research project, please cite it as below."
+title: "FLYPSE: Federated Learning framework based on ECLYPSE"
+version: 0.1.0
+date-released: 2026-10-07
+url: "https://github.com/eclypse-org/flypse"
+repository-code: "https://github.com/eclypse-org/flypse"
+license: "MIT"
+authors:
+  - family-names: "De Caro"
+    given-names: "Valerio"
+    orcid: "https://orcid.org/0000-0002-5267-6614"
+  - family-names: "Massa"
+    given-names: "Jacopo"
+    orcid: "https://orcid.org/0000-0002-5255-537X"
