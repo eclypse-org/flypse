@@ -12,7 +12,7 @@ from typing import (
     TYPE_CHECKING,
 )
 
-from eclypse.remote._node import RemoteNode
+from eclypse.remote.node import RemoteNode
 
 if TYPE_CHECKING:
     from flypse.data.dataset import FederatedDataset

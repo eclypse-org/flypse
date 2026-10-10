@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from eclypse.remote._node import RemoteNode
+from eclypse.remote.node import RemoteNode
 
 from flypse.data import UniformDataset
 from flypse.system import Device

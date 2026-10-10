@@ -10,18 +10,15 @@ Every learner trains a linear model on its own (non-IID) slice of the data and
 exchanges it with the aggregator, which averages the models (FedAvg) and
 broadcasts the global one back.
 
-Two environment workarounds (see :mod:`examples.fedavg.compat`) are applied
-at startup so the example runs against the current eclypse and Ray versions.
+An environment workaround (see :mod:`examples.fedavg.compat`) is applied at
+startup so Ray workers spawned through ``uv run`` reuse this environment.
 """
 
 from __future__ import annotations
 
 from flypse.process import FederatedProcess
 
-from examples.fedavg.compat import (
-    patch_node_args_forwarding,
-    patch_ray_uv_workers,
-)
+from examples.fedavg.compat import patch_ray_uv_workers
 from examples.fedavg.data import RegressionDataset, make_source
 from examples.fedavg.entities import build_federation
 
@@ -53,7 +50,6 @@ SECONDS = 10.0
 def main() -> None:
     """Build and run the federated averaging experiment."""
     patch_ray_uv_workers()
-    patch_node_args_forwarding()
 
     source = make_source(N_SAMPLES, noise=0.1, seed=0)
     data = RegressionDataset(source, SERVER_ID, seed=0)
