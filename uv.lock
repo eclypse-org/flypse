@@ -671,6 +671,8 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "eclypse" },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "ray", extra = ["default"] },
 ]
 
@@ -710,6 +712,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "eclypse", specifier = ">=0.9.0" },
+    { name = "numpy", specifier = ">=1.26" },
     { name = "ray", extras = ["default"], specifier = ">=2.59.0" },
 ]
 

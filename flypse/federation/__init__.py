@@ -2,8 +2,14 @@
 
 from flypse.federation.entity import Entity
 from flypse.federation.federation import Federation
+from flypse.federation.model import (
+    FederatedModel,
+    ModelVersion,
+)
 
 __all__ = [
     "Entity",
+    "FederatedModel",
     "Federation",
+    "ModelVersion",
 ]
