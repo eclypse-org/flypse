@@ -111,15 +111,23 @@ class Entity(Service):
         """
         await self.mpi.bcast({"record": record, "data": data})
 
-    async def receive(self) -> Message:
+    async def receive(self, timeout: float | None = None) -> Message:
         """Receive the next message sent to the entity.
 
-        It waits until a message is available.
+        It waits until a message is available, or until the timeout expires.
+        A message arriving after the timeout is kept for the next call.
+
+        Args:
+            timeout (float | None): The maximum time to wait, in seconds.
+                Defaults to None, meaning no limit.
 
         Returns:
             Message: The received message.
+
+        Raises:
+            TimeoutError: If no message arrives within the timeout.
         """
-        body = await self.mpi.recv()
+        body = await self.mpi.recv(timeout=timeout)
         return Message(body["sender_id"], body["record"], body["data"])
 
     async def step(self):

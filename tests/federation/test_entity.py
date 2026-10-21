@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from flypse.data import UniformDataset
 from flypse.federation import (
@@ -30,7 +31,10 @@ class FakeMPI:
     async def bcast(self, body):
         self.sent.append(("bcast", None, body))
 
-    async def recv(self):
+    async def recv(self, timeout=None):
+        self.timeout = timeout
+        if not self.inbox:
+            raise TimeoutError
         return self.inbox.pop(0)
 
 
@@ -137,3 +141,14 @@ async def test_entity_receive_returns_a_message():
     )
 
     assert await entity.receive() == Message("b", record, {"loss": 0.5})
+
+
+async def test_entity_receive_forwards_the_timeout():
+    """The timeout bounds the wait of the underlying interface."""
+    mpi = FakeMPI()
+    entity = _with_mpi(mpi)
+
+    with pytest.raises(TimeoutError):
+        await entity.receive(timeout=0.5)
+
+    assert mpi.timeout == 0.5
