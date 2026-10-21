@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
 
@@ -27,9 +29,12 @@ class FakeMPI:
 
     async def send(self, recipients, body):
         self.sent.append(("send", recipients, body))
+        ids = [recipients] if isinstance(recipients, str) else recipients
+        return SimpleNamespace(recipient_ids=ids)
 
     async def bcast(self, body):
         self.sent.append(("bcast", None, body))
+        return SimpleNamespace(recipient_ids=self.neighbors)
 
     async def recv(self, timeout=None):
         self.timeout = timeout
@@ -166,3 +171,32 @@ async def test_entity_control_messages_carry_only_data():
         ("send", "b", {"record": None, "data": {"stop": True}}),
         ("bcast", None, {"record": None, "data": {"round": 3}}),
     ]
+
+
+async def test_entity_counts_the_traffic_it_sends():
+    """Messages and model bytes are counted once per recipient."""
+    entity = _with_mpi(FakeMPI(neighbors=["b", "c", "d"]))
+    record = ModelVersion((0, 1), 1.0, np.ones(2))
+
+    await entity.send(["b", "c"], record)
+    await entity.bcast(stop=True)
+
+    assert entity.traffic.messages_sent == 5
+    assert entity.traffic.bytes_sent == 2 * record.parameters.nbytes
+    assert entity.traffic.send_time >= 0.0
+
+
+async def test_entity_counts_the_traffic_it_receives():
+    """Received messages and the time waited are counted, timeouts included."""
+    record = ModelVersion((1, 0), 2.0, np.zeros(3))
+    entity = _with_mpi(
+        FakeMPI(inbox=[{"record": record, "data": {}, "sender_id": "b"}])
+    )
+
+    await entity.receive()
+    with pytest.raises(TimeoutError):
+        await entity.receive(timeout=0.1)
+
+    assert entity.traffic.messages_received == 1
+    assert entity.traffic.bytes_received == record.parameters.nbytes
+    assert entity.traffic.receive_time >= 0.0

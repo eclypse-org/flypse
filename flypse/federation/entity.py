@@ -9,11 +9,13 @@ the ``step`` method.
 Entities exchange versions of their models, or control messages carrying only
 data, with ``send``, ``bcast`` and ``receive``, and find the entities they are
 connected to with ``get_neighbors``, without dealing with the underlying
-ECLYPSE MPI interface.
+ECLYPSE MPI interface. Every exchange is counted in the ``traffic`` of the
+entity.
 """
 
 from __future__ import annotations
 
+from time import perf_counter
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -23,6 +25,7 @@ from typing import (
 from eclypse.remote.service import Service
 
 from flypse.federation.message import Message
+from flypse.federation.traffic import Traffic
 
 if TYPE_CHECKING:
     from flypse.data.view import DataView
@@ -55,6 +58,7 @@ class Entity(Service):
             store_step=store_step,
         )
         self.with_data = with_data
+        self.traffic = Traffic()
         self._data_view: DataView | None = None
 
     def on_deploy(self):
@@ -94,7 +98,8 @@ class Entity(Service):
     ):
         """Send a message to one or more entities.
 
-        It waits for the modelled communication cost of the message.
+        It waits for the modelled communication cost of the message, and
+        counts the message in the traffic of the entity.
 
         Args:
             recipients (str | list[str]): The identifier of the recipient,
@@ -104,12 +109,15 @@ class Entity(Service):
                 its data.
             **data: The data attached to the message.
         """
-        await self.mpi.send(recipients, {"record": record, "data": data})
+        start = perf_counter()
+        request = await self.mpi.send(recipients, {"record": record, "data": data})
+        self._count_sent(request.recipient_ids, record, start)
 
     async def bcast(self, record: ModelVersion | None = None, **data: Any):
         """Send a message to all the neighbor entities.
 
-        It waits for the modelled communication cost of the message.
+        It waits for the modelled communication cost of the message, and
+        counts the message in the traffic of the entity.
 
         Args:
             record (ModelVersion | None): The version of the model to send.
@@ -117,13 +125,17 @@ class Entity(Service):
                 its data.
             **data: The data attached to the message.
         """
-        await self.mpi.bcast({"record": record, "data": data})
+        start = perf_counter()
+        request = await self.mpi.bcast({"record": record, "data": data})
+        self._count_sent(request.recipient_ids, record, start)
 
     async def receive(self, timeout: float | None = None) -> Message:
         """Receive the next message sent to the entity.
 
         It waits until a message is available, or until the timeout expires.
-        A message arriving after the timeout is kept for the next call.
+        A message arriving after the timeout is kept for the next call. The
+        message, and the time waited for it, are counted in the traffic of
+        the entity.
 
         Args:
             timeout (float | None): The maximum time to wait, in seconds.
@@ -135,8 +147,28 @@ class Entity(Service):
         Raises:
             TimeoutError: If no message arrives within the timeout.
         """
-        body = await self.mpi.recv(timeout=timeout)
+        start = perf_counter()
+        try:
+            body = await self.mpi.recv(timeout=timeout)
+        finally:
+            self.traffic.receive_time += perf_counter() - start
+        self.traffic.messages_received += 1
+        self.traffic.bytes_received += _nbytes(body["record"])
         return Message(body["sender_id"], body["record"], body["data"])
+
+    def _count_sent(
+        self, recipients: list[str], record: ModelVersion | None, start: float
+    ):
+        """Count a message delivered to the recipients in the traffic.
+
+        Args:
+            recipients (list[str]): The identifiers of the recipients.
+            record (ModelVersion | None): The version of the model sent.
+            start (float): When the sending started, as a ``perf_counter``.
+        """
+        self.traffic.messages_sent += len(recipients)
+        self.traffic.bytes_sent += len(recipients) * _nbytes(record)
+        self.traffic.send_time += perf_counter() - start
 
     async def step(self):
         """Run a step of the entity.
@@ -145,3 +177,15 @@ class Entity(Service):
         subclasses.
         """
         return None
+
+
+def _nbytes(record: ModelVersion | None) -> int:
+    """Return the bytes of model carried by a message.
+
+    Args:
+        record (ModelVersion | None): The version of the model, if any.
+
+    Returns:
+        int: The bytes of the parameters, or 0 for a control message.
+    """
+    return 0 if record is None else record.parameters.nbytes
