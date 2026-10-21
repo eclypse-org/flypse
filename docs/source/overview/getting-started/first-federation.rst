@@ -150,9 +150,10 @@ converges to their mean, 49.5.
 .. note::
 
    Each device runs in its own Ray worker. When the script is launched with
-   ``uv run``, Ray starts its workers through ``uv`` as well; the
-   ``examples/fedavg/compat.py`` module of the repository shows how to make
-   them reuse the current environment.
+   ``uv run``, Ray starts its workers through ``uv`` as well, setting up a new
+   environment for each of them. Setting the ``RAY_ENABLE_UV_RUN_RUNTIME_ENV``
+   environment variable to ``0`` before Ray is imported makes the workers
+   reuse the current environment instead.
 
 .. seealso::
 

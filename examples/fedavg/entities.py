@@ -119,7 +119,7 @@ class FedAvgServer(Entity):
             store_step (bool): Whether the global loss is stored for
                 reporting. Defaults to True.
         """
-        super().__init__(entity_id, store_step=store_step)
+        super().__init__(entity_id, store_step=store_step, with_data=False)
         self.model = FedAvgModel(LinearModel([0.0] * n_features, 0.0))
 
     async def step(self):

@@ -8,12 +8,6 @@ statistically heterogeneous (non-IID) by construction.
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING
-
-from flypse.data import UniformDataset
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 Item = tuple[list[float], float]
 """An item of the data source: its features and its target."""
@@ -43,44 +37,3 @@ def make_source(n_samples: int, *, noise: float, seed: int) -> list[Item]:
         y = TRUE_WEIGHTS[0] * x + TRUE_BIAS + rng.uniform(-noise, noise)
         source.append(([x], y))
     return source
-
-
-class RegressionDataset(UniformDataset):
-    """A federated dataset that keeps the aggregator out of the data.
-
-    The aggregator does not hold training data: the whole source is split
-    among the learners, and the aggregator gets an empty portion.
-    """
-
-    def __init__(
-        self,
-        source: list[Item],
-        server_id: str,
-        seed: int | None = None,
-    ):
-        """Initialize the dataset.
-
-        Args:
-            source (list[Item]): The data source of the federation.
-            server_id (str): The identifier of the aggregator entity.
-            seed (int | None): The seed of the split. Defaults to None.
-        """
-        super().__init__(source, seed=seed)
-        self._server_id = server_id
-
-    def split(self, entity_ids: Sequence[str]) -> dict[str, Sequence[int]]:
-        """Split the source among the learners, leaving the aggregator empty.
-
-        Args:
-            entity_ids (Sequence[str]): The validated identifiers of the
-                entities participating in the split.
-
-        Returns:
-            dict[str, Sequence[int]]: The source indices of each entity.
-        """
-        clients = [e for e in entity_ids if e != self._server_id]
-        if not clients:
-            return {self._server_id: []}
-        splits = dict(super().split(clients))
-        splits[self._server_id] = []
-        return splits

@@ -10,16 +10,22 @@ Every learner trains a linear model on its own (non-IID) slice of the data and
 exchanges it with the aggregator, which averages the models (FedAvg) and
 broadcasts the global one back.
 
-An environment workaround (see :mod:`examples.fedavg.compat`) is applied at
-startup so Ray workers spawned through ``uv run`` reuse this environment.
+Ray starts its workers through ``uv run`` when the driver runs under it,
+syncing a fresh environment for each worker: the switch below, set before Ray
+is imported, makes the workers reuse this environment instead.
 """
 
 from __future__ import annotations
 
-from flypse.process import FederatedProcess
+import os
 
-from examples.fedavg.compat import patch_ray_uv_workers
-from examples.fedavg.data import RegressionDataset, make_source
+os.environ.setdefault("RAY_ENABLE_UV_RUN_RUNTIME_ENV", "0")
+
+from flypse.data import UniformDataset
+from flypse.process import FederatedProcess
+from flypse.system import SystemConfig
+
+from examples.fedavg.data import make_source
 from examples.fedavg.entities import build_federation
 
 SERVER_ID = "server"
@@ -49,10 +55,8 @@ SECONDS = 10.0
 
 def main() -> None:
     """Build and run the federated averaging experiment."""
-    patch_ray_uv_workers()
-
     source = make_source(N_SAMPLES, noise=0.1, seed=0)
-    data = RegressionDataset(source, SERVER_ID, seed=0)
+    data = UniformDataset(source, seed=0)
     federation = build_federation(
         CLIENT_IDS,
         SERVER_ID,
@@ -65,7 +69,7 @@ def main() -> None:
     process = FederatedProcess(
         federation,
         data,
-        "mirror",
+        SystemConfig(),
         seed=0,
         step_every_ms=STEP_EVERY_MS,
         include_default_metrics=True,
