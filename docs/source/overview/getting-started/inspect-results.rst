@@ -50,6 +50,50 @@ its ``traffic``. They are left out with ``include_federation_metrics=False``:
    frame = process.report.service(service_ids="server")
    received = frame[frame["callback_id"] == "bytes_received"]
 
+Evaluation
+----------
+
+An entity evaluates itself by overriding ``evaluate``, returning the value of
+each evaluation metric by name (``None``, the default, means it does not
+evaluate). For example, a learner can keep a test part of its own data and
+evaluate on it the latest version of its model:
+
+.. code-block:: python
+
+   class Learner(Entity):
+       def on_deploy(self):
+           super().on_deploy()
+           parts = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
+           split = parts.apply(self.data)
+           self.train, self.test = split["train"], split["test"]
+
+       def evaluate(self):
+           record = self.model.versions[-1]
+           return {"loss": test_loss(record.parameters, self.test)}
+
+``evaluate`` runs on the device while the entity keeps stepping, so it should
+evaluate a snapshot of the model, such as a recorded version, rather than the
+live model.
+
+Every process has an ``evaluate`` event, which evaluates the entities when
+triggered and keeps the results in their ``eval_metrics``. The names given as
+``eval_metrics`` to the process are reported right after each evaluation:
+
+.. code-block:: python
+
+   process = FederatedProcess(federation, data, SystemConfig(), eval_metrics=["loss"])
+   process.start()
+   ...
+   process.trigger("evaluate")
+   ...
+   process.stop()
+
+   frame = process.report.service()
+   losses = frame[frame["callback_id"] == "loss"]
+
+Entities that do not evaluate, or whose evaluation lacks a name, report no
+row for it.
+
 Report format and location
 --------------------------
 
