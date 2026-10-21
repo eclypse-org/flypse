@@ -161,3 +161,8 @@ cython_debug/
 # personal
 *.DS_Store
 docs/source/api/reference/*
+
+# Claude Code (local)
+.claude/settings.local.json
+.claude/plans/
+.claude/memory/
