@@ -21,11 +21,19 @@ def _federation(*entity_ids: str) -> Federation:
 
 
 def test_singleton_has_a_single_node():
-    """The singleton infrastructure is a bare one-node infrastructure."""
+    """The singleton infrastructure is one node with maximal resources."""
     infrastructure = get_singleton()
 
     assert infrastructure.id == "singleton"
     assert list(infrastructure.nodes) == [SINGLETON_NODE]
+    assert set(infrastructure.node_assets) == set(Federation("Fed").node_assets)
+    assert infrastructure.attr_init == "max"
+
+
+def test_singleton_without_default_assets():
+    """The default assets can be left out."""
+    infrastructure = get_singleton(include_default_assets=False)
+
     assert list(infrastructure.node_assets) == []
 
 
@@ -53,8 +61,8 @@ def test_singleton_strict_node():
     assert list(infrastructure.nodes) == [SINGLETON_NODE]
 
 
-def test_mirror_copies_the_federation_topology_and_requirements():
-    """The mirror infrastructure copies nodes, links and their values."""
+def test_mirror_copies_the_federation_topology():
+    """The mirror has the topology and assets of the federation, maximal."""
     federation = _federation("a", "b", "c")
     federation.add_connection("a", "b")
 
@@ -62,11 +70,19 @@ def test_mirror_copies_the_federation_topology_and_requirements():
 
     assert infrastructure.id == "mirror"
     assert set(infrastructure.nodes) == set(federation.nodes)
-    for node in federation.nodes:
-        assert dict(infrastructure.nodes[node]) == dict(federation.nodes[node])
     assert set(infrastructure.edges) == set(federation.edges)
-    for edge in federation.edges:
-        assert dict(infrastructure.edges[edge]) == dict(federation.edges[edge])
+    assert set(infrastructure.node_assets) == set(federation.node_assets)
+    assert set(infrastructure.edge_assets) == set(federation.edge_assets)
+    assert infrastructure.attr_init == "max"
+
+
+def test_mirror_assets_are_resources_not_requirements():
+    """The mirror bounds are those of an infrastructure, not of a federation."""
+    infrastructure = get_mirror(_federation("a"))
+    reference = get_singleton()
+
+    assert infrastructure.node_assets.upper_bound == reference.node_assets.upper_bound
+    assert infrastructure.node_assets.upper_bound["availability"] == 1.0
 
 
 def test_mirror_infrastructure_id_can_be_customized():

@@ -22,6 +22,15 @@ def test_new_federation_is_empty():
     assert federation.entities == {}
 
 
+def test_new_federation_has_minimal_default_requirements():
+    """By default, a federation includes the default assets, at their minimum."""
+    federation = Federation()
+
+    assert set(federation.node_assets) >= {"cpu", "ram", "availability"}
+    assert set(federation.edge_assets) >= {"latency", "bandwidth"}
+    assert federation.attr_init == "min"
+
+
 def test_federation_id_is_forwarded():
     """The federation identifier is used as the application identifier."""
     assert Federation("MyFed").id == "MyFed"

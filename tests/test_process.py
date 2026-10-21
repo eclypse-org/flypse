@@ -249,8 +249,7 @@ def test_mirror_mirrors_the_federation():
 
     assert process.infrastructure.id == "mirror"
     assert set(process.infrastructure.nodes) == {"a", "b"}
-    for node in federation.nodes:
-        assert dict(process.infrastructure.nodes[node]) == dict(federation.nodes[node])
+    assert set(process.infrastructure.edges) == set(federation.edges)
 
 
 def test_mirror_maps_every_entity_to_itself():

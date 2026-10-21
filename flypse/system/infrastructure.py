@@ -3,8 +3,10 @@
 The singleton infrastructure is the minimal system a federation can be
 emulated on: a single node hosting every entity. It follows the signature of
 the ECLYPSE infrastructure builders, so it can be swapped with any of them.
-The mirror infrastructure is a copy of a federation, with one device per
-entity and one link per connection.
+The mirror infrastructure copies the topology of a federation, with one device
+per entity and one link per connection. Both infrastructures include the
+default assets with their maximal resources, so that by default they can host
+any federation, whose requirements are minimal.
 """
 
 from __future__ import annotations
@@ -40,9 +42,9 @@ def get_singleton(
     node_assets: dict[str, Asset] | None = None,
     link_assets: dict[str, Asset] | None = None,
     node_assets_values: dict[str, Any] | None = None,
-    include_default_assets: bool = False,
+    include_default_assets: bool = True,
     strict: bool = False,
-    resource_init: InitPolicy = "min",
+    resource_init: InitPolicy = "max",
     path_algorithm: Callable[[nx.Graph, str, str], list[str]] | None = None,
     seed: int | None = None,
 ) -> Infrastructure:
@@ -60,11 +62,11 @@ def get_singleton(
         node_assets_values (dict[str, Any] | None): The values of the assets
             of the node. Defaults to None.
         include_default_assets (bool): Whether to include the default assets.
-            Defaults to False.
+            Defaults to True.
         strict (bool): If True, raises an error if the node already exists.
             Defaults to False.
         resource_init (InitPolicy): The initialization policy for the
-            resources. Defaults to "min".
+            resources. Defaults to "max".
         path_algorithm (Callable[[nx.Graph, str, str], list[str]] | None):
             The algorithm used to compute the paths. Defaults to None.
         seed (int | None): The seed for the random number generator. Defaults
@@ -96,16 +98,16 @@ def get_mirror(
     infrastructure_id: str = "mirror",
     update_policies: UpdatePolicies = None,
     strict: bool = False,
+    resource_init: InitPolicy = "max",
     path_assets_aggregators: dict[str, Callable[[list[Any]], Any]] | None = None,
     path_algorithm: Callable[[nx.Graph, str, str], list[str]] | None = None,
     seed: int | None = None,
 ) -> Infrastructure:
-    """Create an infrastructure mirroring the federation.
+    """Create an infrastructure mirroring the topology of the federation.
 
-    The topology and the resources of the infrastructure are an exact copy of
-    the topology and the requirements of the federation: every entity becomes
-    a device with the same requirements as resources, and every connection
-    becomes a link with the same requirements as resources.
+    Every entity becomes a device with the same identifier, and every
+    connection becomes a link. Devices and links have the same assets as the
+    entities and the connections, initialized according to ``resource_init``.
 
     Args:
         federation (Federation): The federation to mirror.
@@ -115,6 +117,8 @@ def get_mirror(
             to None.
         strict (bool): If True, raises an error if a node or a link is not
             consistent. Defaults to False.
+        resource_init (InitPolicy): The initialization policy for the
+            resources. Defaults to "max".
         path_assets_aggregators (dict[str, Callable[[list[Any]], Any]] | None):
             The aggregators of the path assets. Defaults to the ECLYPSE
             default ones (latency, bandwidth).
@@ -129,16 +133,18 @@ def get_mirror(
     infrastructure = Infrastructure(
         infrastructure_id=infrastructure_id,
         update_policies=update_policies,
-        node_assets=federation.node_assets,
-        edge_assets=federation.edge_assets,
+        # the federation holds its assets flipped, as requirements
+        node_assets=federation.node_assets.flip(),
+        edge_assets=federation.edge_assets.flip(),
         path_assets_aggregators=(
             path_assets_aggregators or get_default_path_aggregators()
         ),
+        resource_init=resource_init,
         path_algorithm=path_algorithm,
         seed=seed,
     )
-    for node, assets in federation.nodes(data=True):
-        infrastructure.add_node(node, strict=strict, **assets)
-    for source, target, assets in federation.edges(data=True):
-        infrastructure.add_edge(source, target, strict=strict, **assets)
+    for node in federation.nodes:
+        infrastructure.add_node(node, strict=strict)
+    for source, target in federation.edges:
+        infrastructure.add_edge(source, target, strict=strict)
     return infrastructure

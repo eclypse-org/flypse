@@ -16,8 +16,8 @@ requires an explicit one.
 Singleton
 ---------
 
-With ``"singleton"``, the infrastructure has a single node, and every entity
-is placed on it:
+With ``"singleton"``, the infrastructure has a single node, with maximal
+resources, and every entity is placed on it:
 
 .. code-block:: python
 
@@ -31,10 +31,9 @@ cost. It is the quickest way to check the logic of the entities.
 Mirror
 ------
 
-With ``"mirror"``, the default, the infrastructure is a copy of the federation: one device
-per entity, with the requirements of the entity as resources, and one link per
-connection, with the requirements of the connection as resources. Each entity
-is placed on its own device:
+With ``"mirror"``, the default, the infrastructure copies the topology of the
+federation: one device per entity and one link per connection, with maximal
+resources. Each entity is placed on its own device:
 
 .. code-block:: python
 
@@ -52,18 +51,13 @@ the placement strategy deciding where each entity runs.
 
 The entities and their connections can only be placed where their
 requirements are satisfied. By default, a federation includes the ECLYPSE
-default assets, whose requirements are drawn at random; a federation built
-with ``include_default_assets=False`` has no requirements, so it fits any
-infrastructure, while the communication costs still follow the links of the
-infrastructure:
+default assets at their minimum, so it fits any infrastructure, while the
+communication costs follow the links of the infrastructure:
 
 .. code-block:: python
 
    from eclypse.builders.infrastructure import get_star
    from eclypse.placement.strategies import RandomStrategy
-
-   federation = Federation("MeanEstimation", include_default_assets=False)
-   # ... add the entities and their connections as before
 
    infrastructure = get_star(
        n_clients=5, symmetric=True, include_default_assets=True, seed=0
