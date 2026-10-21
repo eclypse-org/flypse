@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 from flypse.federation import (
     Entity,
     Federation,
+    get_star,
 )
 
 from examples.fedavg.model import (
@@ -170,18 +171,19 @@ def build_federation(
     Returns:
         Federation: The federation of the example.
     """
-    federation = Federation("FedAvg")
-    federation.add_entity(FedAvgServer(server_id, n_features=n_features))
-    for i, client_id in enumerate(client_ids):
-        federation.add_entity(
-            FedAvgClient(
-                client_id,
-                server_id,
-                n_features=n_features,
-                epochs=epochs,
-                lr=lr,
-                seed=None if seed is None else seed + i,
-            )
+    clients = [
+        FedAvgClient(
+            client_id,
+            server_id,
+            n_features=n_features,
+            epochs=epochs,
+            lr=lr,
+            seed=None if seed is None else seed + i,
         )
-        federation.add_connection(server_id, client_id)
-    return federation
+        for i, client_id in enumerate(client_ids)
+    ]
+    return get_star(
+        FedAvgServer(server_id, n_features=n_features),
+        clients,
+        federation_id="FedAvg",
+    )
