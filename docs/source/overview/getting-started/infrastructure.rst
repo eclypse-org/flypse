@@ -57,7 +57,8 @@ communication costs follow the links of the infrastructure:
 .. code-block:: python
 
    from eclypse.builders.infrastructure import get_star
-   from eclypse.placement.strategies import RandomStrategy
+
+   from flypse.system import ExclusiveStrategy
 
    infrastructure = get_star(
        n_clients=5, symmetric=True, include_default_assets=True, seed=0
@@ -66,8 +67,13 @@ communication costs follow the links of the infrastructure:
    process = FederatedProcess(
        federation,
        data,
-       SystemConfig(infrastructure, RandomStrategy(seed=0)),
+       SystemConfig(infrastructure, ExclusiveStrategy()),
    )
+
+:class:`~flypse.system.placement.ExclusiveStrategy` places each entity on a
+device of its own, among those satisfying its requirements, and places
+nothing when that is not possible. Any ECLYPSE placement strategy can be used
+instead.
 
 The update policies of the infrastructure (e.g., failures, degradation,
 topology changes) are applied during the emulation, so that the system

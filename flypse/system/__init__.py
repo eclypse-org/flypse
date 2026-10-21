@@ -8,6 +8,7 @@ from flypse.system.infrastructure import (
     get_singleton,
 )
 from flypse.system.placement import (
+    ExclusiveStrategy,
     get_mirror_strategy,
     get_singleton_strategy,
 )
@@ -15,6 +16,7 @@ from flypse.system.placement import (
 __all__ = [
     "SINGLETON_NODE",
     "Device",
+    "ExclusiveStrategy",
     "SystemConfig",
     "get_mirror",
     "get_mirror_strategy",
