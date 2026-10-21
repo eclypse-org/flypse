@@ -33,6 +33,7 @@ Key features include:
   versioning,
 - ready-made singleton and mirror infrastructures, or any ECLYPSE
   infrastructure,
+- per-entity metrics of steps, messages, bytes and waiting times,
 - the ECLYPSE reporting, update policies, and events for the emulation.
 
 .. button-ref:: source/overview/index

@@ -28,6 +28,28 @@ metric requires the default ECLYPSE metrics:
 Each row of ``results`` is a value returned by the server, in the ``value``
 column, with the timestamp at which it was reported.
 
+Federation metrics
+------------------
+
+By default, a process also reports the federation metrics of every entity,
+read from the live entity after each step of the process:
+
+- ``steps``: the number of steps the entity completed;
+- ``messages_sent`` and ``messages_received``: the messages exchanged, those
+  sent counted once per recipient;
+- ``bytes_sent`` and ``bytes_received``: the bytes of model they carried;
+- ``send_time`` and ``receive_time``: the seconds spent waiting for messages
+  to be delivered, and for messages to arrive.
+
+The values only grow, so the difference between two reports gives the
+activity in between. The same counters are available to the entity itself as
+its ``traffic``. They are left out with ``include_federation_metrics=False``:
+
+.. code-block:: python
+
+   frame = process.report.service(service_ids="server")
+   received = frame[frame["callback_id"] == "bytes_received"]
+
 Report format and location
 --------------------------
 

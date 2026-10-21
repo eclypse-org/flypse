@@ -25,6 +25,7 @@ from eclypse.simulation import (
     SimulationConfig,
 )
 
+from flypse.report import get_federation_metrics
 from flypse.system import Device
 
 if TYPE_CHECKING:
@@ -44,13 +45,14 @@ class FederatedProcess(Simulation):
         federation: Federation,
         data: FederatedDataset,
         system: SystemConfig,
+        include_federation_metrics: bool = True,
         **simulation_config: Any,
     ):
         """Create a federated process.
 
         The data is split across the entities of the federation holding data
-        and given to every device, and the federation is registered, so the process is
-        ready to ``run``.
+        and given to every device, and the federation is registered, so the
+        process is ready to ``run``.
 
         Args:
             federation (Federation): The application of the federation.
@@ -58,6 +60,9 @@ class FederatedProcess(Simulation):
             system (SystemConfig): The infrastructure hosting the federation,
                 whose nodes are devices, and the placement of the entities
                 onto them.
+            include_federation_metrics (bool): Whether to report the
+                federation metrics (steps and traffic of every entity),
+                besides any given ``events``. Defaults to True.
             **simulation_config: The arguments of the ECLYPSE
                 ``SimulationConfig``, except ``remote``.
         """
@@ -70,8 +75,12 @@ class FederatedProcess(Simulation):
 
         infrastructure, self._placement_strategy = system.build(federation)
 
+        events = list(simulation_config.pop("events", None) or [])
+        if include_federation_metrics:
+            events += get_federation_metrics()
         config = SimulationConfig(
             remote=RemoteBootstrap(node_class=Device, data=data),
+            events=events,
             **simulation_config,
         )
         super().__init__(infrastructure, config)

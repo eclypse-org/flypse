@@ -9,6 +9,7 @@ from eclypse.placement.strategies import (
     StaticStrategy,
 )
 from eclypse.remote.bootstrap import RemoteBootstrap
+from eclypse.report.metrics import metric
 from eclypse.simulation import Simulation
 
 from flypse.data import UniformDataset
@@ -304,3 +305,31 @@ def test_register_prefers_an_explicit_strategy(monkeypatch):
     process.register(placement_strategy=strategy)
 
     assert registered["strategy"] is strategy
+
+
+def _event_names(process: FederatedProcess) -> set[str]:
+    """Return the names of the events of a process."""
+    return {event.name for event in process._sim_config.events}
+
+
+def test_process_reports_the_federation_metrics():
+    """The federation metrics are included by default, besides given events."""
+    custom = metric.service(lambda service, **_: 0, name="custom", remote=True)
+
+    process = FederatedProcess(
+        _federation("a"), UniformDataset(list(range(2))), _custom(), events=[custom]
+    )
+
+    assert {"custom", "steps", "bytes_sent"} <= _event_names(process)
+
+
+def test_process_federation_metrics_can_be_left_out():
+    """The federation metrics can be switched off."""
+    process = FederatedProcess(
+        _federation("a"),
+        UniformDataset(list(range(2))),
+        _custom(),
+        include_federation_metrics=False,
+    )
+
+    assert "steps" not in _event_names(process)
