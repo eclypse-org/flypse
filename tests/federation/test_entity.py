@@ -77,6 +77,14 @@ async def test_entity_step_has_no_effect():
     assert await Entity("a").step() is None
 
 
+def test_entity_does_not_evaluate_by_default():
+    """The entity has no evaluation by default."""
+    entity = Entity("a")
+
+    assert entity.evaluate() is None
+    assert entity.eval_metrics == {}
+
+
 def test_entity_deploy_binds_its_view():
     """Deploying binds the entity's own portion of the device dataset."""
     entity = _deploy(Entity("b"), _split_dataset())

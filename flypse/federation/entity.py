@@ -13,6 +13,9 @@ ECLYPSE MPI interface. Every exchange is counted in the ``traffic`` of the
 entity. For its own randomness, an entity draws from its ``rng``, seeded from
 the seed of the process and the identifier of the entity, so that entities
 draw different but reproducible sequences.
+
+An entity evaluates itself in ``evaluate``, which the federated process calls
+on its ``evaluate`` event, keeping the latest results in ``eval_metrics``.
 """
 
 from __future__ import annotations
@@ -64,6 +67,7 @@ class Entity(Service):
         self.with_data = with_data
         self.traffic = Traffic()
         self.rng = random.Random()
+        self.eval_metrics: dict[str, float] = {}
         self._data_view: DataView | None = None
 
     def on_deploy(self):
@@ -182,6 +186,20 @@ class Entity(Service):
         self.traffic.messages_sent += len(recipients)
         self.traffic.bytes_sent += len(recipients) * _nbytes(record)
         self.traffic.send_time += perf_counter() - start
+
+    def evaluate(self) -> dict[str, float] | None:
+        """Evaluate the entity, e.g. its model on its test data.
+
+        It is called on the device while the entity keeps stepping, so it
+        should evaluate a snapshot of the model (e.g. a ``ModelVersion``
+        record) rather than the live one. It does nothing by default, and is
+        meant to be overridden by subclasses.
+
+        Returns:
+            dict[str, float] | None: The value of each evaluation metric,
+            keyed by name, or None if the entity does not evaluate.
+        """
+        return None
 
     async def step(self):
         """Run a step of the entity.
