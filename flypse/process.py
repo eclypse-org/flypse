@@ -25,11 +25,16 @@ from eclypse.simulation import (
     SimulationConfig,
 )
 
-from flypse.report import get_federation_metrics
+from flypse.report import (
+    get_evaluation_events,
+    get_federation_metrics,
+)
 from flypse.seed import get_seed
 from flypse.system import Device
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from eclypse.graph import Application
     from eclypse.placement.strategies import PlacementStrategy
 
@@ -47,6 +52,7 @@ class FederatedProcess(Simulation):
         data: FederatedDataset,
         system: SystemConfig,
         include_federation_metrics: bool = True,
+        eval_metrics: Sequence[str] = (),
         **simulation_config: Any,
     ):
         """Create a federated process.
@@ -69,6 +75,10 @@ class FederatedProcess(Simulation):
             include_federation_metrics (bool): Whether to report the
                 federation metrics (steps and traffic of every entity),
                 besides any given ``events``. Defaults to True.
+            eval_metrics (Sequence[str]): The names of the metrics returned
+                by the ``evaluate`` of the entities, each reported whenever
+                the ``evaluate`` event is triggered (e.g.
+                ``process.trigger("evaluate")``). Defaults to no metrics.
             **simulation_config: The arguments of the ECLYPSE
                 ``SimulationConfig``, except ``remote``.
         """
@@ -78,6 +88,7 @@ class FederatedProcess(Simulation):
         events = list(simulation_config.pop("events", None) or [])
         if include_federation_metrics:
             events += get_federation_metrics()
+        events += get_evaluation_events(eval_metrics)
         config = SimulationConfig(
             remote=RemoteBootstrap(node_class=Device, data=data),
             events=events,

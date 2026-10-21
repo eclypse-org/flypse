@@ -25,6 +25,7 @@ from flypse.federation import (
     Federation,
 )
 from flypse.process import FederatedProcess
+from flypse.report import EVALUATE_EVENT
 from flypse.system import (
     SINGLETON_NODE,
     Device,
@@ -343,6 +344,23 @@ def test_process_federation_metrics_can_be_left_out():
     )
 
     assert "steps" not in _event_names(process)
+
+
+def test_process_always_has_the_evaluate_event():
+    """The evaluate event is always there, with one metric per given name."""
+    plain = FederatedProcess(
+        _federation("a"), UniformDataset(list(range(2))), _custom()
+    )
+    evaluating = FederatedProcess(
+        _federation("a"),
+        UniformDataset(list(range(2))),
+        _custom(),
+        eval_metrics=["loss"],
+    )
+
+    assert EVALUATE_EVENT in _event_names(plain)
+    assert "loss" not in _event_names(plain)
+    assert {EVALUATE_EVENT, "loss"} <= _event_names(evaluating)
 
 
 def _class(item: int) -> int:
