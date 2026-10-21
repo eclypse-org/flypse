@@ -105,20 +105,24 @@ The federation and its data
 ---------------------------
 
 A :class:`~flypse.federation.federation.Federation` is an ECLYPSE application
-whose nodes are the entities and whose edges are their connections. A
-:class:`~flypse.data.uniform.UniformDataset` splits a data source (anything
+whose nodes are the entities and whose edges are their connections. It can be
+built entity by entity with ``add_entity`` and ``add_connection``, or with a
+topology builder: :func:`~flypse.federation.topology.get_star`,
+:func:`~flypse.federation.topology.get_tree` (e.g., for hierarchical
+aggregation) or :func:`~flypse.federation.topology.get_ring` (e.g., for
+decentralized peers). A :class:`~flypse.data.uniform.UniformDataset` splits a data source (anything
 with ``__len__`` and ``__getitem__``) into contiguous blocks, one per entity:
 
 .. code-block:: python
 
    from flypse.data import UniformDataset
-   from flypse.federation import Federation
+   from flypse.federation import get_star
 
-   federation = Federation("MeanEstimation")
-   federation.add_entity(Server("server"))
-   for i in range(3):
-       federation.add_entity(Client(f"client_{i}", "server"))
-       federation.add_connection("server", f"client_{i}")
+   federation = get_star(
+       Server("server"),
+       [Client(f"client_{i}", "server") for i in range(3)],
+       federation_id="MeanEstimation",
+   )
 
    data = UniformDataset(list(range(100)))
 

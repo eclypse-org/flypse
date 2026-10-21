@@ -23,7 +23,8 @@ infrastructure shape the learning process.
 
 Key features include:
 
-- federations built as graphs of entities and their connections,
+- federations built as graphs of entities and their connections, or from
+  star, tree and ring topologies,
 - federated datasets that split the data across entities, uniformly or with
   Dirichlet label or quantity skew,
 - splitters of the data of each entity into parts (e.g., train, eval and
