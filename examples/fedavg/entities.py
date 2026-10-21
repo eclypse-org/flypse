@@ -8,7 +8,6 @@ them and broadcasts the result back.
 
 from __future__ import annotations
 
-import random
 from typing import TYPE_CHECKING
 
 from flypse.federation import (
@@ -43,7 +42,6 @@ class FedAvgClient(Entity):
         n_features: int,
         epochs: int,
         lr: float,
-        seed: int | None = None,
         store_step: bool = True,
     ):
         """Initialize the learner.
@@ -54,7 +52,6 @@ class FedAvgClient(Entity):
             n_features (int): The number of features of the model.
             epochs (int): The number of local passes over the data.
             lr (float): The learning rate.
-            seed (int | None): The seed of the initial model. Defaults to None.
             store_step (bool): Whether the local loss is stored for reporting.
                 Defaults to True.
         """
@@ -63,15 +60,18 @@ class FedAvgClient(Entity):
         self._n_features = n_features
         self._epochs = epochs
         self._lr = lr
-        self._rng = random.Random(seed)
         self.model = FedAvgModel(LinearModel([0.0] * n_features, 0.0))
 
     def on_deploy(self):
-        """Bind the local data and initialize the model randomly."""
+        """Bind the local data and initialize the model randomly.
+
+        The initial model is drawn from the ``rng`` of the entity, seeded from
+        the seed of the process.
+        """
         super().on_deploy()
         self.model.model = LinearModel(
-            [self._rng.uniform(-0.1, 0.1) for _ in range(self._n_features)],
-            self._rng.uniform(-0.1, 0.1),
+            [self.rng.uniform(-0.1, 0.1) for _ in range(self._n_features)],
+            self.rng.uniform(-0.1, 0.1),
         )
 
     async def step(self):
@@ -156,7 +156,6 @@ def build_federation(
     n_features: int,
     epochs: int,
     lr: float,
-    seed: int | None = None,
 ) -> Federation:
     """Build the star-shaped federation of the example.
 
@@ -166,7 +165,6 @@ def build_federation(
         n_features (int): The number of features of the model.
         epochs (int): The number of local passes over the data.
         lr (float): The learning rate.
-        seed (int | None): The seed of the learners. Defaults to None.
 
     Returns:
         Federation: The federation of the example.
@@ -178,9 +176,8 @@ def build_federation(
             n_features=n_features,
             epochs=epochs,
             lr=lr,
-            seed=None if seed is None else seed + i,
         )
-        for i, client_id in enumerate(client_ids)
+        for client_id in client_ids
     ]
     return get_star(
         FedAvgServer(server_id, n_features=n_features),

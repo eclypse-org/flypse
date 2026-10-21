@@ -56,14 +56,13 @@ SECONDS = 10.0
 def main() -> None:
     """Build and run the federated averaging experiment."""
     source = make_source(N_SAMPLES, noise=0.1, seed=0)
-    data = UniformDataset(source, seed=0)
+    data = UniformDataset(source)
     federation = build_federation(
         CLIENT_IDS,
         SERVER_ID,
         n_features=N_FEATURES,
         epochs=EPOCHS,
         lr=LR,
-        seed=0,
     )
 
     process = FederatedProcess(
