@@ -8,8 +8,12 @@ from eclypse.placement.strategies import (
     RandomStrategy,
     StaticStrategy,
 )
+from eclypse.utils.constants import RND_SEED
 
-from flypse.federation import Entity, Federation
+from flypse.federation import (
+    Entity,
+    Federation,
+)
 from flypse.system import (
     SINGLETON_NODE,
     SystemConfig,
@@ -76,3 +80,13 @@ def test_unknown_infrastructure_name_is_rejected():
     """Only the built-in infrastructures can be given by name."""
     with pytest.raises(ValueError, match="Unknown infrastructure"):
         SystemConfig("ring")  # type: ignore[arg-type]
+
+
+@pytest.mark.parametrize("name", ["singleton", "mirror"])
+def test_built_infrastructures_use_the_process_seed(monkeypatch, name):
+    """The built-in infrastructures are seeded with the seed of the process."""
+    monkeypatch.setenv(RND_SEED, "7")
+
+    infrastructure, _ = SystemConfig(name).build(_federation("a"))
+
+    assert infrastructure.seed == 7

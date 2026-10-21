@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from eclypse.utils.constants import RND_SEED
 
 from flypse.data import UniformDataset
 from flypse.federation import (
@@ -200,3 +201,15 @@ async def test_entity_counts_the_traffic_it_receives():
     assert entity.traffic.messages_received == 1
     assert entity.traffic.bytes_received == record.parameters.nbytes
     assert entity.traffic.receive_time >= 0.0
+
+
+def test_entity_rng_is_seeded_per_entity_at_deploy(monkeypatch):
+    """Entities draw different, reproducible sequences from the process seed."""
+    monkeypatch.setenv(RND_SEED, "7")
+
+    def draws(entity_id: str) -> list[float]:
+        entity = _deploy(Entity(entity_id))
+        return [entity.rng.random() for _ in range(3)]
+
+    assert draws("a") == draws("a")
+    assert draws("a") != draws("b")

@@ -13,6 +13,7 @@ from flypse.data.dirichlet import (
     _allocate,
     _proportions,
 )
+from flypse.seed import get_seed
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -46,7 +47,7 @@ class QuantitySkewDataset(FederatedDataset):
             min_size (int): The minimum number of items of each entity.
                 Defaults to 1.
             seed (int | None): The seed of the split randomness. Defaults
-                to None.
+                to None, meaning the seed of the process.
 
         Raises:
             ValueError: If alpha is not positive, or min_size is negative.
@@ -82,7 +83,7 @@ class QuantitySkewDataset(FederatedDataset):
             raise ValueError(
                 f"{n} items cannot give {self.min_size} to each of {k} entities."
             )
-        rng = random.Random(self.seed)
+        rng = random.Random(get_seed(self.seed))
         indices = list(range(n))
         rng.shuffle(indices)
         allocation = _allocate(_proportions(rng, self.alpha, k), free)

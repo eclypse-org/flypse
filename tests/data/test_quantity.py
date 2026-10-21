@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+from eclypse.utils.constants import RND_SEED
 
 from flypse.data import QuantitySkewDataset
 
@@ -67,3 +68,12 @@ def test_quantity_alpha_controls_the_imbalance():
 
     assert largest_share(0.1) > 0.5
     assert largest_share(1000.0) < 0.25
+
+
+def test_split_falls_back_to_the_process_seed(monkeypatch, source):
+    """Without a seed, the split follows the seed of the process."""
+    monkeypatch.setenv(RND_SEED, "7")
+
+    assert QuantitySkewDataset(source, alpha=0.5)._split(
+        ["a", "b", "c"]
+    ) == QuantitySkewDataset(source, alpha=0.5, seed=7)._split(["a", "b", "c"])

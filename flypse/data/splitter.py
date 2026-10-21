@@ -27,6 +27,7 @@ from typing import (
 
 from flypse.data.dirichlet import _allocate
 from flypse.data.view import DataView
+from flypse.seed import get_seed
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -82,7 +83,7 @@ class FractionSplitter(ViewSplitter):
         parts: Mapping[str, float],
         stratify: Callable[[Any], Hashable] | None = None,
         order: Callable[[Any], Any] | None = None,
-        seed: int | None = None,
+        seed: int | random.Random | None = None,
     ):
         """Initialize the splitter.
 
@@ -95,7 +96,9 @@ class FractionSplitter(ViewSplitter):
             order (Callable[[Any], Any] | None): A function returning the
                 sorting key of an item (e.g., its timestamp). Defaults to
                 None, meaning the items are shuffled.
-            seed (int | None): The seed of the shuffling. Defaults to None.
+            seed (int | random.Random | None): The seed of the shuffling, or
+                the generator to shuffle with (e.g., the ``rng`` of an
+                entity). Defaults to None, meaning the seed of the process.
 
         Raises:
             ValueError: If there are no parts, or the fractions are not
@@ -129,7 +132,11 @@ class FractionSplitter(ViewSplitter):
 
         order = self.order
         keys = {} if order is None else {p: order(view[p]) for p in range(len(view))}
-        rng = random.Random(self.seed)
+        rng = (
+            self.seed
+            if isinstance(self.seed, random.Random)
+            else random.Random(get_seed(self.seed))
+        )
         fractions = list(self.parts.values())
         result: dict[str, list[int]] = {name: [] for name in self.parts}
         for positions in groups.values():

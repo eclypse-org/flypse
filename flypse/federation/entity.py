@@ -10,11 +10,14 @@ Entities exchange versions of their models, or control messages carrying only
 data, with ``send``, ``bcast`` and ``receive``, and find the entities they are
 connected to with ``get_neighbors``, without dealing with the underlying
 ECLYPSE MPI interface. Every exchange is counted in the ``traffic`` of the
-entity.
+entity. For its own randomness, an entity draws from its ``rng``, seeded from
+the seed of the process and the identifier of the entity, so that entities
+draw different but reproducible sequences.
 """
 
 from __future__ import annotations
 
+import random
 from time import perf_counter
 from typing import (
     TYPE_CHECKING,
@@ -26,6 +29,7 @@ from eclypse.remote.service import Service
 
 from flypse.federation.message import Message
 from flypse.federation.traffic import Traffic
+from flypse.seed import get_seed
 
 if TYPE_CHECKING:
     from flypse.data.view import DataView
@@ -59,10 +63,19 @@ class Entity(Service):
         )
         self.with_data = with_data
         self.traffic = Traffic()
+        self.rng = random.Random()
         self._data_view: DataView | None = None
 
     def on_deploy(self):
-        """Bind the view of the dataset held by the hosting device."""
+        """Seed the ``rng`` of the entity and bind its view of the data.
+
+        The ``rng`` is seeded from the seed of the process and the identifier
+        of the entity; the view is the one of the dataset held by the hosting
+        device.
+        """
+        seed = get_seed()
+        if seed is not None:
+            self.rng.seed(f"{seed}/{self.id}")
         data = cast("Device", self.node).data
         if self.with_data and data is not None:
             self._data_view = data.bind(self.id)

@@ -15,6 +15,7 @@ from typing import (
     Literal,
 )
 
+from flypse.seed import get_seed
 from flypse.system.infrastructure import (
     get_mirror,
     get_singleton,
@@ -71,6 +72,9 @@ class SystemConfig:
     ) -> tuple[Infrastructure, PlacementStrategy | None]:
         """Build the infrastructure and the placement strategy of a federation.
 
+        The "singleton" and "mirror" infrastructures are seeded with the seed
+        of the process.
+
         Args:
             federation (Federation): The federation to host.
 
@@ -84,11 +88,11 @@ class SystemConfig:
             return self.infrastructure, strategy
         infer = strategy is None and bool(federation.entities)
         if self.infrastructure == "singleton":
-            infrastructure = get_singleton()
+            infrastructure = get_singleton(seed=get_seed())
             if infer:
                 strategy = get_singleton_strategy(federation)
         else:
-            infrastructure = get_mirror(federation)
+            infrastructure = get_mirror(federation, seed=get_seed())
             if infer:
                 strategy = get_mirror_strategy(federation)
         return infrastructure, strategy

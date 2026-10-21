@@ -26,6 +26,7 @@ from eclypse.simulation import (
 )
 
 from flypse.report import get_federation_metrics
+from flypse.seed import get_seed
 from flypse.system import Device
 
 if TYPE_CHECKING:
@@ -54,6 +55,11 @@ class FederatedProcess(Simulation):
         and given to every device, and the federation is registered, so the
         process is ready to ``run``.
 
+        The process has a single seed, the ``seed`` of the simulation: every
+        component given no seed of its own (the split of the data, the
+        built-in infrastructures, the federation, the splitters and the
+        ``rng`` of the entities) falls back to it.
+
         Args:
             federation (Federation): The application of the federation.
             data (FederatedDataset): The data of the federation.
@@ -69,12 +75,6 @@ class FederatedProcess(Simulation):
         self._federation = federation
         self._data = data
 
-        holders = [eid for eid, e in federation.entities.items() if e.with_data]
-        if holders:
-            data._split(holders)
-
-        infrastructure, self._placement_strategy = system.build(federation)
-
         events = list(simulation_config.pop("events", None) or [])
         if include_federation_metrics:
             events += get_federation_metrics()
@@ -83,6 +83,15 @@ class FederatedProcess(Simulation):
             events=events,
             **simulation_config,
         )
+        # expose the seed of the process before anything random is built
+        config.prepare_runtime()
+
+        holders = [eid for eid, e in federation.entities.items() if e.with_data]
+        if holders:
+            data._split(holders)
+        if federation.seed is None:
+            federation.rnd.seed(get_seed())
+        infrastructure, self._placement_strategy = system.build(federation)
         super().__init__(infrastructure, config)
         self.register()
 

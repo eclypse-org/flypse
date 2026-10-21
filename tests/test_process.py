@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import os
+import random
+
 import pytest
 from eclypse.graph import Infrastructure
 from eclypse.placement.strategies import (
@@ -11,9 +14,16 @@ from eclypse.placement.strategies import (
 from eclypse.remote.bootstrap import RemoteBootstrap
 from eclypse.report.metrics import metric
 from eclypse.simulation import Simulation
+from eclypse.utils.constants import RND_SEED
 
-from flypse.data import UniformDataset
-from flypse.federation import Entity, Federation
+from flypse.data import (
+    DirichletDataset,
+    UniformDataset,
+)
+from flypse.federation import (
+    Entity,
+    Federation,
+)
 from flypse.process import FederatedProcess
 from flypse.system import (
     SINGLETON_NODE,
@@ -333,3 +343,34 @@ def test_process_federation_metrics_can_be_left_out():
     )
 
     assert "steps" not in _event_names(process)
+
+
+def _class(item: int) -> int:
+    """Return the class of an integer item."""
+    return item % 2
+
+
+def test_process_shares_its_seed():
+    """The seed of the process reaches the data, the system and the federation."""
+    federation = _federation("a", "b")
+    data = DirichletDataset(list(range(20)), class_fn=_class)
+
+    process = FederatedProcess(federation, data, SystemConfig("mirror"), seed=7)
+
+    assert os.environ[RND_SEED] == "7"
+    assert data._splits == DirichletDataset(
+        list(range(20)), class_fn=_class, seed=7
+    )._split(["a", "b"])
+    assert process.infrastructure.seed == 7
+    assert federation.rnd.random() == random.Random(7).random()
+
+
+def test_process_keeps_an_explicit_federation_seed():
+    """A federation with its own seed is not reseeded."""
+    federation = Federation("Fed", seed=3)
+    federation.add_entity(Entity("a"))
+    state = federation.rnd.getstate()
+
+    FederatedProcess(federation, UniformDataset([0]), SystemConfig(), seed=7)
+
+    assert federation.rnd.getstate() == state

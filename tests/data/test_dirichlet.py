@@ -5,6 +5,7 @@ from __future__ import annotations
 import random
 
 import pytest
+from eclypse.utils.constants import RND_SEED
 
 from flypse.data import DirichletDataset
 
@@ -84,3 +85,14 @@ def test_dirichlet_distributes_remainder(monkeypatch):
         3,
         4,
     ]
+
+
+def test_split_falls_back_to_the_process_seed(monkeypatch, source):
+    """Without a seed, the split follows the seed of the process."""
+    monkeypatch.setenv(RND_SEED, "7")
+
+    assert DirichletDataset(source, class_fn=_classes, alpha=0.5)._split(
+        ["a", "b", "c"]
+    ) == DirichletDataset(source, class_fn=_classes, alpha=0.5, seed=7)._split(
+        ["a", "b", "c"]
+    )

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import random
 from collections.abc import Sequence
 
 import pytest
+from eclypse.utils.constants import RND_SEED
 
 from flypse.data import (
     DataView,
@@ -142,3 +144,22 @@ def test_parts_can_be_split_again():
     assert _items(inner["fit"]) == [0, 1, 2, 3, 4, 5]
     assert _items(inner["eval"]) == [6, 7]
     assert inner["eval"].source is train
+
+
+def test_fraction_split_falls_back_to_the_process_seed(monkeypatch):
+    """Without a seed, the shuffling follows the seed of the process."""
+    monkeypatch.setenv(RND_SEED, "7")
+    view = _view(list(range(20)))
+
+    assert FractionSplitter({"a": 0.5, "b": 0.5}).split(view) == FractionSplitter(
+        {"a": 0.5, "b": 0.5}, seed=7
+    ).split(view)
+
+
+def test_fraction_split_accepts_a_generator():
+    """A generator (e.g., the rng of an entity) can drive the shuffling."""
+    view = _view(list(range(20)))
+
+    assert FractionSplitter({"a": 0.5, "b": 0.5}, seed=random.Random(3)).split(
+        view
+    ) == FractionSplitter({"a": 0.5, "b": 0.5}, seed=3).split(view)

@@ -10,6 +10,7 @@ from typing import (
 )
 
 from flypse.data.dataset import FederatedDataset
+from flypse.seed import get_seed
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -49,7 +50,7 @@ class DirichletDataset(FederatedDataset):
             alpha (float): The concentration of the Dirichlet distribution.
                 Defaults to 1.0.
             seed (int | None): The seed of the split randomness. Defaults
-                to None.
+                to None, meaning the seed of the process.
 
         Raises:
             ValueError: If alpha is not positive.
@@ -72,7 +73,7 @@ class DirichletDataset(FederatedDataset):
             dict[str, Sequence[int]]: The source indices of each entity,
             keyed by entity identifier.
         """
-        rng = random.Random(self.seed)
+        rng = random.Random(get_seed(self.seed))
 
         by_class: dict[Hashable, list[int]] = {}
         for index in range(len(self.source)):

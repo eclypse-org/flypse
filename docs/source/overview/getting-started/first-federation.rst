@@ -147,6 +147,17 @@ entity's data, and can be split again:
 Subclasses of :class:`~flypse.data.splitter.ViewSplitter` define their own
 splits by implementing ``split``.
 
+Reproducibility
+---------------
+
+A process has a single seed, the ``seed`` argument of the simulation
+configuration. Every component given no seed of its own falls back to it: the
+split of the data, the ``"singleton"`` and ``"mirror"`` infrastructures, the
+federation, and the splitters. For its own randomness, an entity draws from
+its ``rng``, seeded from the seed of the process and the identifier of the
+entity, so that entities draw different but reproducible sequences; it can
+also drive a splitter, e.g., ``FractionSplitter(parts, seed=self.rng)``.
+
 Run the process
 ---------------
 
