@@ -17,8 +17,8 @@ from flypse.federation import (
 )
 
 from examples.fedavg.model import (
+    FedAvgModel,
     LinearModel,
-    federated_average,
     local_train,
     mean_squared_error,
 )
@@ -63,12 +63,12 @@ class FedAvgClient(Entity):
         self._epochs = epochs
         self._lr = lr
         self._rng = random.Random(seed)
-        self._model = LinearModel([0.0] * n_features, 0.0)
+        self.model = FedAvgModel(LinearModel([0.0] * n_features, 0.0))
 
     def on_deploy(self):
         """Bind the local data and initialize the model randomly."""
         super().on_deploy()
-        self._model = LinearModel(
+        self.model.model = LinearModel(
             [self._rng.uniform(-0.1, 0.1) for _ in range(self._n_features)],
             self._rng.uniform(-0.1, 0.1),
         )
@@ -82,25 +82,23 @@ class FedAvgClient(Entity):
         if self.data is None:
             return None
 
-        self._model = local_train(
-            self._model,
+        self.model.model = local_train(
+            self.model.model,
             self.data,
             epochs=self._epochs,
             lr=self._lr,
         )
-        loss = mean_squared_error(self._model, self.data)
+        self.model.update_version(self.model.get_parameters(), "local")
+        loss = mean_squared_error(self.model.model, self.data)
 
-        await self.mpi.send(
+        await self.send(
             self._server_id,
-            {
-                "weights": self._model.weights,
-                "bias": self._model.bias,
-                "n_samples": len(self.data),
-                "loss": loss,
-            },
+            self.model.versions[-1],
+            n_samples=len(self.data),
+            loss=loss,
         )
-        message = await self.mpi.recv()
-        self._model = LinearModel(message["weights"], message["bias"])
+        message = await self.receive()
+        self.model.load_version(message.record)
         return loss
 
 
@@ -112,16 +110,17 @@ class FedAvgServer(Entity):
     back to them.
     """
 
-    def __init__(self, entity_id: str, *, store_step: bool = True):
+    def __init__(self, entity_id: str, *, n_features: int, store_step: bool = True):
         """Initialize the aggregator.
 
         Args:
             entity_id (str): The identifier of the aggregator.
+            n_features (int): The number of features of the model.
             store_step (bool): Whether the global loss is stored for
                 reporting. Defaults to True.
         """
         super().__init__(entity_id, store_step=store_step)
-        self._model: LinearModel | None = None
+        self.model = FedAvgModel(LinearModel([0.0] * n_features, 0.0))
 
     async def step(self):
         """Aggregate the local models of the neighbors and broadcast them.
@@ -130,29 +129,21 @@ class FedAvgServer(Entity):
             float | None: The weighted average of the local losses, or None if
             there are no neighbors.
         """
-        neighbors = await self.mpi.get_neighbors()
-        updates: list[tuple[LinearModel, int]] = []
-        losses: list[tuple[float, int]] = []
-        for _ in neighbors:
-            message = await self.mpi.recv()
-            updates.append(
-                (
-                    LinearModel(message["weights"], message["bias"]),
-                    message["n_samples"],
-                )
-            )
-            losses.append((message["loss"], message["n_samples"]))
-
-        if not updates:
+        messages = [await self.receive() for _ in await self.get_neighbors()]
+        if not messages:
             return None
 
-        self._model = federated_average(updates)
-        await self.mpi.bcast(
-            {"weights": self._model.weights, "bias": self._model.bias}
+        # FedAvg: Θ = Σ_c (n_c / n) Θ_c
+        n_total = sum(m.data["n_samples"] for m in messages)
+        average = (
+            sum(m.record.parameters * m.data["n_samples"] for m in messages) / n_total
         )
+        self.model.update_version(average, "global")
+        await self.bcast(self.model.versions[-1])
 
-        n_total = sum(n for _, n in losses)
-        global_loss = sum(loss * n for loss, n in losses) / n_total
+        global_loss = (
+            sum(m.data["loss"] * m.data["n_samples"] for m in messages) / n_total
+        )
         self.logger.info(f"FedAvg round loss: {global_loss:.6f}")
         return global_loss
 
@@ -180,7 +171,7 @@ def build_federation(
         Federation: The federation of the example.
     """
     federation = Federation("FedAvg")
-    federation.add_entity(FedAvgServer(server_id))
+    federation.add_entity(FedAvgServer(server_id, n_features=n_features))
     for i, client_id in enumerate(client_ids):
         federation.add_entity(
             FedAvgClient(

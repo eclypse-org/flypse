@@ -1,7 +1,8 @@
-"""A minimal linear model with local SGD and federated averaging.
+"""A minimal linear model with local SGD, and its federated wrapper.
 
-The model is plain Python (no numpy/torch) to keep the example dependency-free
-and model-agnostic: FLYPSE core ships no model, so the example defines its own.
+The model is plain Python (no torch) to keep the example dependency-free and
+model-agnostic: FLYPSE core ships no model, so the example defines its own and
+exposes its parameters as numpy arrays through a ``FederatedModel``.
 """
 
 from __future__ import annotations
@@ -9,8 +10,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import numpy as np
+
+from flypse.federation import FederatedModel
+
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import (
+        Iterator,
+        Sequence,
+    )
 
     from flypse.data.view import DataView
 
@@ -90,25 +98,15 @@ def mean_squared_error(model: LinearModel, data: DataView) -> float:
     return total / len(data)
 
 
-def federated_average(updates: Sequence[tuple[LinearModel, int]]) -> LinearModel:
-    """Average the models weighted by their number of samples.
+class FedAvgModel(FederatedModel):
+    """The federated wrapper of a linear model: its weights and its bias."""
 
-    This is the FedAvg aggregation ``Θ = Σ_c (n_c / n) Θ_c``.
+    def _read_parameters(self) -> Iterator[tuple[str, np.ndarray]]:
+        yield "weights", np.array(self.model.weights)
+        yield "bias", np.array([self.model.bias])
 
-    Args:
-        updates (Sequence[tuple[LinearModel, int]]): The models to average,
-            paired with the number of samples they were trained on.
-
-    Returns:
-        LinearModel: The aggregated model.
-    """
-    n_total = sum(n for _, n in updates)
-    if n_total == 0:
-        return updates[0][0].copy()
-    n_features = len(updates[0][0].weights)
-    weights = [
-        sum(model.weights[j] * n for model, n in updates) / n_total
-        for j in range(n_features)
-    ]
-    bias = sum(model.bias * n for model, n in updates) / n_total
-    return LinearModel(weights, bias)
+    def _write_parameter(self, name: str, value: np.ndarray) -> None:
+        if name == "weights":
+            self.model.weights = [float(w) for w in value]
+        else:
+            self.model.bias = float(value[0])
