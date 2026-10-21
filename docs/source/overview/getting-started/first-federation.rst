@@ -125,6 +125,24 @@ with ``__len__`` and ``__getitem__``) into contiguous blocks, one per entity:
 The data is split across the entities holding data: the server is created with
 ``with_data=False``, so the 100 items are split among the three clients.
 
+The data of an entity can be split further into named parts with a
+:class:`~flypse.data.splitter.ViewSplitter`. The default
+:class:`~flypse.data.splitter.FractionSplitter` sizes the parts by fractions,
+optionally stratifying by class or following the order of the items (e.g., by
+time, so that no part precedes the earlier ones). Each part is a view of the
+entity's data, and can be split again:
+
+.. code-block:: python
+
+   from flypse.data import FractionSplitter
+
+   splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=0)
+   parts = splitter.apply(self.data)  # e.g., in the on_deploy of an entity
+   parts["train"][0], len(parts["test"])
+
+Subclasses of :class:`~flypse.data.splitter.ViewSplitter` define their own
+splits by implementing ``split``.
+
 Run the process
 ---------------
 
