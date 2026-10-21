@@ -33,7 +33,11 @@ class DataView:
         self._indices = indices
 
     def __len__(self) -> int:
-        """Return the number of items in the entity's portion."""
+        """Return the number of items in the entity's portion.
+
+        Returns:
+            int: The number of items.
+        """
         return len(self._indices)
 
     def __getitem__(self, index: int) -> Any:

@@ -56,18 +56,23 @@ class FederatedProcess(Simulation):
     ):
         """Create a federated process.
 
+        The data is split across the entities of the federation and given to
+        every device, and the federation is registered, so the process is
+        ready to ``run``.
+
         Args:
             federation (Federation): The application of the federation.
-            data (FederatedDataset): The data of the federation, given to
-                every device.
+            data (FederatedDataset): The data of the federation.
             infrastructure (Infrastructure | Literal["singleton", "mirror"]):
                 The infrastructure hosting the federation; each of its nodes
                 is a device. With "singleton", a single-node infrastructure is
                 created and all entities are placed on that node. With
                 "mirror", a copy of the federation topology and requirements
-                is created and each entity is placed on its mirror node.
-            **simulation_config: The arguments of the ECLYPSE simulation
-                configuration.
+                is created and each entity is placed on its mirror node. With
+                an ``Infrastructure``, a ``default_strategy`` must be given in
+                the simulation configuration.
+            **simulation_config: The arguments of the ECLYPSE
+                ``SimulationConfig``, except ``remote``.
         """
         self._federation = federation
         self._data = data
@@ -130,10 +135,9 @@ class FederatedProcess(Simulation):
                 must be the federation of the process. Defaults to None,
                 meaning the federation of the process.
             placement_strategy (PlacementStrategy | None): The strategy used
-                to place the entities of the federation on the devices. When
-                omitted, the process strategy is used (for a singleton
-                infrastructure, the static mapping of every entity onto the
-                only node).
+                to place the entities of the federation on the devices.
+                Defaults to None, meaning the strategy of the "singleton" or
+                "mirror" infrastructure, if one was given at construction.
 
         Raises:
             ValueError: If the application is not the federation of the

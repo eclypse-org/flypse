@@ -8,7 +8,7 @@
 [![Import sorted with isort](https://img.shields.io/badge/isort-checked-brightgreen)](https://pycqa.github.io/isort/)
 [![Doc style: docformatter](https://img.shields.io/badge/doc%20style-docformatter-blue)](https://github.com/PyCQA/docformatter)
 
-**FLYPSE** is a Python library for experimenting with federated learning on the cloud-edge continuum. It builds on [ECLYPSE](https://github.com/eclypse-org/eclypse) to place, run, and observe federated learning workloads on simulated and emulated infrastructures.
+**FLYPSE** is a Python library for experimenting with federated learning on the cloud-edge continuum. It builds on [ECLYPSE](https://github.com/eclypse-org/eclypse) to place, run, and observe federated learning workloads on emulated infrastructures.
 
 ## Installation
 

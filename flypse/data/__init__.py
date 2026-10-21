@@ -1,4 +1,4 @@
-"""Data abstractions for federated learning."""
+"""Package for the federated datasets and their per-entity views."""
 
 from flypse.data.dataset import (
     DataSource,

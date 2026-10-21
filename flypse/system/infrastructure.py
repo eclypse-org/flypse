@@ -1,8 +1,10 @@
-"""Module for the singleton infrastructure builder.
+"""Module for the infrastructure builders of FLYPSE.
 
 The singleton infrastructure is the minimal system a federation can be
 emulated on: a single node hosting every entity. It follows the signature of
 the ECLYPSE infrastructure builders, so it can be swapped with any of them.
+The mirror infrastructure is a copy of a federation, with one device per
+entity and one link per connection.
 """
 
 from __future__ import annotations

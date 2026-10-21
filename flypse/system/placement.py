@@ -1,9 +1,10 @@
 """Module for the placement strategies of FLYPSE.
 
 The placement strategies map the entities of a federation onto the devices of
-the system. ECLYPSE placement strategies are classes with no builder
-functions, so the builders here follow the ECLYPSE strategy constructors while
-deriving the mapping from the federation.
+the infrastructure. They are ECLYPSE static strategies, whose mapping is
+derived from the federation: every entity onto the single node of the
+singleton infrastructure, or each entity onto its node of the mirror
+infrastructure.
 """
 
 from __future__ import annotations

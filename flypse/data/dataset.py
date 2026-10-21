@@ -42,7 +42,11 @@ class DataSource(Protocol):
     """
 
     def __len__(self) -> int:
-        """Return the total number of available items."""
+        """Return the total number of available items.
+
+        Returns:
+            int: The number of items.
+        """
 
     def __getitem__(self, index: int) -> Any:
         """Return the item at the given index.

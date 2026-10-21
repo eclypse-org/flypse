@@ -1,7 +1,54 @@
-Getting Started
+===============
+Getting started
 ===============
 
-This section will guide you through your first federated learning experiment
-with FLYPSE on an ECLYPSE-emulated cloud-edge continuum.
+.. toctree::
+   :maxdepth: 2
+   :hidden:
 
-.. TODO: add a minimal local run walkthrough.
+   first-federation
+   infrastructure
+   inspect-results
+
+Let's get started with FLYPSE.
+
+FLYPSE runs every federation as an ECLYPSE remote emulation: the entities are
+remote services, deployed onto the devices of an infrastructure and
+communicating through ECLYPSE's MPI interface. The guided paths below take
+you from a first run to the results it produces.
+
+Happy paths
+-----------
+
+.. grid:: 1
+
+   .. grid-item::
+
+      .. card:: 1. Run your first federation
+         :link: first-federation
+         :link-type: doc
+
+         Implement the entities of a small client-server federation, split
+         the data across them, and emulate the process.
+
+   .. grid-item::
+
+      .. card:: 2. Choose where the federation runs
+         :link: infrastructure
+         :link-type: doc
+
+         Place the federation on a single device, on a copy of its own
+         topology, or on any ECLYPSE infrastructure.
+
+   .. grid-item::
+
+      .. card:: 3. Inspect the results
+         :link: inspect-results
+         :link-type: doc
+
+         Retrieve the values returned by the entities at each step from the
+         report of the process.
+
+.. tip::
+
+   If you have not yet installed FLYPSE, refer to the :doc:`Installation <../install>` page.

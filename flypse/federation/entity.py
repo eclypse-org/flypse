@@ -1,11 +1,10 @@
-"""Module for the FederatedEntity class.
+"""Module for the Entity class.
 
-An entity is the basic unit of a federation. At this level of abstraction,
-an entity is characterized only by the device of the infrastructure it is
-deployed onto -- whose management is delegated to ECLYPSE. Any other aspect
-of a federated entity (where its data comes from, what it does with it, what
-it exchanges, how it collaborates) is to be built incrementally on top of
-this foundation.
+An entity is the basic unit of a federation: an ECLYPSE service deployed onto
+a device of the infrastructure, from which it binds its view of the federation
+data. What an entity does with its data, what it exchanges, and how it
+collaborates with the other entities is defined by subclasses, implementing
+the ``step`` method.
 
 Entities exchange versions of their models with ``send``, ``bcast`` and
 ``receive``, and find the entities they are connected to with
@@ -31,14 +30,14 @@ if TYPE_CHECKING:
 
 
 class Entity(Service):
-    """A federated entity, characterized only by the device it runs on."""
+    """A federated entity, running on a device and bound to its data."""
 
     def __init__(
         self,
         entity_id: str,
         store_step: bool = False,
     ):
-        """Initialize the federated entity.
+        """Initialize the entity.
 
         Args:
             entity_id (str): The identifier of the entity.
@@ -118,8 +117,9 @@ class Entity(Service):
         return Message(body["sender_id"], body["record"], body["data"])
 
     async def step(self):
-        """Do nothing.
+        """Run a step of the entity.
 
-        The entity has no behavior yet: it only holds its view of the data.
+        It does nothing by default, and is meant to be overridden by
+        subclasses.
         """
         return None

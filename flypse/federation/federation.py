@@ -4,8 +4,8 @@ A federation is an ECLYPSE application whose nodes are federated entities and
 whose edges are the interactions among them. This class verticalizes the
 ``Application`` API around the federated setting: entities are added with
 ``add_entity`` and their interactions with ``add_connection``, so that a
-federation can be instantiated -- and then emulated by ECLYPSE -- without
-dealing with the generic service/application vocabulary.
+federation can be built, and then emulated by ECLYPSE, without dealing with
+the generic service and application vocabulary.
 
 The federation is only the *application* side of the emulation: it knows the
 entities and how they interact, not where they run nor the data they will

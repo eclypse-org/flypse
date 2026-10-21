@@ -1,4 +1,4 @@
-"""Core abstractions of the federated learning process."""
+"""Package for the federation, its entities and their models."""
 
 from flypse.federation.entity import Entity
 from flypse.federation.federation import Federation

@@ -1,20 +1,52 @@
-Installation
-============
+==============
+Install FLYPSE
+==============
 
-FLYPSE is available on PyPI. To install it, run:
+FLYPSE can be installed from `PyPI <https://pypi.org/project/flypse/>`_.
+It requires Python ``>=3.11,<3.14``.
 
-.. code-block:: bash
+.. note::
 
+    Do not use the global environment to install FLYPSE.
+    It is recommended to create a `virtual environment <https://docs.python.org/3/library/venv.html>`_ first.
+
+Using pip
+---------
+
+Create and activate a virtual environment, then install the package:
+
+.. code-block:: shell
+
+   python -m venv .venv
+   source .venv/bin/activate
    pip install flypse
 
-**N.B.** We **strongly** suggest the installation of FLYPSE in a virtual
-environment.
+Using uv
+--------
 
-To install FLYPSE from source, clone the repository and install it with `uv
-<https://docs.astral.sh/uv/>`_:
+If your project uses `uv <https://docs.astral.sh/uv/>`_, add FLYPSE to the
+project dependencies:
 
-.. code-block:: bash
+.. code-block:: shell
+
+   uv add flypse
+
+Installing from source
+----------------------
+
+For development, clone the repository and install the dependency groups you
+need:
+
+.. code-block:: shell
 
    git clone https://github.com/eclypse-org/flypse.git
    cd flypse
-   uv sync
+   uv sync --group dev --group test
+
+The documentation dependencies live in the ``docs`` group:
+
+.. code-block:: shell
+
+   uv sync --group docs
+
+Now you are ready to run :doc:`your first federation <getting-started/index>`!

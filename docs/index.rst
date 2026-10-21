@@ -11,12 +11,26 @@
 =====================
 FLYPSE documentation
 =====================
+**FLYPSE** is a Python library for experimenting with federated learning on
+the cloud-edge continuum.
 
-**FLYPSE** is a Python library for experimenting with federated
-learning on simulated and emulated cloud-edge infrastructures.
+It models a federation as an `ECLYPSE <https://github.com/eclypse-org/eclypse>`_
+application, whose services are the federated entities, and emulates it on an
+infrastructure whose nodes are the devices holding the data. Each entity runs
+as a remote ECLYPSE service and exchanges messages with the others, so both
+the statistical heterogeneity of the data and the system heterogeneity of the
+infrastructure shape the learning process.
 
-It builds on `ECLYPSE <https://github.com/eclypse-org/eclypse>`_ to place, run,
-and observe federated learning workloads on the cloud-edge continuum.
+Key features include:
+
+- federations built as graphs of entities and their connections,
+- federated datasets that split the data across entities, uniformly or with
+  Dirichlet label skew,
+- model-agnostic parameters exchanged as numpy arrays, with hierarchical
+  versioning,
+- ready-made singleton and mirror infrastructures, or any ECLYPSE
+  infrastructure,
+- the ECLYPSE reporting, update policies, and events for the emulation.
 
 .. button-ref:: source/overview/index
    :ref-type: myst
