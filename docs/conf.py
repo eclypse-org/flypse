@@ -56,7 +56,11 @@ autodoc_member_order = "bysource"
 # Don't show class signature with the class' name.
 autodoc_class_signature = "separated"
 
-autodoc_default_options = {"undoc-members": True}
+autodoc_default_options = {
+    "undoc-members": True,
+    # the hooks subclasses implement; other private members stay hidden
+    "private-members": "_read_parameters, _write_parameter",
+}
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
