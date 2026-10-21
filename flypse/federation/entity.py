@@ -6,9 +6,10 @@ data. What an entity does with its data, what it exchanges, and how it
 collaborates with the other entities is defined by subclasses, implementing
 the ``step`` method.
 
-Entities exchange versions of their models with ``send``, ``bcast`` and
-``receive``, and find the entities they are connected to with
-``get_neighbors``, without dealing with the underlying ECLYPSE MPI interface.
+Entities exchange versions of their models, or control messages carrying only
+data, with ``send``, ``bcast`` and ``receive``, and find the entities they are
+connected to with ``get_neighbors``, without dealing with the underlying
+ECLYPSE MPI interface.
 """
 
 from __future__ import annotations
@@ -86,27 +87,34 @@ class Entity(Service):
         return await self.mpi.get_neighbors()
 
     async def send(
-        self, recipients: str | list[str], record: ModelVersion, **data: Any
+        self,
+        recipients: str | list[str],
+        record: ModelVersion | None = None,
+        **data: Any,
     ):
-        """Send a version of the model to one or more entities.
+        """Send a message to one or more entities.
 
         It waits for the modelled communication cost of the message.
 
         Args:
             recipients (str | list[str]): The identifier of the recipient,
                 or the list of identifiers of the recipients.
-            record (ModelVersion): The version of the model to send.
+            record (ModelVersion | None): The version of the model to send.
+                Defaults to None, meaning a control message carrying only
+                its data.
             **data: The data attached to the message.
         """
         await self.mpi.send(recipients, {"record": record, "data": data})
 
-    async def bcast(self, record: ModelVersion, **data: Any):
-        """Send a version of the model to all the neighbor entities.
+    async def bcast(self, record: ModelVersion | None = None, **data: Any):
+        """Send a message to all the neighbor entities.
 
         It waits for the modelled communication cost of the message.
 
         Args:
-            record (ModelVersion): The version of the model to send.
+            record (ModelVersion | None): The version of the model to send.
+                Defaults to None, meaning a control message carrying only
+                its data.
             **data: The data attached to the message.
         """
         await self.mpi.bcast({"record": record, "data": data})

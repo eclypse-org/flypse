@@ -152,3 +152,17 @@ async def test_entity_receive_forwards_the_timeout():
         await entity.receive(timeout=0.5)
 
     assert mpi.timeout == 0.5
+
+
+async def test_entity_control_messages_carry_only_data():
+    """A message without a model travels with its data alone."""
+    mpi = FakeMPI()
+    entity = _with_mpi(mpi)
+
+    await entity.send("b", stop=True)
+    await entity.bcast(round=3)
+
+    assert mpi.sent == [
+        ("send", "b", {"record": None, "data": {"stop": True}}),
+        ("bcast", None, {"record": None, "data": {"round": 3}}),
+    ]

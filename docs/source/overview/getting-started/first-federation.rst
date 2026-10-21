@@ -48,7 +48,9 @@ behaviour is the ``step`` method, executed repeatedly once the entity is
 deployed. When deployed, the entity binds its portion of the federation data,
 available as ``self.data``. Entities exchange versions of their models with
 ``send``, ``bcast`` and ``receive``, attaching any other data as keyword
-arguments, and find their neighbours with ``get_neighbors``. ``receive``
+arguments, and find their neighbours with ``get_neighbors``. A message sent
+without a model is a control message, carrying only its data (e.g.,
+``await self.bcast(stop=True)``), whose ``record`` is None. ``receive``
 waits for the next message, for at most ``timeout`` seconds when given. The
 value returned by ``step`` is stored in the report when ``store_step`` is
 True.
