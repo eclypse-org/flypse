@@ -126,26 +126,27 @@ Run the process
 ---------------
 
 A :class:`~flypse.process.FederatedProcess` emulates the federation: it splits
-the data, gives it to the devices of the infrastructure, and registers the
-federation. Any other argument is passed to the ECLYPSE simulation
-configuration.
+the data, gives it to the devices of the infrastructure described by a
+:class:`~flypse.system.config.SystemConfig`, and registers the federation. Any
+other argument is passed to the ECLYPSE simulation configuration.
 
 .. code-block:: python
 
    from flypse.process import FederatedProcess
+   from flypse.system import SystemConfig
 
    process = FederatedProcess(
        federation,
        data,
-       "mirror",
+       SystemConfig(),
        step_every_ms=100.0,
        include_default_metrics=True,
    )
    process.run(seconds=5)
 
-With the ``"mirror"`` infrastructure, each entity runs on its own device. The
-clients hold the items from 25 to 99, so the estimate of the server converges
-to their mean, 62.
+With the default ``"mirror"`` infrastructure, each entity runs on its own
+device. The clients hold the items from 25 to 99, so the estimate of the
+server converges to their mean, 62.
 
 .. note::
 

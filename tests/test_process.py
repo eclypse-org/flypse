@@ -17,7 +17,18 @@ from flypse.process import FederatedProcess
 from flypse.system import (
     SINGLETON_NODE,
     Device,
+    SystemConfig,
 )
+
+STRATEGY = RandomStrategy(seed=1)
+"""The placement strategy of the custom infrastructures of the tests."""
+
+
+def _custom(infrastructure: Infrastructure | None = None) -> SystemConfig:
+    """Return the configuration of a custom infrastructure."""
+    if infrastructure is None:
+        infrastructure = Infrastructure("Infra")
+    return SystemConfig(infrastructure, STRATEGY)
 
 
 @pytest.fixture(autouse=True)
@@ -62,7 +73,7 @@ def test_process_wires_devices_and_data(fake_build):
     federation = _federation("a", "b")
     dataset = UniformDataset(list(range(6)))
 
-    process = FederatedProcess(federation, dataset, infrastructure)
+    process = FederatedProcess(federation, dataset, _custom(infrastructure))
 
     assert process.federation is federation
     assert process.data is dataset
@@ -79,7 +90,7 @@ def test_process_splits_the_data_for_the_roster():
     dataset = UniformDataset(list(range(6)))
     federation = _federation("a", "b")
 
-    FederatedProcess(federation, dataset, Infrastructure("Infra"))
+    FederatedProcess(federation, dataset, _custom())
 
     view_a = dataset.bind("a")
     view_b = dataset.bind("b")
@@ -91,7 +102,7 @@ def test_process_without_entities_does_not_split():
     """Without entities the data is left untouched."""
     dataset = UniformDataset(list(range(6)))
 
-    FederatedProcess(Federation("Fed"), dataset, Infrastructure("Infra"))
+    FederatedProcess(Federation("Fed"), dataset, _custom())
 
     with pytest.raises(RuntimeError, match="not been split"):
         dataset.bind("a")
@@ -102,7 +113,7 @@ def test_process_forwards_the_simulation_config():
     process = FederatedProcess(
         _federation("a"),
         UniformDataset(list(range(2))),
-        Infrastructure("Infra"),
+        _custom(),
         seed=7,
         max_steps=3,
     )
@@ -125,7 +136,7 @@ def test_register_registers_the_federation_of_the_process(monkeypatch):
     process = FederatedProcess(
         federation,
         UniformDataset(list(range(2))),
-        Infrastructure("Infra"),
+        _custom(),
     )
     strategy = RandomStrategy(seed=1)
 
@@ -148,13 +159,13 @@ def test_register_defaults_to_the_federation_of_the_process(monkeypatch):
     process = FederatedProcess(
         federation,
         UniformDataset(list(range(2))),
-        Infrastructure("Infra"),
+        _custom(),
     )
 
     process.register()
 
     assert registered["application"] is federation
-    assert registered["strategy"] is None
+    assert registered["strategy"] is STRATEGY
 
 
 def test_register_rejects_another_federation():
@@ -164,7 +175,7 @@ def test_register_rejects_another_federation():
     process = FederatedProcess(
         federation,
         UniformDataset(list(range(2))),
-        Infrastructure("Infra"),
+        _custom(),
     )
 
     with pytest.raises(ValueError, match="single federation"):
@@ -176,7 +187,7 @@ def test_singleton_infrastructure_has_a_single_node():
     process = FederatedProcess(
         _federation("a", "b"),
         UniformDataset(list(range(4))),
-        "singleton",
+        SystemConfig("singleton"),
     )
 
     assert process.infrastructure.id == "singleton"
@@ -188,7 +199,7 @@ def test_singleton_maps_every_entity_to_the_single_node():
     process = FederatedProcess(
         _federation("a", "b", "c"),
         UniformDataset(list(range(6))),
-        "singleton",
+        SystemConfig("singleton"),
     )
 
     strategy = process._placement_strategy
@@ -205,7 +216,7 @@ def test_singleton_without_entities_has_no_strategy():
     process = FederatedProcess(
         Federation("Fed"),
         UniformDataset(list(range(2))),
-        "singleton",
+        SystemConfig("singleton"),
     )
 
     assert process._placement_strategy is None
@@ -219,7 +230,7 @@ def test_mirror_mirrors_the_federation():
     process = FederatedProcess(
         federation,
         UniformDataset(list(range(4))),
-        "mirror",
+        SystemConfig("mirror"),
     )
 
     assert process.infrastructure.id == "mirror"
@@ -233,7 +244,7 @@ def test_mirror_maps_every_entity_to_itself():
     process = FederatedProcess(
         _federation("a", "b"),
         UniformDataset(list(range(4))),
-        "mirror",
+        SystemConfig("mirror"),
     )
 
     strategy = process._placement_strategy
@@ -253,7 +264,7 @@ def test_register_uses_the_process_strategy(monkeypatch):
     process = FederatedProcess(
         _federation("a"),
         UniformDataset(list(range(2))),
-        "singleton",
+        SystemConfig("singleton"),
     )
 
     process.register()
@@ -273,7 +284,7 @@ def test_register_prefers_an_explicit_strategy(monkeypatch):
     process = FederatedProcess(
         _federation("a"),
         UniformDataset(list(range(2))),
-        "singleton",
+        SystemConfig("singleton"),
     )
     strategy = RandomStrategy(seed=1)
 

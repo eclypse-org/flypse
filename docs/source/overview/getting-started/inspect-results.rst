@@ -17,7 +17,7 @@ metric requires the default ECLYPSE metrics:
    process = FederatedProcess(
        federation,
        data,
-       "mirror",
+       SystemConfig(),
        include_default_metrics=True,
    )
    process.run(seconds=5)

@@ -1,5 +1,6 @@
 """Package for the devices, infrastructures and placement strategies."""
 
+from flypse.system.config import SystemConfig
 from flypse.system.device import Device
 from flypse.system.infrastructure import (
     SINGLETON_NODE,
@@ -14,6 +15,7 @@ from flypse.system.placement import (
 __all__ = [
     "SINGLETON_NODE",
     "Device",
+    "SystemConfig",
     "get_mirror",
     "get_mirror_strategy",
     "get_singleton",
