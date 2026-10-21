@@ -83,23 +83,47 @@ class DirichletDataset(FederatedDataset):
         splits: dict[str, list[int]] = {e: [] for e in entity_ids}
         for indices in by_class.values():
             rng.shuffle(indices)
-            gammas = [rng.gammavariate(self.alpha, 1.0) for _ in range(k)]
-            total = sum(gammas)
-            proportions = [1.0 / k] * k if total == 0.0 else [g / total for g in gammas]
-
-            n_class = len(indices)
-            allocation = [int(p * n_class) for p in proportions]
-            remaining = n_class - sum(allocation)
-            by_remainder = sorted(
-                range(k),
-                key=lambda j: proportions[j] * n_class - allocation[j],
-                reverse=True,
-            )
-            for j in range(remaining):
-                allocation[by_remainder[j]] += 1
+            allocation = _allocate(_proportions(rng, self.alpha, k), len(indices))
 
             start = 0
             for j, entity_id in enumerate(entity_ids):
                 splits[entity_id].extend(indices[start : start + allocation[j]])
                 start += allocation[j]
         return cast("dict[str, Sequence[int]]", splits)
+
+
+def _proportions(rng: random.Random, alpha: float, k: int) -> list[float]:
+    """Draw k proportions from a symmetric Dirichlet distribution.
+
+    Args:
+        rng (random.Random): The random number generator.
+        alpha (float): The concentration of the distribution.
+        k (int): The number of proportions.
+
+    Returns:
+        list[float]: The proportions, summing to 1.
+    """
+    gammas = [rng.gammavariate(alpha, 1.0) for _ in range(k)]
+    total = sum(gammas)
+    return [1.0 / k] * k if total == 0.0 else [g / total for g in gammas]
+
+
+def _allocate(proportions: list[float], n: int) -> list[int]:
+    """Allocate n items by proportions, with the largest remainder method.
+
+    Args:
+        proportions (list[float]): The proportions, summing to 1.
+        n (int): The number of items to allocate.
+
+    Returns:
+        list[int]: The number of items of each proportion, summing to n.
+    """
+    allocation = [int(p * n) for p in proportions]
+    by_remainder = sorted(
+        range(len(proportions)),
+        key=lambda j: proportions[j] * n - allocation[j],
+        reverse=True,
+    )
+    for j in range(n - sum(allocation)):
+        allocation[by_remainder[j]] += 1
+    return allocation

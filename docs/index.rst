@@ -25,7 +25,7 @@ Key features include:
 
 - federations built as graphs of entities and their connections,
 - federated datasets that split the data across entities, uniformly or with
-  Dirichlet label skew,
+  Dirichlet label or quantity skew,
 - model-agnostic parameters exchanged as numpy arrays, with hierarchical
   versioning,
 - ready-made singleton and mirror infrastructures, or any ECLYPSE

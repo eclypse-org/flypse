@@ -5,6 +5,7 @@ from flypse.data.dataset import (
     FederatedDataset,
 )
 from flypse.data.dirichlet import DirichletDataset
+from flypse.data.quantity import QuantitySkewDataset
 from flypse.data.uniform import UniformDataset
 from flypse.data.view import DataView
 
@@ -13,5 +14,6 @@ __all__ = [
     "DataView",
     "DirichletDataset",
     "FederatedDataset",
+    "QuantitySkewDataset",
     "UniformDataset",
 ]
