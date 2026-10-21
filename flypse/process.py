@@ -48,8 +48,8 @@ class FederatedProcess(Simulation):
     ):
         """Create a federated process.
 
-        The data is split across the entities of the federation and given to
-        every device, and the federation is registered, so the process is
+        The data is split across the entities of the federation holding data
+        and given to every device, and the federation is registered, so the process is
         ready to ``run``.
 
         Args:
@@ -64,8 +64,9 @@ class FederatedProcess(Simulation):
         self._federation = federation
         self._data = data
 
-        if federation.entities:
-            data._split(list(federation.entities))
+        holders = [eid for eid, e in federation.entities.items() if e.with_data]
+        if holders:
+            data._split(holders)
 
         infrastructure, self._placement_strategy = system.build(federation)
 

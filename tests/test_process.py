@@ -98,6 +98,20 @@ def test_process_splits_the_data_for_the_roster():
     assert [view_b[i] for i in range(len(view_b))] == [3, 4, 5]
 
 
+def test_process_splits_the_data_only_for_entities_with_data():
+    """Entities holding no data are left out of the split."""
+    dataset = UniformDataset(list(range(4)))
+    federation = _federation("a", "b")
+    federation.add_entity(Entity("server", with_data=False))
+
+    FederatedProcess(federation, dataset, _custom())
+
+    view_b = dataset.bind("b")
+    assert [view_b[i] for i in range(len(view_b))] == [2, 3]
+    with pytest.raises(KeyError, match="server"):
+        dataset.bind("server")
+
+
 def test_process_without_entities_does_not_split():
     """Without entities the data is left untouched."""
     dataset = UniformDataset(list(range(6)))

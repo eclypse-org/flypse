@@ -74,6 +74,13 @@ def test_entity_deploy_binds_its_view():
     assert [entity.data[i] for i in range(len(entity.data))] == [3, 4, 5]
 
 
+def test_entity_without_data_does_not_bind():
+    """An entity holding no data binds nothing, even on a device with data."""
+    entity = _deploy(Entity("a", with_data=False), _split_dataset())
+
+    assert entity.data is None
+
+
 def test_entity_deploy_without_device_data():
     """Deploying on a device without data leaves the entity without a view."""
     entity = _deploy(Entity("a"), None)

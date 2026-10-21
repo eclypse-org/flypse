@@ -79,7 +79,7 @@ returned by ``step`` is stored in the report when ``store_step`` is True.
        """Averages the estimates of its clients, weighted by their data size."""
 
        def __init__(self, entity_id):
-           super().__init__(entity_id, store_step=True)
+           super().__init__(entity_id, store_step=True, with_data=False)
            self.model = MeanModel({"mean": np.zeros(1)})
 
        async def step(self):
@@ -118,9 +118,8 @@ with ``__len__`` and ``__getitem__``) into contiguous blocks, one per entity:
 
    data = UniformDataset(list(range(100)))
 
-The data is split across all the entities of the federation, so the server
-also receives a portion, which it does not use. To exclude it, subclass the
-dataset and override its ``split`` method.
+The data is split across the entities holding data: the server is created with
+``with_data=False``, so the 100 items are split among the three clients.
 
 Run the process
 ---------------
@@ -145,8 +144,8 @@ other argument is passed to the ECLYPSE simulation configuration.
    process.run(seconds=5)
 
 With the default ``"mirror"`` infrastructure, each entity runs on its own
-device. The clients hold the items from 25 to 99, so the estimate of the
-server converges to their mean, 62.
+device. The clients hold the items from 0 to 99, so the estimate of the server
+converges to their mean, 49.5.
 
 .. note::
 

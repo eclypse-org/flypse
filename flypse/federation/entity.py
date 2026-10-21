@@ -36,6 +36,7 @@ class Entity(Service):
         self,
         entity_id: str,
         store_step: bool = False,
+        with_data: bool = True,
     ):
         """Initialize the entity.
 
@@ -43,18 +44,22 @@ class Entity(Service):
             entity_id (str): The identifier of the entity.
             store_step (bool): Whether the underlying service stores the
                 results of each step. Defaults to False.
+            with_data (bool): Whether the entity holds a portion of the
+                federation data (e.g., False for an aggregator). Defaults to
+                True.
         """
         super().__init__(
             entity_id,
             communication_interface="mpi",
             store_step=store_step,
         )
+        self.with_data = with_data
         self._data_view: DataView | None = None
 
     def on_deploy(self):
         """Bind the view of the dataset held by the hosting device."""
         data = cast("Device", self.node).data
-        if data is not None:
+        if self.with_data and data is not None:
             self._data_view = data.bind(self.id)
 
     def on_undeploy(self):
@@ -67,7 +72,8 @@ class Entity(Service):
 
         Returns:
             DataView | None: The view of the dataset, or None if the entity
-                is not deployed, or the hosting device has no dataset.
+                holds no data, is not deployed, or the hosting device has no
+                dataset.
         """
         return self._data_view
 
