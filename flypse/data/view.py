@@ -40,13 +40,19 @@ class DataView:
         """
         return len(self._indices)
 
-    def __getitem__(self, index: int) -> Any:
+    def __getitem__(self, index: int | slice) -> Any:
         """Return the item of the entity's portion at the given index.
 
+        A slice returns a :class:`DataView` of the same source over the sliced
+        indices, so nothing is copied.
+
         Args:
-            index (int): The index within the entity's portion.
+            index (int | slice): The index or slice within the entity's portion.
 
         Returns:
-            Any: The item of the source at the corresponding position.
+            Any: The item of the source at the corresponding position, or a
+                :class:`DataView` when ``index`` is a slice.
         """
+        if isinstance(index, slice):
+            return DataView(self.source, self._indices[index])
         return self.source[self._indices[index]]
