@@ -364,7 +364,8 @@ class FederatedModel(ABC):
                 record carries it.
         """
         version = self._as_version(version)
-        for record in reversed(self.versions):
+        # copy first: the entity may append while a remote metric looks up
+        for record in reversed(list(self.versions)):
             if record.version == version:
                 return record
         raise ValueError(f"unknown version {version}")
