@@ -30,7 +30,10 @@ from flypse.report import (
     get_federation_metrics,
 )
 from flypse.seed import get_seed
-from flypse.system import Device
+from flypse.system import (
+    Device,
+    SystemConfig,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -40,7 +43,6 @@ if TYPE_CHECKING:
 
     from flypse.data.dataset import FederatedDataset
     from flypse.federation import Federation
-    from flypse.system import SystemConfig
 
 
 class FederatedProcess(Simulation):
@@ -50,7 +52,7 @@ class FederatedProcess(Simulation):
         self,
         federation: Federation,
         data: FederatedDataset,
-        system: SystemConfig,
+        system: SystemConfig | None = None,
         include_federation_metrics: bool = True,
         eval_metrics: Sequence[str] = (),
         eval_every: int | None = None,
@@ -70,9 +72,10 @@ class FederatedProcess(Simulation):
         Args:
             federation (Federation): The application of the federation.
             data (FederatedDataset): The data of the federation.
-            system (SystemConfig): The infrastructure hosting the federation,
-                whose nodes are devices, and the placement of the entities
-                onto them.
+            system (SystemConfig | None): The infrastructure hosting the
+                federation, whose nodes are devices, and the placement of the
+                entities onto them. Defaults to None, meaning the mirror
+                infrastructure (``SystemConfig()``).
             include_federation_metrics (bool): Whether to report the
                 federation metrics (steps and traffic of every entity),
                 besides any given ``events``. Defaults to True.
@@ -107,6 +110,7 @@ class FederatedProcess(Simulation):
             data._split(holders)
         if federation.seed is None:
             federation.rnd.seed(get_seed())
+        system = system or SystemConfig()
         infrastructure, self._placement_strategy = system.build(federation)
         super().__init__(infrastructure, config)
         self.register()

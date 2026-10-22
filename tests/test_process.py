@@ -265,6 +265,13 @@ def test_mirror_mirrors_the_federation():
     assert set(process.infrastructure.edges) == set(federation.edges)
 
 
+def test_process_defaults_to_the_mirror():
+    """Without a system configuration, the federation is mirrored."""
+    process = FederatedProcess(_federation("a", "b"), UniformDataset(list(range(4))))
+
+    assert process.infrastructure.id == "mirror"
+
+
 def test_mirror_maps_every_entity_to_itself():
     """The mirror strategy maps each entity onto its own device."""
     process = FederatedProcess(
