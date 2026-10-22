@@ -35,6 +35,8 @@ from time import time
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
+    overload,
 )
 
 import numpy as np
@@ -127,6 +129,16 @@ class FederatedModel(ABC):
         self.versions = deque(
             [ModelVersion(self.version, time(), flat)], maxlen=max_versions
         )
+
+    @overload
+    def get_parameters(
+        self, flattened: Literal[True] = ..., version: Sequence[int] | None = ...
+    ) -> np.ndarray: ...
+
+    @overload
+    def get_parameters(
+        self, flattened: Literal[False], version: Sequence[int] | None = ...
+    ) -> dict[str, np.ndarray]: ...
 
     def get_parameters(
         self, flattened: bool = True, version: Sequence[int] | None = None

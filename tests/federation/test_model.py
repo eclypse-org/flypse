@@ -122,6 +122,17 @@ def test_get_parameters_returns_copies():
     np.testing.assert_allclose(model.model["w"], [1.0])
 
 
+def test_get_parameters_is_typed_by_its_form() -> None:
+    """The requested form fixes the static type (checked by mypy)."""
+    model = make_model({"w": np.array([1.0])})
+
+    flat: np.ndarray = model.get_parameters()
+    named: dict[str, np.ndarray] = model.get_parameters(flattened=False)
+
+    assert flat.shape == (1,)
+    assert set(named) == {"w"}
+
+
 def test_get_parameters_reads_the_live_model():
     """No caching: local training is always visible on the next read."""
     model = make_model({"w": np.array([1.0])})
