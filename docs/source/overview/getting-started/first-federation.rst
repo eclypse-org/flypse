@@ -38,7 +38,7 @@ Every write is recorded as a new version, a
 a timestamp, and the parameters as a flat vector. ``update_version`` is used
 by the entity generating a new model, at a given level (``"local"`` or
 ``"global"`` by default), while ``load_version`` is used by the entity
-receiving it.
+receiving it. Both return the recorded version, ready to be sent.
 
 The entities
 ------------
@@ -46,7 +46,9 @@ The entities
 An :class:`~flypse.federation.entity.Entity` is an ECLYPSE service: its
 behaviour is the ``step`` method, executed repeatedly once the entity is
 deployed. When deployed, the entity binds its portion of the federation data,
-available as ``self.data``. Entities exchange versions of their models with
+available as ``self.data``: a view that can be indexed, iterated, and
+sliced (e.g., ``self.data[:32]`` is a view of the first 32 items, for a
+batch). Entities exchange versions of their models with
 ``send``, ``bcast`` and ``receive``, attaching any other data as keyword
 arguments, and find their neighbours with ``get_neighbors``. A message sent
 without a model is a control message, carrying only its data (e.g.,
@@ -69,12 +71,12 @@ True.
            self.model = MeanModel({"mean": np.zeros(1)})
 
        async def step(self):
-           local_mean = np.mean([self.data[i] for i in range(len(self.data))])
+           local_mean = np.mean(list(self.data))
            estimate = self.model.get_parameters()
-           self.model.update_version(estimate + 0.5 * (local_mean - estimate), "local")
-           await self.send(
-               self.server_id, self.model.versions[-1], n_samples=len(self.data)
+           record = self.model.update_version(
+               estimate + 0.5 * (local_mean - estimate), "local"
            )
+           await self.send(self.server_id, record, n_samples=len(self.data))
            message = await self.receive()
            self.model.load_version(message.record)
 
@@ -93,8 +95,7 @@ True.
                sum(m.record.parameters * m.data["n_samples"] for m in messages)
                / n_total
            )
-           self.model.update_version(average, "global")
-           await self.bcast(self.model.versions[-1])
+           await self.bcast(self.model.update_version(average, "global"))
            return float(average[0])
 
 The synchronization of the federation emerges from the entities themselves:
@@ -163,18 +164,17 @@ Run the process
 
 A :class:`~flypse.process.FederatedProcess` emulates the federation: it splits
 the data, gives it to the devices of the infrastructure described by a
-:class:`~flypse.system.config.SystemConfig`, and registers the federation. Any
-other argument is passed to the ECLYPSE simulation configuration.
+:class:`~flypse.system.config.SystemConfig` (the ``"mirror"`` infrastructure
+when omitted), and registers the federation. Any other argument is passed to
+the ECLYPSE simulation configuration.
 
 .. code-block:: python
 
    from flypse.process import FederatedProcess
-   from flypse.system import SystemConfig
 
    process = FederatedProcess(
        federation,
        data,
-       SystemConfig(),
        step_every_ms=100.0,
        include_default_metrics=True,
    )

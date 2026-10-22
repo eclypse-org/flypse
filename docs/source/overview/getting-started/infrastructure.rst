@@ -2,8 +2,8 @@
 Choose where the federation runs
 ==================================
 
-The third argument of :class:`~flypse.process.FederatedProcess` is a
-:class:`~flypse.system.config.SystemConfig`: the infrastructure hosting the
+The third argument of :class:`~flypse.process.FederatedProcess`, ``system``,
+is a :class:`~flypse.system.config.SystemConfig`: the infrastructure hosting the
 federation, and the placement strategy mapping the entities onto it. Each node
 of the infrastructure becomes a :class:`~flypse.system.device.Device` holding
 the federation data, from which the entities deployed on it bind their own
@@ -37,7 +37,7 @@ resources. Each entity is placed on its own device:
 
 .. code-block:: python
 
-   process = FederatedProcess(federation, data, SystemConfig("mirror"))
+   process = FederatedProcess(federation, data)  # or SystemConfig("mirror")
 
 The communication cost of a message then depends on the latency and the
 bandwidth of the links it traverses, and on the size of the message.

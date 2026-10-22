@@ -14,12 +14,7 @@ metric requires the default ECLYPSE metrics:
 
 .. code-block:: python
 
-   process = FederatedProcess(
-       federation,
-       data,
-       SystemConfig(),
-       include_default_metrics=True,
-   )
+   process = FederatedProcess(federation, data, include_default_metrics=True)
    process.run(seconds=5)
 
    frame = process.report.service(service_ids="server")
@@ -55,44 +50,48 @@ Evaluation
 
 An entity evaluates itself by overriding ``evaluate``, returning the value of
 each evaluation metric by name (``None``, the default, means it does not
-evaluate). For example, a learner can keep a test part of its own data and
-evaluate on it the latest version of its model:
+evaluate). For example, a learner can keep a test part of its own data,
+train on the rest, and evaluate on it the latest version of its model:
 
 .. code-block:: python
 
    class Learner(Entity):
        def on_deploy(self):
            super().on_deploy()
-           parts = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
-           split = parts.apply(self.data)
-           self.train, self.test = split["train"], split["test"]
+           splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
+           parts = splitter.apply(self.data)
+           self.data, self.test = parts["train"], parts["test"]
 
        def evaluate(self):
            record = self.model.versions[-1]
-           return {"loss": test_loss(record.parameters, self.test)}
+           params = self.model.get_parameters(flattened=False, version=record.version)
+           return {"loss": test_loss(params, self.test)}
 
 ``evaluate`` runs on the device while the entity keeps stepping, so it should
 evaluate a snapshot of the model, such as a recorded version, rather than the
-live model.
+live model. ``get_parameters`` rebuilds the named parameters of a recorded
+version.
 
-Every process has an ``evaluate`` event, which evaluates the entities when
-triggered and keeps the results in their ``eval_metrics``. The names given as
-``eval_metrics`` to the process are reported right after each evaluation:
+Every process has an ``evaluate`` event, which evaluates the entities and
+keeps the results in their ``eval_metrics``. The names given as
+``eval_metrics`` to the process are reported right after each evaluation, and
+``eval_every`` evaluates the entities every given number of steps of the
+process:
 
 .. code-block:: python
 
-   process = FederatedProcess(federation, data, SystemConfig(), eval_metrics=["loss"])
-   process.start()
-   ...
-   process.trigger("evaluate")
-   ...
-   process.stop()
+   process = FederatedProcess(federation, data, eval_metrics=["loss"], eval_every=10)
+   process.run(seconds=5)
 
-   frame = process.report.service()
+   frame = process.report.service(event_ids="evaluate")
    losses = frame[frame["callback_id"] == "loss"]
 
+The event can also be triggered by hand, e.g., between ``process.start()``
+and ``process.stop()``, with ``process.trigger("evaluate")``.
+
 Entities that do not evaluate, or whose evaluation lacks a name, report no
-row for it.
+row for it. Results under names not given as ``eval_metrics`` are not
+reported, and a warning in the log of the entity says so.
 
 Report format and location
 --------------------------
