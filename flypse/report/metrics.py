@@ -21,7 +21,9 @@ from typing import (
 )
 
 from eclypse.report.metrics import metric
+from eclypse.utils.constants import DRIVING_EVENT
 from eclypse.workflow.event.wrapper import EventWrapper
+from eclypse.workflow.trigger import PeriodicCascadeTrigger
 
 from flypse.federation.traffic import Traffic
 
@@ -59,16 +61,21 @@ EVALUATE_EVENT = "evaluate"
 """The name of the event evaluating the entities."""
 
 
-def get_evaluation_events(names: Sequence[str]) -> list[EclypseEvent]:
+def get_evaluation_events(
+    names: Sequence[str], every: int | None = None
+) -> list[EclypseEvent]:
     """Create the evaluation event, and one metric per evaluation metric.
 
-    The ``evaluate`` event has no trigger of its own: it fires when the
-    process triggers it. The events are created anew on every call, so that
-    each process gets its own instances.
+    The ``evaluate`` event fires when the process triggers it and, if
+    ``every`` is given, every ``every`` steps of the process. The events are
+    created anew on every call, so that each process gets its own instances.
 
     Args:
         names (Sequence[str]): The names of the evaluation metrics returned
             by ``evaluate``.
+        every (int | None): The number of steps of the process between two
+            evaluations. Defaults to None, meaning the entities are evaluated
+            only when the process triggers the ``evaluate`` event.
 
     Returns:
         list[EclypseEvent]: The ``evaluate`` event, followed by one metric
@@ -78,7 +85,9 @@ def get_evaluation_events(names: Sequence[str]) -> list[EclypseEvent]:
         EventWrapper(
             _evaluate(names),
             name=EVALUATE_EVENT,
-            triggers=[],
+            triggers=(
+                [] if every is None else [PeriodicCascadeTrigger(DRIVING_EVENT, every)]
+            ),
             event_type="service",
             remote=True,
         ),

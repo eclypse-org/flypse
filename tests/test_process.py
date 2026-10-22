@@ -15,6 +15,7 @@ from eclypse.remote.bootstrap import RemoteBootstrap
 from eclypse.report.metrics import metric
 from eclypse.simulation import Simulation
 from eclypse.utils.constants import RND_SEED
+from eclypse.workflow.trigger import PeriodicCascadeTrigger
 
 from flypse.data import (
     DirichletDataset,
@@ -361,6 +362,21 @@ def test_process_always_has_the_evaluate_event():
     assert EVALUATE_EVENT in _event_names(plain)
     assert "loss" not in _event_names(plain)
     assert {EVALUATE_EVENT, "loss"} <= _event_names(evaluating)
+
+
+def test_process_evaluates_periodically():
+    """The evaluate event fires every ``eval_every`` steps."""
+    process = FederatedProcess(
+        _federation("a"),
+        UniformDataset(list(range(2))),
+        _custom(),
+        eval_every=5,
+    )
+
+    (evaluate,) = (e for e in process._sim_config.events if e.name == EVALUATE_EVENT)
+    (trigger,) = evaluate.trigger_bucket.triggers
+    assert isinstance(trigger, PeriodicCascadeTrigger)
+    assert trigger.every_n_triggers == 5
 
 
 def _class(item: int) -> int:

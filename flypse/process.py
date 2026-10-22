@@ -53,6 +53,7 @@ class FederatedProcess(Simulation):
         system: SystemConfig,
         include_federation_metrics: bool = True,
         eval_metrics: Sequence[str] = (),
+        eval_every: int | None = None,
         **simulation_config: Any,
     ):
         """Create a federated process.
@@ -79,6 +80,10 @@ class FederatedProcess(Simulation):
                 by the ``evaluate`` of the entities, each reported whenever
                 the ``evaluate`` event is triggered (e.g.
                 ``process.trigger("evaluate")``). Defaults to no metrics.
+            eval_every (int | None): The number of steps of the process
+                between two evaluations of the entities. Defaults to None,
+                meaning the entities are evaluated only when the ``evaluate``
+                event is triggered.
             **simulation_config: The arguments of the ECLYPSE
                 ``SimulationConfig``, except ``remote``.
         """
@@ -88,7 +93,7 @@ class FederatedProcess(Simulation):
         events = list(simulation_config.pop("events", None) or [])
         if include_federation_metrics:
             events += get_federation_metrics()
-        events += get_evaluation_events(eval_metrics)
+        events += get_evaluation_events(eval_metrics, eval_every)
         config = SimulationConfig(
             remote=RemoteBootstrap(node_class=Device, data=data),
             events=events,

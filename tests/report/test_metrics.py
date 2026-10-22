@@ -6,6 +6,9 @@ from dataclasses import fields
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+from eclypse.utils.constants import DRIVING_EVENT
+from eclypse.workflow.trigger import PeriodicCascadeTrigger
+
 from flypse.federation import Traffic
 from flypse.report import (
     EVALUATE_EVENT,
@@ -76,6 +79,16 @@ def test_evaluation_events_are_one_event_and_one_metric_per_name():
     assert [m.name for m in metrics] == ["loss", "accuracy"]
     assert all(m.is_metric and m.type == "service" and m._remote for m in metrics)
     assert all(m._trigger(evaluate) for m in metrics)
+
+
+def test_evaluate_event_can_fire_periodically():
+    """Given ``every``, the evaluate event fires every ``every`` steps."""
+    evaluate, _ = get_evaluation_events(["loss"], every=3)
+
+    (trigger,) = evaluate.trigger_bucket.triggers
+    assert isinstance(trigger, PeriodicCascadeTrigger)
+    assert trigger.trigger_event == DRIVING_EVENT
+    assert trigger.every_n_triggers == 3
 
 
 def test_evaluate_event_keeps_the_evaluation_of_the_entity():
