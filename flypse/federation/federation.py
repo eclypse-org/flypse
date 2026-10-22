@@ -94,9 +94,13 @@ class Federation(Application):
 
         Raises:
             TypeError: If the entity is not an :class:`Entity`.
+            ValueError: If an entity with the same identifier is already in
+                the federation.
         """
         if not isinstance(entity, Entity):
             raise TypeError(f"Expected Entity instance, got {type(entity).__name__}")
+        if entity.id in self.entities:
+            raise ValueError(f"Entity {entity.id!r} is already in the federation.")
         super().add_service(entity, **assets)
 
     def add_connection(

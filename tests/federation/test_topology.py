@@ -35,7 +35,7 @@ def test_builders_forward_the_federation_arguments():
 
 def test_builders_reject_duplicate_identifiers():
     """Two entities with the same identifier are rejected."""
-    with pytest.raises(ValueError, match="unique"):
+    with pytest.raises(ValueError, match="already in the federation"):
         get_star(Entity("s"), [Entity("a"), Entity("a")])
 
 
@@ -63,7 +63,7 @@ def test_tree_rejects_parents_outside_the_tree():
 
 def test_tree_rejects_cycles():
     """An entity appearing twice would close a cycle."""
-    with pytest.raises(ValueError, match="unique"):
+    with pytest.raises(ValueError, match="already in the federation"):
         get_tree(Entity("server"), {"server": [Entity("c1")], "c1": [Entity("server")]})
 
 

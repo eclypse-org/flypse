@@ -121,9 +121,6 @@ def _federation(entities: Sequence[Entity], args: dict[str, Any]) -> Federation:
     Raises:
         ValueError: If two entities share an identifier.
     """
-    ids = [entity.id for entity in entities]
-    if len(set(ids)) != len(ids):
-        raise ValueError("The identifiers of the entities must be unique.")
     federation = Federation(**args)
     for entity in entities:
         federation.add_entity(entity)

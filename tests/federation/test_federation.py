@@ -74,6 +74,17 @@ def test_add_entity_rejects_non_entity():
         federation.add_entity("a")
 
 
+def test_add_entity_rejects_duplicate_identifiers():
+    """An entity cannot replace another with the same identifier."""
+    federation = Federation()
+    first = Entity("a")
+    federation.add_entity(first)
+
+    with pytest.raises(ValueError, match="already in the federation"):
+        federation.add_entity(Entity("a"))
+    assert federation.entities["a"] is first
+
+
 def test_entity_cannot_join_two_federations():
     """An entity already assigned to a federation cannot be reassigned."""
     entity = Entity("a")
