@@ -97,11 +97,19 @@ def get_evaluation_events(names: Sequence[str]) -> list[EclypseEvent]:
 def _evaluate(entity: Entity, **_: Any):
     """Evaluate the entity, keeping the results in its ``eval_metrics``.
 
+    The previous results are cleared first, and a failing evaluation is
+    logged and leaves no results, so the metrics never report stale values
+    and the other entities, and the process, carry on.
+
     Args:
         entity (Entity): The live entity.
         **_: The data of the triggering event, unused.
     """
-    entity.eval_metrics = entity.evaluate() or {}
+    entity.eval_metrics = {}
+    try:
+        entity.eval_metrics = entity.evaluate() or {}
+    except Exception:
+        entity.logger.exception("Evaluation failed.")
 
 
 def _eval_metric(name: str) -> Callable[..., Any]:

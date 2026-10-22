@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import fields
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 from flypse.federation import Traffic
 from flypse.report import (
@@ -56,9 +57,12 @@ class _Evaluating:
 
     def __init__(self, evaluation):
         self.evaluation = evaluation
-        self.eval_metrics = {"stale": 1.0}
+        self.eval_metrics = {"loss": 9.0}
+        self.logger = Mock()
 
     def evaluate(self):
+        if isinstance(self.evaluation, Exception):
+            raise self.evaluation
         return self.evaluation
 
 
@@ -95,3 +99,15 @@ def test_evaluate_event_clears_the_evaluation_of_a_non_evaluating_entity():
 
     assert entity.eval_metrics == {}
     assert loss(entity) is None
+
+
+def test_failing_evaluation_is_logged_and_leaves_no_stale_results():
+    """A raising evaluate is logged, and its metrics report no row."""
+    evaluate, loss = get_evaluation_events(["loss"])
+    entity = _Evaluating(RuntimeError("boom"))
+
+    evaluate(entity)
+
+    assert entity.eval_metrics == {}
+    assert loss(entity) is None
+    entity.logger.exception.assert_called_once()
