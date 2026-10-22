@@ -88,6 +88,7 @@ def test_evaluate_event_keeps_the_evaluation_of_the_entity():
     assert entity.eval_metrics == {"loss": 0.5}
     assert loss(entity) == 0.5
     assert accuracy(entity) is None
+    entity.logger.warning.assert_not_called()
 
 
 def test_evaluate_event_clears_the_evaluation_of_a_non_evaluating_entity():
@@ -111,3 +112,15 @@ def test_failing_evaluation_is_logged_and_leaves_no_stale_results():
     assert entity.eval_metrics == {}
     assert loss(entity) is None
     entity.logger.exception.assert_called_once()
+
+
+def test_evaluate_event_warns_about_undeclared_metrics():
+    """Results under undeclared names are never reported, so they are warned."""
+    evaluate, loss = get_evaluation_events(["loss"])
+    entity = _Evaluating({"los": 0.5})
+
+    evaluate(entity)
+
+    assert loss(entity) is None
+    entity.logger.warning.assert_called_once()
+    assert "los" in entity.logger.warning.call_args.args[0]

@@ -76,7 +76,7 @@ def get_evaluation_events(names: Sequence[str]) -> list[EclypseEvent]:
     """
     return [
         EventWrapper(
-            _evaluate,
+            _evaluate(names),
             name=EVALUATE_EVENT,
             triggers=[],
             event_type="service",
@@ -94,22 +94,42 @@ def get_evaluation_events(names: Sequence[str]) -> list[EclypseEvent]:
     ]
 
 
-def _evaluate(entity: Entity, **_: Any):
-    """Evaluate the entity, keeping the results in its ``eval_metrics``.
-
-    The previous results are cleared first, and a failing evaluation is
-    logged and leaves no results, so the metrics never report stale values
-    and the other entities, and the process, carry on.
+def _evaluate(names: Sequence[str]) -> Callable[..., None]:
+    """Create the evaluation of an entity.
 
     Args:
-        entity (Entity): The live entity.
-        **_: The data of the triggering event, unused.
+        names (Sequence[str]): The names of the reported evaluation metrics.
+
+    Returns:
+        Callable[..., None]: The function evaluating an entity.
     """
-    entity.eval_metrics = {}
-    try:
-        entity.eval_metrics = entity.evaluate() or {}
-    except Exception:
-        entity.logger.exception("Evaluation failed.")
+
+    def evaluate(entity: Entity, **_: Any):
+        """Evaluate the entity, keeping the results in its ``eval_metrics``.
+
+        The previous results are cleared first, and a failing evaluation is
+        logged and leaves no results, so the metrics never report stale
+        values and the other entities, and the process, carry on. Results
+        under undeclared names are never reported, so they are warned about.
+
+        Args:
+            entity (Entity): The live entity.
+            **_: The data of the triggering event, unused.
+        """
+        entity.eval_metrics = {}
+        try:
+            entity.eval_metrics = entity.evaluate() or {}
+        except Exception:
+            entity.logger.exception("Evaluation failed.")
+        else:
+            undeclared = sorted(entity.eval_metrics.keys() - set(names))
+            if undeclared:
+                entity.logger.warning(
+                    f"Evaluation metrics {undeclared} are not declared in "
+                    "eval_metrics, so they are not reported."
+                )
+
+    return evaluate
 
 
 def _eval_metric(name: str) -> Callable[..., Any]:
