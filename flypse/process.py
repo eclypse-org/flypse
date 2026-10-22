@@ -87,8 +87,8 @@ class FederatedProcess(Simulation):
             **simulation_config: The arguments of the ECLYPSE
                 ``SimulationConfig``, except ``remote``.
         """
-        self._federation = federation
-        self._data = data
+        self.federation = federation
+        self.data = data
 
         events = list(simulation_config.pop("events", None) or [])
         if include_federation_metrics:
@@ -110,24 +110,6 @@ class FederatedProcess(Simulation):
         infrastructure, self._placement_strategy = system.build(federation)
         super().__init__(infrastructure, config)
         self.register()
-
-    @property
-    def federation(self) -> Federation:
-        """Get the federation emulated by the process.
-
-        Returns:
-            Federation: The federation of the process.
-        """
-        return self._federation
-
-    @property
-    def data(self) -> FederatedDataset:
-        """Get the data of the federation.
-
-        Returns:
-            FederatedDataset: The data given to the devices.
-        """
-        return self._data
 
     def register(
         self,
@@ -153,13 +135,13 @@ class FederatedProcess(Simulation):
             ValueError: If the application is not the federation of the
                 process.
         """
-        if application is not None and application is not self._federation:
+        if application is not None and application is not self.federation:
             raise ValueError(
                 "A FederatedProcess emulates a single federation: "
                 f"cannot include '{application.id}' "
-                f"while emulating '{self._federation.id}'."
+                f"while emulating '{self.federation.id}'."
             )
         super().register(
-            self._federation,
+            self.federation,
             placement_strategy or self._placement_strategy,
         )
