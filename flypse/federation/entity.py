@@ -2,9 +2,10 @@
 
 An entity is the basic unit of a federation: an ECLYPSE service deployed onto
 a device of the infrastructure, from which it binds its view of the federation
-data. What an entity does with its data, what it exchanges, and how it
-collaborates with the other entities is defined by subclasses, implementing
-the ``step`` method.
+data, available as ``data`` (None if the entity holds no data). An entity may
+reassign ``data``, e.g. to a part of its view. What an entity does with its
+data, what it exchanges, and how it collaborates with the other entities is
+defined by subclasses, implementing the ``step`` method.
 
 Entities exchange versions of their models, or control messages carrying only
 data, with ``send``, ``bcast`` and ``receive``, and find the entities they are
@@ -68,7 +69,7 @@ class Entity(Service):
         self.traffic = Traffic()
         self.rng = random.Random()
         self.eval_metrics: dict[str, float] = {}
-        self._data_view: DataView | None = None
+        self.data: DataView | None = None
 
     def on_deploy(self):
         """Seed the ``rng`` of the entity and bind its view of the data.
@@ -82,22 +83,11 @@ class Entity(Service):
             self.rng.seed(f"{seed}/{self.id}")
         data = cast("Device", self.node).data
         if self.with_data and data is not None:
-            self._data_view = data.bind(self.id)
+            self.data = data.bind(self.id)
 
     def on_undeploy(self):
         """Release the view of the dataset bound at deploy time."""
-        self._data_view = None
-
-    @property
-    def data(self) -> DataView | None:
-        """Get the view of the dataset bound to the entity.
-
-        Returns:
-            DataView | None: The view of the dataset, or None if the entity
-                holds no data, is not deployed, or the hosting device has no
-                dataset.
-        """
-        return self._data_view
+        self.data = None
 
     async def get_neighbors(self) -> list[str]:
         """Get the entities connected to this entity.

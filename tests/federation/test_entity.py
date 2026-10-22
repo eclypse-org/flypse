@@ -8,7 +8,10 @@ import numpy as np
 import pytest
 from eclypse.utils.constants import RND_SEED
 
-from flypse.data import UniformDataset
+from flypse.data import (
+    FractionSplitter,
+    UniformDataset,
+)
 from flypse.federation import (
     Entity,
     Message,
@@ -123,6 +126,18 @@ def test_entity_redeploy_rebinds():
     entity.on_deploy()
 
     assert [entity.data[i] for i in range(len(entity.data))] == [0, 1, 2]
+
+
+def test_entity_can_reassign_its_data():
+    """An entity can replace its view, e.g. with a part of it."""
+    entity = _deploy(Entity("b"), _split_dataset())
+    parts = FractionSplitter({"train": 2 / 3, "test": 1 / 3}, order=int).apply(
+        entity.data
+    )
+
+    entity.data = parts["train"]
+
+    assert [entity.data[i] for i in range(len(entity.data))] == [3, 4]
 
 
 async def test_entity_get_neighbors():
