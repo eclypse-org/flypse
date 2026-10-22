@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from flypse.data import FractionSplitter
 from flypse.federation import (
     Entity,
     Federation,
@@ -63,16 +64,35 @@ class FedAvgClient(Entity):
         self.model = FedAvgModel(LinearModel([0.0] * n_features, 0.0))
 
     def on_deploy(self):
-        """Bind the local data and initialize the model randomly.
+        """Bind the local data, initialize the model and split off a test part.
 
-        The initial model is drawn from the ``rng`` of the entity, seeded from
-        the seed of the process.
+        The initial model and the split are drawn from the ``rng`` of the
+        entity, seeded from the seed of the process. The entity trains on 80%
+        of its data and keeps the rest to evaluate the model.
         """
         super().on_deploy()
         self.model.model = LinearModel(
             [self.rng.uniform(-0.1, 0.1) for _ in range(self._n_features)],
             self.rng.uniform(-0.1, 0.1),
         )
+        if self.data is not None:
+            splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
+            parts = splitter.apply(self.data)
+            self.data, self.test = parts["train"], parts["test"]
+
+    def evaluate(self):
+        """Evaluate the latest recorded model on the test part.
+
+        It runs while the entity keeps stepping, so it evaluates a snapshot of
+        the latest recorded version rather than the live model.
+
+        Returns:
+            dict[str, float] | None: The test loss, or None if no data is bound.
+        """
+        if self.data is None:
+            return None
+        model = self.model.snapshot(self.model.versions[-1])
+        return {"test_loss": mean_squared_error(model, self.test)}
 
     async def step(self):
         """Train locally and synchronize with the aggregator.
@@ -89,12 +109,12 @@ class FedAvgClient(Entity):
             epochs=self._epochs,
             lr=self._lr,
         )
-        self.model.update_version(self.model.get_parameters(), "local")
+        record = self.model.update_version(self.model.get_parameters(), "local")
         loss = mean_squared_error(self.model.model, self.data)
 
         await self.send(
             self._server_id,
-            self.model.versions[-1],
+            record,
             n_samples=len(self.data),
             loss=loss,
         )
@@ -139,8 +159,7 @@ class FedAvgServer(Entity):
         average = (
             sum(m.record.parameters * m.data["n_samples"] for m in messages) / n_total
         )
-        self.model.update_version(average, "global")
-        await self.bcast(self.model.versions[-1])
+        await self.bcast(self.model.update_version(average, "global"))
 
         global_loss = (
             sum(m.data["loss"] * m.data["n_samples"] for m in messages) / n_total

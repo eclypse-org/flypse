@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     )
 
     from flypse.data.view import DataView
+    from flypse.federation import ModelVersion
 
 
 @dataclass
@@ -70,8 +71,7 @@ def local_train(
     """
     trained = model.copy()
     for _ in range(epochs):
-        for index in range(len(data)):
-            features, target = data[index]
+        for features, target in data:
             error = trained.predict(features) - target
             for j, x in enumerate(features):
                 trained.weights[j] -= lr * error * x
@@ -92,8 +92,7 @@ def mean_squared_error(model: LinearModel, data: DataView) -> float:
     if len(data) == 0:
         return 0.0
     total = 0.0
-    for index in range(len(data)):
-        features, target = data[index]
+    for features, target in data:
         total += (model.predict(features) - target) ** 2
     return total / len(data)
 
@@ -110,3 +109,17 @@ class FedAvgModel(FederatedModel):
             self.model.weights = [float(w) for w in value]
         else:
             self.model.bias = float(value[0])
+
+    def snapshot(self, record: ModelVersion) -> LinearModel:
+        """Return a linear model with the parameters of a recorded version.
+
+        Args:
+            record (ModelVersion): The recorded version.
+
+        Returns:
+            LinearModel: A new model, independent of the live one.
+        """
+        params = self.get_parameters(flattened=False, version=record.version)
+        return LinearModel(
+            [float(w) for w in params["weights"]], float(params["bias"][0])
+        )

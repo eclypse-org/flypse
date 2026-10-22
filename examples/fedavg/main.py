@@ -8,7 +8,8 @@ A star federation of learners around one aggregator is emulated with a mirror
 infrastructure (one device per entity, resources equal to the requirements).
 Every learner trains a linear model on its own (non-IID) slice of the data and
 exchanges it with the aggregator, which averages the models (FedAvg) and
-broadcasts the global one back.
+broadcasts the global one back. Every learner keeps 20% of its data as a test
+part, on which it evaluates its latest model every few steps of the process.
 
 Ray starts its workers through ``uv run`` when the driver runs under it,
 syncing a fresh environment for each worker: the switch below, set before Ray
@@ -23,7 +24,6 @@ os.environ.setdefault("RAY_ENABLE_UV_RUN_RUNTIME_ENV", "0")
 
 from flypse.data import UniformDataset
 from flypse.process import FederatedProcess
-from flypse.system import SystemConfig
 
 from examples.fedavg.data import make_source
 from examples.fedavg.entities import build_federation
@@ -52,6 +52,9 @@ STEP_EVERY_MS = 100.0
 SECONDS = 10.0
 """How long the emulation runs."""
 
+EVAL_EVERY = 10
+"""How many steps of the process pass between two evaluations."""
+
 
 def main() -> None:
     """Build and run the federated averaging experiment."""
@@ -68,14 +71,16 @@ def main() -> None:
     process = FederatedProcess(
         federation,
         data,
-        SystemConfig(),
         seed=0,
         step_every_ms=STEP_EVERY_MS,
         include_default_metrics=True,
+        eval_metrics=["test_loss"],
+        eval_every=EVAL_EVERY,
     )
     process.run(seconds=SECONDS)
 
     print(process.report.service(service_ids=SERVER_ID))
+    print(process.report.service(event_ids="evaluate"))
 
 
 if __name__ == "__main__":
