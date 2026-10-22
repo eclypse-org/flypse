@@ -317,10 +317,12 @@ def test_roundtrip_between_models():
     source = make_model({"w": np.array([[1.0, 2.0], [3.0, 4.0]])})
     target = make_model({"w": np.zeros((2, 2))})
 
-    source.update_version(source.get_parameters() + 1.0, level="local")
+    record = source.update_version(source.get_parameters() + 1.0, level="local")
 
-    target.load_version(source.versions[-1])
+    loaded = target.load_version(record)
 
+    assert record is source.versions[-1]
+    assert loaded is target.versions[-1]
     np.testing.assert_allclose(target.model["w"], source.model["w"])
     assert target.version == source.version
     np.testing.assert_allclose(
