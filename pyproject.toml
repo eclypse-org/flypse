@@ -48,10 +48,6 @@ dev = [
     "ruff>=0.16.4",
 ]
 
-deploy = [
-    "twine>=7.0.0",
-]
-
 test = [
     "polars>=2.0.0",
     "pytest>=9.1.1",
@@ -62,7 +58,6 @@ test = [
 ]
 
 docs = [
-    "docformatter[tomli]>=1.7.8",
     "jinja2>=3.1.6",
     "myst-parser>=5.1.0",
     "pydata-sphinx-theme>=0.22.0",
@@ -76,18 +71,15 @@ docs = [
 
 # Build backend
 [build-system]
-requires = ["uv_build>=0.11.8,<0.12"]
+requires = ["uv_build>=0.13.5,<0.14"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-root = "."
 module-name = "flypse"
 
-[[tool.uv.index]]
-name = "testpypi"
-url = "https://test.pypi.org/simple/"
-publish-url = "https://test.pypi.org/legacy/"
-explicit = true
+[tool.uv]
+required-version = ">=0.13"
 
 
 # -------------------------
@@ -98,6 +90,8 @@ explicit = true
 name = "cz_conventional_commits"
 version_provider = "uv"
 tag_format = "$version"
+bump_message = "chore(release): bump version $current_version → $new_version"
+update_changelog_on_bump = true
 version_files = [
     "pyproject.toml:^version",
     "flypse/__init__.py:__version__",
