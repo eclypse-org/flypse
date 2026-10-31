@@ -44,7 +44,6 @@ exclude_patterns = [
     "_build",
     "Thumbs.db",
     ".DS_Store",
-    "README.md",
 ]
 suppress_warnings = ["toc.not_included"]
 
