@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from eclypse.graph.assets.defaults import get_default_path_aggregators
 
-from flypse.federation import Entity, Federation
+from flypse.federation import (
+    Entity,
+    Federation,
+)
 from flypse.system import (
     SINGLETON_NODE,
     get_mirror,

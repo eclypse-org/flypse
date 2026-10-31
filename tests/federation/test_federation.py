@@ -5,7 +5,10 @@ from __future__ import annotations
 import pytest
 from eclypse.graph import Application
 
-from flypse.federation import Entity, Federation
+from flypse.federation import (
+    Entity,
+    Federation,
+)
 
 
 def test_federation_is_an_application():

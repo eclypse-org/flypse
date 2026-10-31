@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     import networkx as nx
-
     from eclypse.graph.assets import Asset
     from eclypse.utils.types import (
         InitPolicy,

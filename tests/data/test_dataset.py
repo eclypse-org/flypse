@@ -6,7 +6,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from flypse.data import DataView, FederatedDataset
+from flypse.data import (
+    DataView,
+    FederatedDataset,
+)
 from flypse.data.dataset import _normalize_entities
 
 if TYPE_CHECKING:

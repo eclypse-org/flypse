@@ -7,7 +7,10 @@ from eclypse.graph import Infrastructure
 from eclypse.graph.assets.defaults import cpu
 from eclypse.placement import PlacementView
 
-from flypse.federation import Entity, Federation
+from flypse.federation import (
+    Entity,
+    Federation,
+)
 from flypse.system import (
     SINGLETON_NODE,
     ExclusiveStrategy,
