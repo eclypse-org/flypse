@@ -4,7 +4,16 @@ version = "0.1.0"
 description = "Federated Learning framework based on ECLYPSE"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
+license = "MIT"
 license-files = ["LICENSE"]
+classifiers = [
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
 
 authors = [
     { name = "Valerio De Caro", email = "valerio@valeriodecaro.com" },
@@ -25,6 +34,8 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/eclypse-org/flypse"
 Repository = "https://github.com/eclypse-org/flypse"
+Documentation = "https://flypse.readthedocs.io/en/latest/"
+Changelog = "https://github.com/eclypse-org/flypse/blob/main/CHANGELOG.md"
 
 
 # Dependency Groups
