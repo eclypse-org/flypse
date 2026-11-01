@@ -71,7 +71,8 @@ def _cpu_infrastructure(**cpus: int) -> Infrastructure:
     """Return an infrastructure whose devices only offer the given cpu."""
     infrastructure = Infrastructure(
         "Infra",
-        node_assets={"cpu": cpu()},
+        # a default value: ECLYPSE's placement view rebuilds the graph with it
+        node_assets={"cpu": cpu(init_fn_or_value=0)},
         edge_assets={},
         path_assets_aggregators={},
     )
