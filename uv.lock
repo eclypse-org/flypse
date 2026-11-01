@@ -613,7 +613,7 @@ wheels = [
 
 [[package]]
 name = "eclypse"
-version = "0.9.0"
+version = "0.9.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -623,7 +623,7 @@ dependencies = [
     { name = "pandas" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f2/48/ea119357dbb393dd10a9e6dc3a9b2bef54e7674803b4fe5892ff6e5de9cf/eclypse-0.9.0-py3-none-any.whl", hash = "sha256:528a517137b6525557b43cb1bcf4f292e9c4cdef97531e9f464185c606dd6354", size = 401246, upload-time = "2026-04-28T16:22:49.71Z" },
+    { url = "https://files.pythonhosted.org/packages/72/25/8a776b890f5d67a32f95c056b0aeb65baeaa628d07e9c267f21022bdad25/eclypse-0.9.1-py3-none-any.whl", hash = "sha256:bac623306a51bc500e204377b23caf1e352e677002ffa7d76873419458752e9e", size = 437694, upload-time = "2026-10-22T21:56:13.024Z" },
 ]
 
 [[package]]
@@ -686,7 +686,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "eclypse", specifier = ">=0.9.0" },
+    { name = "eclypse", specifier = ">=0.9.1" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "ray", extras = ["default"], specifier = ">=2.59.0" },
 ]

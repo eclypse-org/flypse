@@ -26,7 +26,7 @@ maintainers = [
 ]
 
 dependencies = [
-    "eclypse>=0.9.0",
+    "eclypse>=0.9.1",
     "numpy>=1.26",
     "ray[default]>=2.59.0",
 ]
