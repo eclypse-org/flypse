@@ -93,9 +93,8 @@ jobs:
         uses: astral-sh/setup-uv@v10.3.3
 
       - name: Upload to PyPI
-        # trusted publishing: no token, PyPI trusts this workflow
         run: |
-          uv publish -v
+          uv publish -v --trusted-publishing always
 
       - name: Create GitHub Release
         env:
