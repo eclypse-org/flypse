@@ -148,13 +148,25 @@ icon_links = [
     },
 ]
 
+# they have no page toc: an edit link alone would narrow their cards
+HUBS = [
+    "source/api/index",
+    "source/overview/index",
+    "source/overview/advanced/index",
+    "source/overview/concepts/index",
+    "source/overview/examples/index",
+]
+
 html_theme_options = {
     "navbar_start": ["navbar-logo"],
     "navbar_center": ["navbar-nav"],
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "navbar_persistent": ["search-button-field"],
     "navbar_align": "left",
-    "secondary_sidebar_items": ["page-toc", "edit-this-page"],
+    "secondary_sidebar_items": {
+        "**": ["page-toc", "edit-this-page"],
+        **dict.fromkeys(HUBS, []),
+    },
     "footer_start": ["last-updated", "copyright"],
     "footer_center": ["sphinx-version"],
     "footer_end": ["theme-version"],
