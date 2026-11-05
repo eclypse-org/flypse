@@ -686,7 +686,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "eclypse", specifier = ">=0.9.1" },
+    { name = "eclypse", specifier = ">=0.10.0" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "ray", extras = ["default"], specifier = ">=2.59.0" },
 ]
