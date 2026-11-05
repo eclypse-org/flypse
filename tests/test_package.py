@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from importlib.metadata import version
+
 import flypse
 
 
 def test_version_is_exposed():
-    """The package exposes its version."""
-    assert flypse.__version__ == "0.1.0"
+    """The package exposes its installed version."""
+    assert flypse.__version__ == version("flypse")
