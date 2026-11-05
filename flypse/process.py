@@ -6,7 +6,7 @@ the entities onto them), the **federation** (the application, made of entities
 and their interactions) and the **federation data**, and runs them through
 ECLYPSE's remote emulation.
 
-Being a :class:`~eclypse.simulation.Simulation`, it inherits the whole
+Being a :class:`~eclypse.simulation.simulation.Simulation`, it inherits the whole
 ECLYPSE lifecycle (``register``, ``start``, ``step``, ``run``, reporting),
 while the emulation of the federation is set up implicitly: the infrastructure
 nodes become devices holding the federation data.
@@ -46,7 +46,14 @@ if TYPE_CHECKING:
 
 
 class FederatedProcess(Simulation):
-    """The emulation of a federation over a system of devices."""
+    """The emulation of a federation over a system of devices.
+
+    Example:
+        .. code-block:: python
+
+            process = FederatedProcess(federation, data, step_every_ms=100.0, seed=0)
+            process.run(seconds=10)
+    """
 
     def __init__(
         self,
@@ -74,10 +81,13 @@ class FederatedProcess(Simulation):
                 entities onto them. Defaults to None, meaning the mirror
                 infrastructure (``SystemConfig()``).
             **simulation_config: The arguments of the ECLYPSE
-                ``SimulationConfig``, except ``remote``.
+                ``SimulationConfig``, except ``remote``. ``step_every_ms`` must be
+                given to run the process: without it, entities are not deployed.
         """
         self.federation = federation
+        """The federation of the process."""
         self.data = data
+        """The data of the federation."""
 
         reporters = simulation_config.pop("reporters", None) or {}
         config = SimulationConfig(
@@ -148,6 +158,12 @@ class FederatedProcess(Simulation):
 
         Returns:
             list[dict[str, Any]]: One record per report, oldest first.
+
+        Example:
+            .. code-block:: python
+
+                for record in process.reported:
+                    print(record["entity_id"], record["round"], record["loss"])
         """
         self.wait()
         path = self.path / JSON_REPORT_DIR / "service.jsonl"

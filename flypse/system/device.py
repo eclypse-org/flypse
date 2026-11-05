@@ -30,3 +30,4 @@ class Device(RemoteNode):
         """
         super().build()
         self.data = data
+        """The dataset of the federation."""

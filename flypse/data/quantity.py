@@ -58,8 +58,11 @@ class QuantitySkewDataset(FederatedDataset):
         if min_size < 0:
             raise ValueError("min_size must be non-negative.")
         self.alpha = alpha
+        """The concentration of the Dirichlet distribution."""
         self.min_size = min_size
+        """The minimum number of items of each entity."""
         self.seed = seed
+        """The seed of the split randomness, or None for the one of the process."""
 
     def split(self, entity_ids: Sequence[str]) -> dict[str, Sequence[int]]:
         """Assign each entity a Dirichlet-drawn number of random items.

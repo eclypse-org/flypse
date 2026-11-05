@@ -33,6 +33,7 @@ class UniformDataset(FederatedDataset):
         """
         super().__init__(source)
         self.seed = seed
+        """The seed given at construction, unused by the split."""
 
     def split(self, entity_ids: Sequence[str]) -> dict[str, Sequence[int]]:
         """Compute the contiguous block of source indices of each entity.

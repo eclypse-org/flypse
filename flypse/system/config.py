@@ -36,23 +36,31 @@ if TYPE_CHECKING:
 class SystemConfig:
     """The configuration of the system a federation runs on.
 
-    Args:
-        infrastructure (Infrastructure | Literal["singleton", "mirror"]): The
-            infrastructure hosting the federation; each of its nodes is a
-            device. With "singleton", a single-node infrastructure hosts every
-            entity. With "mirror", a copy of the federation topology hosts
-            each entity on its own device. Defaults to "mirror".
-        placement_strategy (PlacementStrategy | None): The strategy placing
-            the entities onto the devices. Defaults to None, meaning the
-            strategy of the "singleton" or "mirror" infrastructure.
-
     Raises:
         ValueError: If the infrastructure is an unknown name, or an
             ``Infrastructure`` given without a placement strategy.
+
+    Example:
+        .. code-block:: python
+
+            SystemConfig("singleton")
+            SystemConfig(infrastructure, ExclusiveStrategy())
     """
 
     infrastructure: Infrastructure | Literal["singleton", "mirror"] = "mirror"
+    """The infrastructure hosting the federation; each of its nodes is a device.
+
+    With "singleton", a single-node infrastructure hosts every entity. With
+    "mirror", a copy of the federation topology hosts each entity on its own
+    device. Defaults to "mirror".
+    """
+
     placement_strategy: PlacementStrategy | None = None
+    """The strategy placing the entities onto the devices.
+
+    Defaults to None, meaning the strategy of the "singleton" or "mirror"
+    infrastructure.
+    """
 
     def __post_init__(self):
         """Check the consistency of the infrastructure and the strategy."""

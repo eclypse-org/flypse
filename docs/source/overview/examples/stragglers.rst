@@ -87,7 +87,7 @@ reports it as late, and the client gets the latest model back and tries again. W
 the link recovers, the client rejoins and the federation goes back to full speed.
 
 Without a deadline, the server would wait for the straggler at every round, and the
-federation would run at one round per second.
+federation would run at about one round per second.
 
 Unlike the other examples, this one depends on the wall clock, so the seed does not
 reproduce it round by round.

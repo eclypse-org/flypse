@@ -69,6 +69,7 @@ class FederatedDataset(ABC):
             source (DataSource): The data source of the federation.
         """
         self.source = source
+        """The data source of the federation."""
         self._entity_ids: list[str] | None = None
         self._splits: dict[str, Sequence[int]] | None = None
 

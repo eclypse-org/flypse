@@ -76,6 +76,12 @@ class FractionSplitter(ViewSplitter):
     it, and the first parts get the earliest items. With ``stratify``, the
     items are split class by class, so that each part keeps the class
     proportions of the view. A part can be empty when the view is too small.
+
+    Example:
+        .. code-block:: python
+
+            splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
+            self.splits = splitter.apply(self.data)
     """
 
     def __init__(
@@ -111,9 +117,13 @@ class FractionSplitter(ViewSplitter):
         if not math.isclose(sum(parts.values()), 1.0):
             raise ValueError("The fractions of the parts must sum to 1.")
         self.parts = dict(parts)
+        """The fraction of each part, keyed by name."""
         self.stratify = stratify
+        """The function returning the class of an item, if any."""
         self.order = order
+        """The function returning the sorting key of an item, if any."""
         self.seed = seed
+        """The seed of the shuffling, or the generator to shuffle with."""
 
     def split(self, view: DataView) -> dict[str, Sequence[int]]:
         """Assign contiguous slices of each group of positions to the parts.

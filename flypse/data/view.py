@@ -20,7 +20,11 @@ if TYPE_CHECKING:
 
 
 class DataView:
-    """The portion of a data source assigned to a single entity."""
+    """The portion of a data source assigned to a single entity.
+
+    It can be indexed, iterated and sliced, and a slice is another view of the
+    same source, so nothing is copied.
+    """
 
     def __init__(self, source: DataSource, indices: Sequence[int]):
         """Initialize the view.
@@ -30,6 +34,7 @@ class DataView:
             indices (Sequence[int]): The source indices of the entity.
         """
         self.source = source
+        """The source the view delegates to: the data source, or a parent view."""
         self._indices = indices
 
     def __len__(self) -> int:

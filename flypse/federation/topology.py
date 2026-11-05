@@ -70,6 +70,18 @@ def get_tree(
     Raises:
         ValueError: If two entities share an identifier, or a parent is not
             in the tree.
+
+    Example:
+        .. code-block:: python
+
+            federation = get_tree(
+                Server("server"),
+                {
+                    "server": [Aggregator("edge_0"), Aggregator("edge_1")],
+                    "edge_0": [Client("client_0"), Client("client_1")],
+                    "edge_1": [Client("client_2"), Client("client_3")],
+                },
+            )
     """
     federation = _federation(
         [root, *(child for kids in children.values() for child in kids)],
