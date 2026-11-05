@@ -26,7 +26,7 @@ maintainers = [
 ]
 
 dependencies = [
-    "eclypse>=0.9.1",
+    "eclypse>=0.10.0",
     "numpy>=1.26",
     "ray[default]>=2.59.0",
 ]
@@ -194,8 +194,6 @@ ignore_missing_imports = true
 # --------------------------
 # Pytest and Coverage settings
 # --------------------------
-
-#
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
