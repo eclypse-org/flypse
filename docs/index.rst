@@ -33,7 +33,8 @@ Key features include:
   versioning,
 - ready-made singleton and mirror infrastructures, or any ECLYPSE
   infrastructure,
-- per-entity metrics of steps, messages, bytes and waiting times,
+- reports pushed by the entities with any value they need, and evaluation of
+  any version of a model on any part of their data,
 - the ECLYPSE reporting, update policies, and events for the emulation.
 
 .. button-ref:: source/overview/index
