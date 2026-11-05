@@ -92,7 +92,7 @@ jobs:
 
       - name: Run examples
         run: |
-          for example in fedavg.main; do
+          for example in fedavg.main hierarchical.main; do
             echo "::group::$example"
             uv run --no-sync python -m "examples.$example"
             echo "::endgroup::"
