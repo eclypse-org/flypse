@@ -65,6 +65,7 @@ autodoc_default_options = {
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "pydata_sphinx_theme"
+html_logo = "_static/images/logo.png"
 
 html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
@@ -76,6 +77,43 @@ html_context = {
     "github_version": "main",
     "doc_path": "docs",
 }
+
+favicons = [
+    {
+        "rel": "icon",
+        "sizes": "16x16",
+        "href": "favicon/favicon-16x16.png",
+    },
+    {
+        "rel": "icon",
+        "sizes": "32x32",
+        "href": "favicon/favicon-32x32.png",
+    },
+    {
+        "rel": "apple-touch-icon",
+        "sizes": "180x180",
+        "href": "favicon/apple-touch-icon.png",
+        "color": "#000000",
+    },
+    {
+        "rel": "android-chrome",
+        "sizes": "192x192",
+        "href": "favicon/android-chrome-192x192.png",
+    },
+    {
+        "rel": "android-chrome",
+        "sizes": "512x512",
+        "href": "favicon/android-chrome-512x512.png",
+    },
+    {
+        "rel": "manifest",
+        "href": "favicon/site.webmanifest",
+    },
+    {
+        "rel": "shortcut icon",
+        "href": "favicon/favicon.ico",
+    },
+]
 
 icon_links = [
     {
@@ -103,6 +141,8 @@ html_theme_options = {
     "logo": {
         "text": "FLYPSE",
         "alt_text": "FLYPSE - Home",
+        "image_dark": "_static/images/logo.png",
+        "image_light": "_static/images/logo.png",
     },
 }
 source_suffix = [".rst", ".pyi"]

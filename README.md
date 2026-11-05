@@ -1,3 +1,9 @@
+<p align="center">
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/eclypse-org/flypse/refs/heads/main/docs/_static/images/dark-transparent.png?"><img width=450 alt="flypse-logo" src="https://raw.githubusercontent.com/eclypse-org/flypse/refs/heads/main/docs/_static/images/light-transparent.png"/>
+</picture>
+</p>
+
 ![PyPI - Version](https://img.shields.io/pypi/v/flypse)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/flypse)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&)](https://github.com/pre-commit/pre-commit)
