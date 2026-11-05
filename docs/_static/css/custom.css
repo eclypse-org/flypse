@@ -1,5 +1,166 @@
-/* Custom styles for the FLYPSE documentation. */
+:root {
+  --fl-ink: #111111;
+  --fl-iris: #a594ff;
+  --fl-iris-dark: #5b48e0;
+  --fl-azure: #3aa4de;
+  --fl-azure-dark: #0361ae;
+  --fl-paper: #f6f6fc;
+  --pst-font-family-base: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --pst-font-family-heading: var(--pst-font-family-base);
+}
 
+html[data-theme="light"] {
+  --pst-color-primary: var(--fl-iris-dark);
+  --pst-color-secondary: var(--fl-azure-dark);
+  --pst-color-link: #4b3ad0;
+  --pst-color-link-hover: #2f238f;
+  --pst-color-accent: var(--fl-azure-dark);
+  --pst-color-inline-code: #2f238f;
+  --pst-color-background: var(--fl-paper);
+  --pst-color-on-background: #ffffff;
+  --pst-color-surface: #fdfdff;
+  --pst-color-border: #dddcf0;
+  --pst-color-text-base: var(--fl-ink);
+  --pst-color-text-muted: #565669;
+  --pst-color-heading: var(--fl-ink);
+  --pst-color-attention: var(--fl-iris-dark);
+  --pst-color-attention-bg: #e7e3ff;
+  --pst-color-target: #d9d4ff;
+  --pst-color-primary-highlight: #4b3ad0;
+  --pst-color-primary-bg: #e7e3ff;
+  --pst-color-secondary-highlight: #024a86;
+  --pst-color-secondary-bg: #d9ecfb;
+  --pst-color-accent-bg: #d9ecfb;
+  --pst-color-table-row-hover-bg: #e7e3ff;
+  --pst-color-link-higher-contrast: #2f238f;
+}
+
+html[data-theme="dark"] {
+  --pst-color-primary: var(--fl-iris);
+  --pst-color-secondary: var(--fl-azure);
+  --pst-color-link: #c0b4ff;
+  --pst-color-link-hover: #dcd6ff;
+  --pst-color-accent: var(--fl-azure);
+  --pst-color-inline-code: #c0b4ff;
+  --pst-color-background: #111111;
+  --pst-color-on-background: #161616;
+  --pst-color-surface: #191919;
+  --pst-color-border: #2d2d2d;
+  --pst-color-text-base: #e6e6f2;
+  --pst-color-text-muted: #b4b4c8;
+  --pst-color-heading: #ffffff;
+  --pst-color-attention: var(--fl-iris);
+  --pst-color-attention-bg: #2a2450;
+  --pst-color-target: #3a3270;
+  --pst-color-primary-highlight: #c0b4ff;
+  --pst-color-primary-bg: #2a2450;
+  --pst-color-secondary-highlight: #7cc0ff;
+  --pst-color-secondary-bg: #10324a;
+  --pst-color-accent-bg: #10324a;
+  --pst-color-table-row-hover-bg: #2a2450;
+  --pst-color-link-higher-contrast: #dcd6ff;
+}
+
+.bd-header {
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid color-mix(in srgb, var(--pst-color-border) 75%, transparent);
+}
+
+.bd-page-width {
+  max-width: none;
+}
+
+.bd-main .bd-content .bd-article-container {
+  max-width: none;
+}
+
+.bd-content .sd-card,
+.bd-content .sd-tab-set,
+.bd-content .admonition,
+.bd-content div.literal-block-wrapper {
+  border-radius: 0.65rem;
+}
+
+.bd-content .sd-card {
+  border-color: color-mix(in srgb, var(--pst-color-border) 80%, transparent);
+  box-shadow: none;
+}
+
+.bd-content .sd-card:hover {
+  border-color: color-mix(in srgb, var(--pst-color-primary) 55%, var(--pst-color-border));
+}
+
+.bd-content .highlight,
+.bd-content pre {
+  border-radius: 0.5rem;
+}
+
+.bd-content h1,
+.bd-content h2,
+.bd-content h3,
+.bd-content h4 {
+  letter-spacing: -0.02em;
+}
+
+.bd-content a {
+  text-decoration-thickness: 0.08em;
+  text-decoration-color: color-mix(in srgb, var(--pst-color-link) 45%, transparent);
+}
+
+.bd-content a:hover,
+.bd-content a:focus {
+  text-decoration-color: var(--pst-color-link-hover);
+}
+
+.bd-content a code,
+.bd-content a .pre,
+.bd-content code.xref,
+.bd-content a.sig-name,
+.bd-content a.reference.internal code {
+  color: var(--pst-color-link);
+}
+
+.bd-content a:hover code,
+.bd-content a:hover .pre,
+.bd-content code.xref:hover,
+.bd-content a.sig-name:hover,
+.bd-content a.reference.internal:hover code,
+.bd-content a:focus code,
+.bd-content a:focus .pre,
+.bd-content a.sig-name:focus,
+.bd-content a.reference.internal:focus code {
+  color: var(--pst-color-link-hover);
+}
+
+.bd-content .admonition.tip,
+.bd-content .admonition.note,
+.bd-content .admonition.important {
+  border-left: 4px solid var(--pst-color-primary);
+}
+
+.bd-sidebar-primary,
+.bd-sidebar-secondary {
+  background: color-mix(in srgb, var(--pst-color-background) 85%, transparent);
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link:focus {
+  color: var(--pst-color-primary);
+}
+
+.bd-footer {
+  border-top: 1px solid color-mix(in srgb, var(--pst-color-border) 75%, transparent);
+}
+
+/* Shared identity with the landing page; article surfaces remain quiet. */
+body {
+  font-size: 1rem;
+  line-height: 1.8;
+}
+.bd-header {
+  background: var(--pst-color-background);
+  box-shadow: none;
+}
 .navbar-brand {
   gap: 0.6rem;
 }
@@ -12,4 +173,149 @@
   font-size: 1.0625rem;
   font-weight: 700;
   letter-spacing: 0.16em;
+}
+.navbar-nav .nav-link {
+  font-size: 0.8625rem;
+  font-weight: 500;
+}
+.search-button-field {
+  border: 1px solid var(--pst-color-border);
+  border-radius: 0.5rem;
+  background: var(--pst-color-surface);
+  box-shadow: none;
+  font-size: 0.8625rem;
+}
+/* Local variables keep the navigation legible in both colour modes. */
+.bd-sidebar-primary {
+  --pst-color-background: #111111;
+  --pst-color-on-background: #191919;
+  --pst-color-surface: #191919;
+  --pst-color-border: #303030;
+  --pst-color-text-base: #bfc0c0;
+  --pst-color-text-muted: #a5a5a5;
+  --pst-color-heading: #eeeef6;
+  --pst-color-primary: #a594ff;
+  --pst-color-link: #bfc0c0;
+  --pst-color-link-hover: #c0b4ff;
+  background: #111111;
+  color: #bfc0c0;
+  border-right: 1px solid #2a2a2a;
+}
+.bd-sidebar-primary .sidebar-primary-items__start {
+  padding-top: 1.5rem;
+}
+.bd-sidebar-primary .sidebar-header-items {
+  color: #bfc0c0;
+}
+.bd-sidebar-primary .nav-link,
+.bd-sidebar-primary .bd-sidenav a {
+  border-radius: 0.4rem;
+  padding-block: 0.5rem;
+  font-size: 0.8425rem;
+  line-height: 1.6;
+}
+.bd-sidebar-primary .bd-sidenav a:hover,
+.bd-sidebar-primary .bd-sidenav a:focus-visible,
+.bd-sidebar-primary .bd-sidenav a.current,
+.bd-sidebar-primary .nav-link:hover,
+.bd-sidebar-primary .nav-link:focus-visible,
+.bd-sidebar-primary li.current > .nav-link,
+.bd-sidebar-primary .nav-link.active {
+  color: #c0b4ff;
+  background: #a594ff12;
+}
+.bd-sidebar-primary .caption-text {
+  color: #999;
+  font-size: 0.7125rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.bd-sidebar-secondary {
+  background: var(--pst-color-background);
+  font-size: 0.8125rem;
+}
+.bd-article {
+  padding-top: 1.75rem;
+}
+.bd-article h1 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.045em;
+  margin-bottom: 1.75rem;
+}
+.bd-article h2 {
+  font-size: 1.7rem;
+  font-weight: 600;
+  margin-top: 2.5rem;
+}
+.bd-article h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+.bd-article .highlight {
+  border: 1px solid var(--pst-color-border);
+  background: var(--pst-color-surface);
+}
+.bd-article pre {
+  padding: 1.2rem;
+  font-size: 0.8625rem;
+  line-height: 1.75;
+}
+.bd-article .sig {
+  border-radius: 0.4rem;
+  border-left: 3px solid var(--pst-color-primary);
+}
+.bd-content .sd-card {
+  background: var(--pst-color-surface);
+  transition: border-color 0.2s ease;
+}
+.bd-content .admonition {
+  box-shadow: none;
+  border: 1px solid var(--pst-color-border);
+}
+.bd-content table {
+  font-size: 0.9125rem;
+  border-color: var(--pst-color-border);
+}
+.bd-content table thead {
+  background: var(--pst-color-surface);
+}
+.bd-content .sd-btn {
+  border-radius: 0.45rem;
+  font-weight: 600;
+  font-size: 0.8625rem;
+}
+.prev-next-area a {
+  border: 1px solid var(--pst-color-border);
+  border-radius: 0.6rem;
+  padding: 1rem;
+}
+.prev-next-area a:hover {
+  border-color: var(--pst-color-primary);
+}
+.bd-footer {
+  font-size: 0.7825rem;
+  color: var(--pst-color-text-muted);
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--pst-color-primary);
+  outline-offset: 3px;
+}
+@media (max-width: 767px) {
+  .bd-article { padding-top: 1rem; }
+  .bd-article h2 { font-size: 1.4rem; }
+  .prev-next-area a { padding: 0.65rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bd-content .sd-card { transition: none; }
+}
+
+/* The nord comments and errors are too faint on the surface of the code blocks. */
+html[data-theme="dark"] .highlight :is(.c, .c1, .ch, .cm, .cp, .cpf, .cs, .sd) {
+  color: #9aa5bd;
+}
+html[data-theme="dark"] .highlight :is(.ne, .gd, .gr, .gt, .err) {
+  color: #d98a92;
 }
