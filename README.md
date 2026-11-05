@@ -1,6 +1,6 @@
 <p align="center">
 <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/eclypse-org/flypse/refs/heads/main/docs/_static/images/dark-transparent.png?"><img width=450 alt="flypse-logo" src="https://raw.githubusercontent.com/eclypse-org/flypse/refs/heads/main/docs/_static/images/light-transparent.png"/>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/eclypse-org/flypse/refs/heads/main/docs/_static/images/dark-transparent.png"><img width=450 alt="flypse-logo" src="https://raw.githubusercontent.com/eclypse-org/flypse/refs/heads/main/docs/_static/images/light-transparent.png"/>
 </picture>
 </p>
 
@@ -30,6 +30,13 @@ pip install flypse
 ## Documentation
 
 The documentation for FLYPSE can be found [here](https://flypse.readthedocs.io/en/latest/).
+
+Good places to start:
+
+- [Getting started](https://flypse.readthedocs.io/en/latest/source/overview/getting-started/index.html), from a first federation to its results.
+- [Concepts](https://flypse.readthedocs.io/en/latest/source/overview/concepts/index.html), the building blocks of a federation.
+- [Examples](https://flypse.readthedocs.io/en/latest/source/overview/examples/index.html), runnable walkthroughs: federated averaging, hierarchical and decentralized federations, stragglers.
+- [API reference](https://flypse.readthedocs.io/en/latest/source/api/index.html).
 
 ## Maintainers
 
