@@ -8,6 +8,16 @@
 
 
 
+.. image:: _static/images/light-transparent.png
+   :align: center
+   :width: 20%
+   :class: only-light
+
+.. image:: _static/images/dark-transparent.png
+   :align: center
+   :width: 20%
+   :class: only-dark
+
 =====================
 FLYPSE documentation
 =====================

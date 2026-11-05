@@ -1,1 +1,15 @@
 /* Custom styles for the FLYPSE documentation. */
+
+.navbar-brand {
+  gap: 0.6rem;
+}
+.navbar-brand img {
+  max-height: 3rem;
+  width: 3rem;
+  object-fit: contain;
+}
+.navbar-brand .logo__title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+}
