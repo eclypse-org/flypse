@@ -61,14 +61,25 @@ autodoc_default_options = {
     "private-members": "_read_parameters, _write_parameter",
 }
 
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "eclypse": ("https://eclypse.readthedocs.io/en/latest", None),
+}
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = "pydata_sphinx_theme"
+html_title = "FLYPSE"
 html_logo = "_static/images/logo.png"
+html_last_updated_fmt = "%b %d, %Y"
 
 html_static_path = ["_static"]
-html_css_files = ["css/custom.css"]
+html_css_files = [
+    "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap",
+    "css/custom.css",
+]
 
 html_context = {
     "github_url": "https://github.com",
@@ -138,6 +149,9 @@ html_theme_options = {
     "navigation_depth": 4,
     "icon_links": icon_links,
     "header_links_before_dropdown": 4,
+    "use_edit_page_button": True,
+    "pygments_light_style": "xcode",
+    "pygments_dark_style": "nord",
     "logo": {
         "text": "FLYPSE",
         "alt_text": "FLYPSE - Home",
