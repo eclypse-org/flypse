@@ -12,7 +12,6 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://www.mypy-lang.org/)
 [![Import sorted with isort](https://img.shields.io/badge/isort-checked-brightgreen)](https://pycqa.github.io/isort/)
-[![Doc style: docformatter](https://img.shields.io/badge/doc%20style-docformatter-blue)](https://github.com/PyCQA/docformatter)
 
 **FLYPSE** is a Python library for experimenting with federated learning on the cloud-edge continuum. It builds on [ECLYPSE](https://github.com/eclypse-org/eclypse) to place, run, and observe federated learning workloads on emulated infrastructures.
 
