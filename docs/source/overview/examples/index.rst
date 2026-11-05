@@ -8,6 +8,7 @@ Examples
 
    fedavg
    hierarchical
+   decentralized
 
 The examples section complements the getting-started guides with runnable
 federations you can inspect and adapt.
@@ -37,3 +38,12 @@ subdirectory of the repository. Run them from the repository root, after
 
          Group aggregators between the clients and the root, with three version
          levels recording where a model comes from.
+
+   .. grid-item::
+
+      .. card:: :octicon:`share-android;1em;info` **Decentralized federated averaging**
+         :link-type: doc
+         :link: decentralized
+
+         Peers in a ring with no server, reaching a consensus by averaging with
+         their neighbours.

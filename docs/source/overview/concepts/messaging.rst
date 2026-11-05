@@ -116,4 +116,5 @@ neighbours before it fails.
 
 .. seealso::
 
+   - :doc:`../examples/decentralized`
    - :doc:`ECLYPSE messaging <eclypse:source/overview/advanced/emulation/messaging>`
