@@ -3,7 +3,9 @@ Inspect the results
 ===================
 
 A :class:`~flypse.process.FederatedProcess` is an ECLYPSE simulation, so its
-outputs are stored on disk and exposed through its ``report``.
+outputs are stored on disk. Its ``report`` exposes the ECLYPSE metrics, which
+must be requested as there are none by default, and its ``reported`` what the
+entities reported themselves.
 
 Step results
 ------------
@@ -23,35 +25,63 @@ metric requires the default ECLYPSE metrics:
 Each row of ``results`` is a value returned by the server, in the ``value``
 column, with the timestamp at which it was reported.
 
-Federation metrics
-------------------
+Entity reports
+--------------
 
-By default, a process also reports the federation metrics of every entity,
-read from the live entity after each step of the process:
-
-- ``steps``: the number of steps the entity completed;
-- ``messages_sent`` and ``messages_received``: the messages exchanged, those
-  sent counted once per recipient;
-- ``bytes_sent`` and ``bytes_received``: the bytes of model they carried;
-- ``send_time`` and ``receive_time``: the seconds spent waiting for messages
-  to be delivered, and for messages to arrive.
-
-The values only grow, so the difference between two reports gives the
-activity in between. The same counters are available to the entity itself as
-its ``traffic``. They are left out with ``include_federation_metrics=False``:
+An entity can report anything at any moment of its ``step`` with ``report``. Its
+values are pushed straight to the simulator, without waiting for it, and with no
+metric reading them:
 
 .. code-block:: python
 
-   frame = process.report.service(service_ids="server")
-   received = frame[frame["callback_id"] == "bytes_received"]
+   class Server(Entity):
+       async def step(self):
+           ...
+           self.report(round=version[0], participants=len(messages), loss=loss)
+
+Once the process has finished, ``reported`` holds one record per report, oldest
+first. The values of a report stay together, with who reported them, from where
+and when:
+
+.. code-block:: python
+
+   process = FederatedProcess(federation, data)
+   process.run(seconds=5)
+
+   process.reported[0]
+   # {"round": 1, "participants": 5, "loss": 0.04, "node_id": "server",
+   #  "entity_id": "server", "timestamp": "2026-11-05T16:48:30.160476",
+   #  "n_report": 1}
+
+``entity_id`` and ``n_report``, the progressive number of the report for that
+entity, identify a record. These two names, ``node_id`` and ``timestamp`` are
+reserved. A report is complete as soon as it is made: nothing an entity reported
+is lost when the process stops, or when the entity is undeployed.
+
+Values can be anything JSON can represent, and scalars or arrays of the numerical
+libraries, which become plain numbers and lists. Anything else raises a
+``TypeError`` from ``report``.
+
+Every report is a call to the simulator, which sustains a few thousand of them
+per second: an entity reporting faster than that loses nothing, but the process
+takes longer to stop, and stops later, until the simulator catches up.
+
+The records are stored in the JSON report (``json/service.jsonl`` in the output
+directory of the process) whatever the ``report_format``, as they do not fit the
+columns of the other formats. ``process.report`` shows them only with
+``report_format="json"``, as the ``entity_report`` callback, and only with the
+``pandas`` backend: the polars ones cannot read a report mixing them with the
+numbers of the metrics. ``reported`` works in all cases.
 
 Evaluation
 ----------
 
-An entity evaluates itself by overriding ``evaluate``, returning the value of
-each evaluation metric by name (``None``, the default, means it does not
-evaluate). For example, a learner can keep a test part of its own data,
-train on the rest, and evaluate on it the latest version of its model:
+An entity decides what to evaluate, and when, in its own ``step``. It calls
+``run_evaluation`` with a version of a model and, optionally, the name of one of
+its ``splits``. The version can be any the entity holds: one it generated, or
+one it received from a peer or a server, even without loading it. The evaluation
+itself is the ``evaluate`` method of the entity, which returns the value of each
+metric by name (``None``, the default, means it does not evaluate):
 
 .. code-block:: python
 
@@ -59,39 +89,45 @@ train on the rest, and evaluate on it the latest version of its model:
        def on_deploy(self):
            super().on_deploy()
            splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
-           parts = splitter.apply(self.data)
-           self.data, self.test = parts["train"], parts["test"]
+           self.splits = splitter.apply(self.data)
+           self.data = self.splits["train"]
 
-       def evaluate(self):
-           record = self.model.versions[-1]
-           params = self.model.get_parameters(flattened=False, version=record.version)
-           return {"loss": test_loss(params, self.test)}
+       def evaluate(self, record, data):
+           params = self.model.get_parameters(flattened=False, version=record)
+           return {"loss": test_loss(params, data)}
 
-``evaluate`` runs on the device while the entity keeps stepping, so it should
-evaluate a snapshot of the model, such as a recorded version, rather than the
-live model. ``get_parameters`` rebuilds the named parameters of a recorded
-version.
+       async def step(self):
+           message = await self.receive()
+           self.run_evaluation(message.record, "test")
+           self.model.load_version(message.record)
+           ...
 
-Every process has an ``evaluate`` event, which evaluates the entities and
-keeps the results in their ``eval_metrics``. The names given as
-``eval_metrics`` to the process are reported right after each evaluation, and
-``eval_every`` evaluates the entities every given number of steps of the
-process:
+``evaluate`` runs inside ``step``, so it takes time from the round of the entity.
+A failing evaluation is logged and reports nothing, and the entity carries on.
+
+The results are reported at once, as a single record:
 
 .. code-block:: python
 
-   process = FederatedProcess(federation, data, eval_metrics=["loss"], eval_every=10)
-   process.run(seconds=5)
+   process.reported[0]
+   # {"round": 10, "version": [10, 0], "model": "fdaeb36482741f8b",
+   #  "split": "test", "metrics": {"loss": 0.012}, "node_id": "client_0",
+   #  "entity_id": "client_0", "timestamp": "2026-11-05T16:49:55.431911",
+   #  "n_report": 1}
 
-   frame = process.report.service(event_ids="evaluate")
-   losses = frame[frame["callback_id"] == "loss"]
+Each record stands on its own, so a round can be compared across the entities by
+grouping on ``round`` and ``split``:
 
-The event can also be triggered by hand, e.g., between ``process.start()``
-and ``process.stop()``, with ``process.trigger("evaluate")``.
-
-Entities that do not evaluate, or whose evaluation lacks a name, report no
-row for it. Results under names not given as ``eval_metrics`` are not
-reported, and a warning in the log of the entity says so.
+- ``round`` is the coarsest counter of the version, unless ``run_evaluation`` is
+  given another one, e.g. for a protocol that does not bump that level;
+- ``version`` is the lineage of the model, but different models can share it,
+  such as two clients generating ``(3, 1)``;
+- ``model`` is a hash of the parameters, so it is the same for all the entities
+  evaluating the same model, and differs for different ones. A model that no
+  longer changes between rounds keeps its hash, so tell evaluations apart by
+  ``round`` too. The hash follows the exact bits of the parameters: it is not
+  comparable across runs unless the protocol computes them identically, which an
+  aggregation following the arrival order of the messages does not.
 
 Report format and location
 --------------------------
