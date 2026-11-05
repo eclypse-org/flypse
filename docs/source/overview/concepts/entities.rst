@@ -126,3 +126,4 @@ When a step fails
 
    - :doc:`messaging`
    - :doc:`models`
+   - :doc:`../advanced/reporting`

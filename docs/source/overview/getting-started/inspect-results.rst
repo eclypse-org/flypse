@@ -88,4 +88,6 @@ column, with the timestamp at which it was collected.
 .. seealso::
 
    - :doc:`infrastructure`
+   - :doc:`../advanced/reporting`
+   - :doc:`../advanced/evaluation`
    - `ECLYPSE: inspect the results <https://eclypse.readthedocs.io/en/latest/source/overview/getting-started/inspect-results.html>`_

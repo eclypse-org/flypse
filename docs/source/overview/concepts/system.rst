@@ -59,7 +59,8 @@ Built-in systems
 .. note::
 
    The links of a mirror start with the best values of their assets, so messages
-   cost next to nothing until you degrade a link with an update policy.
+   cost next to nothing until you
+   :doc:`degrade a link <../advanced/heterogeneity>`.
 
 Change the built-in systems
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -127,6 +128,8 @@ A :class:`~flypse.system.device.Device` is an ECLYPSE remote node holding the
 dataset of the federation. Every node of the infrastructure becomes a device, and
 each entity deployed on it binds its own portion of the data. You never create one
 yourself.
+
+.. _placement-reset:
 
 When the placement is reset
 ---------------------------

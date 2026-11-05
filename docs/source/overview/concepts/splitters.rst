@@ -56,7 +56,8 @@ must sum to 1. An entity calls it once its data is bound, in ``on_deploy``:
 
 Passing ``self.rng`` as the seed makes each entity split differently, but
 reproducibly. Storing the parts in ``self.splits`` makes them available to the
-evaluation of the entity by name.
+:doc:`evaluation <../advanced/evaluation>` of the entity
+by name.
 
 .. note::
 

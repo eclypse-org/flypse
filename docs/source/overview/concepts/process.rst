@@ -68,7 +68,8 @@ matter the most to a federated process:
      - Stops the process after this many steps. Whichever of ``timeout`` and
        ``max_steps`` comes first wins.
    * - ``seed``
-     - The seed of the whole process, random if omitted.
+     - The seed of the whole process, random if omitted. See
+       :doc:`../advanced/reproducibility`.
    * - ``events``
      - ECLYPSE events and metrics to add to the run.
    * - ``include_default_metrics``

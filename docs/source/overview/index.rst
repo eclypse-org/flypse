@@ -5,6 +5,7 @@
    install
    getting-started/index
    concepts/index
+   advanced/index
 
 
 Overview
@@ -36,6 +37,14 @@ Overview
 
          Learn the building blocks behind federations, entities, models, data
          and the system they run on.
+
+   .. grid-item::
+
+      .. card:: :octicon:`terminal;1em;info` **Advanced**
+         :link-type: doc
+         :link: advanced/index
+
+         Go deeper into reporting, evaluation, reproducibility and heterogeneity.
 
    .. grid-item::
 
