@@ -7,7 +7,6 @@ from flypse.federation.model import (
     FederatedModel,
     ModelVersion,
 )
-from flypse.federation.traffic import Traffic
 from flypse.federation.topology import (
     get_ring,
     get_star,
@@ -20,7 +19,6 @@ __all__ = [
     "Federation",
     "Message",
     "ModelVersion",
-    "Traffic",
     "get_ring",
     "get_star",
     "get_tree",

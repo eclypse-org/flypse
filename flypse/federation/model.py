@@ -132,26 +132,34 @@ class FederatedModel(ABC):
 
     @overload
     def get_parameters(
-        self, flattened: Literal[True] = ..., version: Sequence[int] | None = ...
+        self,
+        flattened: Literal[True] = ...,
+        version: Sequence[int] | ModelVersion | None = ...,
     ) -> np.ndarray: ...
 
     @overload
     def get_parameters(
-        self, flattened: Literal[False], version: Sequence[int] | None = ...
+        self,
+        flattened: Literal[False],
+        version: Sequence[int] | ModelVersion | None = ...,
     ) -> dict[str, np.ndarray]: ...
 
     def get_parameters(
-        self, flattened: bool = True, version: Sequence[int] | None = None
+        self,
+        flattened: bool = True,
+        version: Sequence[int] | ModelVersion | None = None,
     ) -> np.ndarray | dict[str, np.ndarray]:
         """Get a copy of the parameters of the model.
 
         Args:
             flattened (bool): Whether to return a single flat vector rather
                 than a dictionary of arrays keyed by name. Defaults to True.
-            version (Sequence[int] | None): The version of the history to
-                read; when several records share it, the latest is read.
-                Defaults to None, meaning the current parameters of the
-                wrapped model, including any local training.
+            version (Sequence[int] | ModelVersion | None): The version of the
+                history to read; when several records share it, the latest
+                is read. A record is read as it is, in or out of the history
+                (e.g., a received version that was not loaded). Defaults to
+                None, meaning the current parameters of the wrapped model,
+                including any local training.
 
         Returns:
             np.ndarray | dict[str, np.ndarray]: The parameters, in the
@@ -167,7 +175,8 @@ class FederatedModel(ABC):
             if flattened:
                 return np.concatenate([entries[name].ravel() for name in self._scheme])
             return {name: entries[name].copy() for name in self._scheme}
-        flat = self._record(version).parameters
+        record = version if isinstance(version, ModelVersion) else self._record(version)
+        flat = record.parameters
         if flattened:
             return flat.copy()
         return {name: piece.copy() for name, piece in self._unflatten(flat).items()}
