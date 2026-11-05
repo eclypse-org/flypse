@@ -118,4 +118,5 @@ carries on, degrade their links instead, and give the aggregator a
 
 .. seealso::
 
+   - :doc:`../examples/stragglers`
    - :doc:`ECLYPSE update policies <eclypse:source/overview/concepts/update-policy>`

@@ -9,6 +9,7 @@ Examples
    fedavg
    hierarchical
    decentralized
+   stragglers
 
 The examples section complements the getting-started guides with runnable
 federations you can inspect and adapt.
@@ -47,3 +48,12 @@ subdirectory of the repository. Run them from the repository root, after
 
          Peers in a ring with no server, reaching a consensus by averaging with
          their neighbours.
+
+   .. grid-item::
+
+      .. card:: :octicon:`clock;1em;info` **Stragglers**
+         :link-type: doc
+         :link: stragglers
+
+         A link slows down during the run, while an aggregator with a deadline
+         carries on without the client behind it.
