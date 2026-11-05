@@ -79,6 +79,7 @@ html_static_path = ["_static"]
 html_css_files = [
     "https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap",
     "css/custom.css",
+    "css/home.css",
 ]
 
 html_context = {
@@ -88,6 +89,18 @@ html_context = {
     "github_version": "main",
     "doc_path": "docs",
 }
+
+
+def landing_page_template(app, pagename, templatename, context, doctree):
+    """Use the landing template whenever Sphinx rebuilds the root document."""
+    if pagename == "index":
+        return "index.html"
+    return None
+
+
+def setup(app):
+    app.connect("html-page-context", landing_page_template)
+
 
 favicons = [
     {
