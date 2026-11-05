@@ -5,22 +5,17 @@ Run from the repository root with::
     uv run python -m examples.fedavg.main
 
 A star federation of learners around one aggregator is emulated with a mirror
-infrastructure (one device per entity, resources equal to the requirements).
+infrastructure (one device per entity, with maximal resources).
 Every learner trains a linear model on its own (non-IID) slice of the data and
 exchanges it with the aggregator, which averages the models (FedAvg) and
 broadcasts the global one back. Every learner keeps 20% of its data as a test
 part, on which it evaluates the received global model every few rounds.
-
-Ray starts its workers through ``uv run`` when the driver runs under it,
-syncing a fresh environment for each worker: the switch below, set before Ray
-is imported, makes the workers reuse this environment instead.
 """
 
 from __future__ import annotations
 
-import os
-
-os.environ.setdefault("RAY_ENABLE_UV_RUN_RUNTIME_ENV", "0")
+from collections import defaultdict
+from statistics import mean
 
 from flypse.data import UniformDataset
 from flypse.process import FederatedProcess
@@ -55,6 +50,9 @@ SECONDS = 10.0
 EVAL_EVERY = 10
 """How many rounds pass between two evaluations."""
 
+N_ROWS = 5
+"""The number of evaluated rounds shown from the start of the run."""
+
 
 def main() -> None:
     """Build and run the federated averaging experiment."""
@@ -74,13 +72,18 @@ def main() -> None:
         data,
         seed=0,
         step_every_ms=STEP_EVERY_MS,
-        include_default_metrics=True,
     )
     process.run(seconds=SECONDS)
 
-    print(process.report.service(service_ids=SERVER_ID))
+    losses = defaultdict(list)
     for record in process.reported:
-        print(record)
+        losses[record["round"]].append(record["metrics"]["loss"])
+
+    print(f"{'round':<8}{'evaluations':<13}{'mean test loss'}")
+    for round_ in sorted(losses)[:N_ROWS]:
+        print(f"{round_:<8}{len(losses[round_]):<13}{mean(losses[round_]):.6f}")
+    last = max(losses)
+    print(f"{last:<8}{len(losses[last]):<13}{mean(losses[last]):.6f}")
 
 
 if __name__ == "__main__":

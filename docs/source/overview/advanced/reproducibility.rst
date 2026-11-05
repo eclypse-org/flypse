@@ -56,7 +56,7 @@ combining them removes the difference:
 
    messages.sort(key=lambda message: message.sender)
 
-With that, two runs of the fedavg example produce the
+With that, two runs of the :doc:`fedavg example <../examples/fedavg>` produce the
 same model hashes, bit by bit, for every round they both reach.
 
 What stays non-deterministic

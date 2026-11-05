@@ -6,6 +6,7 @@
    getting-started/index
    concepts/index
    advanced/index
+   examples/index
 
 
 Overview
@@ -45,6 +46,14 @@ Overview
          :link: advanced/index
 
          Go deeper into reporting, evaluation, reproducibility and heterogeneity.
+
+   .. grid-item::
+
+      .. card:: :octicon:`code;1em;info` **Examples**
+         :link-type: doc
+         :link: examples/index
+
+         Explore runnable federations you can inspect and adapt.
 
    .. grid-item::
 
