@@ -111,15 +111,15 @@ class FedAvgModel(FederatedModel):
             self.model.bias = float(value[0])
 
     def snapshot(self, record: ModelVersion) -> LinearModel:
-        """Return a linear model with the parameters of a recorded version.
+        """Return a linear model with the parameters of a version.
 
         Args:
-            record (ModelVersion): The recorded version.
+            record (ModelVersion): The version, loaded or not.
 
         Returns:
             LinearModel: A new model, independent of the live one.
         """
-        params = self.get_parameters(flattened=False, version=record.version)
+        params = self.get_parameters(flattened=False, version=record)
         return LinearModel(
             [float(w) for w in params["weights"]], float(params["bias"][0])
         )

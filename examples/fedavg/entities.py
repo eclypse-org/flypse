@@ -32,7 +32,8 @@ class FedAvgClient(Entity):
     """A learner of the federation.
 
     On every step it trains the received global model on its local data, sends
-    the local model to the aggregator, and waits for the next global model.
+    the local model to the aggregator, and waits for the next global model,
+    evaluating it on its test part every few rounds.
     """
 
     def __init__(
@@ -43,6 +44,7 @@ class FedAvgClient(Entity):
         n_features: int,
         epochs: int,
         lr: float,
+        eval_every: int,
         store_step: bool = True,
     ):
         """Initialize the learner.
@@ -53,6 +55,7 @@ class FedAvgClient(Entity):
             n_features (int): The number of features of the model.
             epochs (int): The number of local passes over the data.
             lr (float): The learning rate.
+            eval_every (int): The number of rounds between two evaluations.
             store_step (bool): Whether the local loss is stored for reporting.
                 Defaults to True.
         """
@@ -61,6 +64,7 @@ class FedAvgClient(Entity):
         self._n_features = n_features
         self._epochs = epochs
         self._lr = lr
+        self._eval_every = eval_every
         self.model = FedAvgModel(LinearModel([0.0] * n_features, 0.0))
 
     def on_deploy(self):
@@ -77,22 +81,20 @@ class FedAvgClient(Entity):
         )
         if self.data is not None:
             splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
-            parts = splitter.apply(self.data)
-            self.data, self.test = parts["train"], parts["test"]
+            self.splits = splitter.apply(self.data)
+            self.data = self.splits["train"]
 
-    def evaluate(self):
-        """Evaluate the latest recorded model on the test part.
+    def evaluate(self, record, data):
+        """Evaluate a version of the model on the given data.
 
-        It runs while the entity keeps stepping, so it evaluates a snapshot of
-        the latest recorded version rather than the live model.
+        Args:
+            record (ModelVersion): The version of the model to evaluate.
+            data (DataView): The data to evaluate it on.
 
         Returns:
-            dict[str, float] | None: The test loss, or None if no data is bound.
+            dict[str, float]: The loss of the version on the data.
         """
-        if self.data is None:
-            return None
-        model = self.model.snapshot(self.model.versions[-1])
-        return {"test_loss": mean_squared_error(model, self.test)}
+        return {"loss": mean_squared_error(self.model.snapshot(record), data)}
 
     async def step(self):
         """Train locally and synchronize with the aggregator.
@@ -119,6 +121,8 @@ class FedAvgClient(Entity):
             loss=loss,
         )
         message = await self.receive()
+        if message.record.version[0] % self._eval_every == 0:
+            self.run_evaluation(message.record, "test")
         self.model.load_version(message.record)
         return loss
 
@@ -154,6 +158,9 @@ class FedAvgServer(Entity):
         if not messages:
             return None
 
+        # a fixed order: float rounding would make the model follow the arrivals
+        messages.sort(key=lambda message: message.sender)
+
         # FedAvg: Θ = Σ_c (n_c / n) Θ_c
         n_total = sum(m.data["n_samples"] for m in messages)
         average = (
@@ -175,6 +182,7 @@ def build_federation(
     n_features: int,
     epochs: int,
     lr: float,
+    eval_every: int,
 ) -> Federation:
     """Build the star-shaped federation of the example.
 
@@ -184,6 +192,7 @@ def build_federation(
         n_features (int): The number of features of the model.
         epochs (int): The number of local passes over the data.
         lr (float): The learning rate.
+        eval_every (int): The number of rounds between two evaluations.
 
     Returns:
         Federation: The federation of the example.
@@ -195,6 +204,7 @@ def build_federation(
             n_features=n_features,
             epochs=epochs,
             lr=lr,
+            eval_every=eval_every,
         )
         for client_id in client_ids
     ]

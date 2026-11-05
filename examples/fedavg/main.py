@@ -9,7 +9,7 @@ infrastructure (one device per entity, resources equal to the requirements).
 Every learner trains a linear model on its own (non-IID) slice of the data and
 exchanges it with the aggregator, which averages the models (FedAvg) and
 broadcasts the global one back. Every learner keeps 20% of its data as a test
-part, on which it evaluates its latest model every few steps of the process.
+part, on which it evaluates the received global model every few rounds.
 
 Ray starts its workers through ``uv run`` when the driver runs under it,
 syncing a fresh environment for each worker: the switch below, set before Ray
@@ -53,7 +53,7 @@ SECONDS = 10.0
 """How long the emulation runs."""
 
 EVAL_EVERY = 10
-"""How many steps of the process pass between two evaluations."""
+"""How many rounds pass between two evaluations."""
 
 
 def main() -> None:
@@ -66,6 +66,7 @@ def main() -> None:
         n_features=N_FEATURES,
         epochs=EPOCHS,
         lr=LR,
+        eval_every=EVAL_EVERY,
     )
 
     process = FederatedProcess(
@@ -74,13 +75,12 @@ def main() -> None:
         seed=0,
         step_every_ms=STEP_EVERY_MS,
         include_default_metrics=True,
-        eval_metrics=["test_loss"],
-        eval_every=EVAL_EVERY,
     )
     process.run(seconds=SECONDS)
 
     print(process.report.service(service_ids=SERVER_ID))
-    print(process.report.service(event_ids="evaluate"))
+    for record in process.reported:
+        print(record)
 
 
 if __name__ == "__main__":
