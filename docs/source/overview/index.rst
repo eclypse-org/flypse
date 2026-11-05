@@ -4,6 +4,7 @@
 
    install
    getting-started/index
+   concepts/index
 
 
 Overview
@@ -26,6 +27,15 @@ Overview
          :link: getting-started/index
 
          Start your first federated learning experiment with FLYPSE.
+
+   .. grid-item::
+
+      .. card:: :octicon:`book;1em;info` **Concepts**
+         :link-type: doc
+         :link: concepts/index
+
+         Learn the building blocks behind federations, entities, models, data
+         and the system they run on.
 
    .. grid-item::
 
