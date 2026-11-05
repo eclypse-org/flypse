@@ -277,6 +277,19 @@ def test_get_parameters_latest_record_wins():
     np.testing.assert_allclose(model.get_parameters(version=(0, 0)), [3.0])
 
 
+def test_get_parameters_reads_a_record_outside_the_history():
+    """A record is read as it is, even if its version collides with the history."""
+    model = make_model({"w": np.array([1.0])})
+    model.update_version(np.array([2.0]), "local")
+    peer = ModelVersion((0, 1), 1.0, np.array([7.0], dtype=np.float32))
+
+    np.testing.assert_allclose(model.get_parameters(version=peer), [7.0])
+    np.testing.assert_allclose(
+        model.get_parameters(flattened=False, version=peer)["w"], [7.0]
+    )
+    np.testing.assert_allclose(model.get_parameters(), [2.0])
+
+
 def test_non_combinable_entries_never_travel():
     """Hook-skipped entries stay out of the parameters and untouched."""
     model = CountedModel({"w": np.array([1.0]), "counter": np.array([7])})

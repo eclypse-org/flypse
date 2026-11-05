@@ -10,19 +10,24 @@ defined by subclasses, implementing the ``step`` method.
 Entities exchange versions of their models, or control messages carrying only
 data, with ``send``, ``bcast`` and ``receive``, and find the entities they are
 connected to with ``get_neighbors``, without dealing with the underlying
-ECLYPSE MPI interface. Every exchange is counted in the ``traffic`` of the
-entity. For its own randomness, an entity draws from its ``rng``, seeded from
-the seed of the process and the identifier of the entity, so that entities
-draw different but reproducible sequences.
+ECLYPSE MPI interface. For its own randomness, an entity draws from its ``rng``,
+seeded from the seed of the process and the identifier of the entity, so that
+entities draw different but reproducible sequences.
 
-An entity evaluates itself in ``evaluate``, which the federated process calls
-on its ``evaluate`` event, keeping the latest results in ``eval_metrics``.
+An entity pushes whatever it wants to report straight to the simulator with
+``report``, instead of waiting for a metric to read it. It evaluates a version of
+a model by calling ``run_evaluation`` from its ``step``: the ``evaluate`` hook
+computes the results on the data or on one of the named ``splits``, and they are
+reported at once, identifying the round, the version and the parameters of the
+evaluated model, and the split.
 """
 
 from __future__ import annotations
 
+import json
 import random
-from time import perf_counter
+from datetime import datetime
+from hashlib import blake2b
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -32,7 +37,6 @@ from typing import (
 from eclypse.remote.service import Service
 
 from flypse.federation.message import Message
-from flypse.federation.traffic import Traffic
 from flypse.seed import get_seed
 
 if TYPE_CHECKING:
@@ -66,10 +70,10 @@ class Entity(Service):
             store_step=store_step,
         )
         self.with_data = with_data
-        self.traffic = Traffic()
         self.rng = random.Random()
-        self.eval_metrics: dict[str, float] = {}
+        self.n_reports = 0
         self.data: DataView | None = None
+        self.splits: dict[str, DataView] = {}
 
     def on_deploy(self):
         """Seed the ``rng`` of the entity and bind its view of the data.
@@ -86,8 +90,9 @@ class Entity(Service):
             self.data = data.bind(self.id)
 
     def on_undeploy(self):
-        """Release the view of the dataset bound at deploy time."""
+        """Release the view of the dataset bound at deploy time, and its splits."""
         self.data = None
+        self.splits = {}
 
     async def get_neighbors(self) -> list[str]:
         """Get the entities connected to this entity.
@@ -105,8 +110,7 @@ class Entity(Service):
     ):
         """Send a message to one or more entities.
 
-        It waits for the modelled communication cost of the message, and
-        counts the message in the traffic of the entity.
+        It waits for the modelled communication cost of the message.
 
         Args:
             recipients (str | list[str]): The identifier of the recipient,
@@ -116,15 +120,12 @@ class Entity(Service):
                 its data.
             **data: The data attached to the message.
         """
-        start = perf_counter()
-        request = await self.mpi.send(recipients, {"record": record, "data": data})
-        self._count_sent(request.recipient_ids, record, start)
+        await self.mpi.send(recipients, {"record": record, "data": data})
 
     async def bcast(self, record: ModelVersion | None = None, **data: Any):
         """Send a message to all the neighbor entities.
 
-        It waits for the modelled communication cost of the message, and
-        counts the message in the traffic of the entity.
+        It waits for the modelled communication cost of the message.
 
         Args:
             record (ModelVersion | None): The version of the model to send.
@@ -132,17 +133,13 @@ class Entity(Service):
                 its data.
             **data: The data attached to the message.
         """
-        start = perf_counter()
-        request = await self.mpi.bcast({"record": record, "data": data})
-        self._count_sent(request.recipient_ids, record, start)
+        await self.mpi.bcast({"record": record, "data": data})
 
     async def receive(self, timeout: float | None = None) -> Message:
         """Receive the next message sent to the entity.
 
         It waits until a message is available, or until the timeout expires.
-        A message arriving after the timeout is kept for the next call. The
-        message, and the time waited for it, are counted in the traffic of
-        the entity.
+        A message arriving after the timeout is kept for the next call.
 
         Args:
             timeout (float | None): The maximum time to wait, in seconds.
@@ -154,42 +151,96 @@ class Entity(Service):
         Raises:
             TimeoutError: If no message arrives within the timeout.
         """
-        start = perf_counter()
-        try:
-            body = await self.mpi.recv(timeout=timeout)
-        finally:
-            self.traffic.receive_time += perf_counter() - start
-        self.traffic.messages_received += 1
-        self.traffic.bytes_received += _nbytes(body["record"])
+        body = await self.mpi.recv(timeout=timeout)
         return Message(body["sender_id"], body["record"], body["data"])
 
-    def _count_sent(
-        self, recipients: list[str], record: ModelVersion | None, start: float
-    ):
-        """Count a message delivered to the recipients in the traffic.
+    def report(self, **values: Any):
+        """Push values to the simulator, which writes them in the report.
+
+        It does not wait for the simulator, and it is meant to be called from
+        ``step``, as often as a round allows. The values are reported together,
+        with the name of the entity and of its device, when they were reported,
+        and the progressive number of the report: ``entity_id``, ``node_id``,
+        ``timestamp`` and ``n_report`` are therefore reserved names.
 
         Args:
-            recipients (list[str]): The identifiers of the recipients.
-            record (ModelVersion | None): The version of the model sent.
-            start (float): When the sending started, as a ``perf_counter``.
+            **values: The values to report, by name. They can be anything JSON
+                can represent, and arrays or scalars of the numerical libraries.
+
+        Raises:
+            TypeError: If a value cannot be represented.
         """
-        self.traffic.messages_sent += len(recipients)
-        self.traffic.bytes_sent += len(recipients) * _nbytes(record)
-        self.traffic.send_time += perf_counter() - start
+        # eclypse#51: a value the writer cannot serialize would hang the shutdown
+        values = json.loads(json.dumps(values, default=_to_plain))
+        self.node.get_actor(self.node.manager_actor_name).report.remote(
+            self.application_id,
+            self.id,
+            self.n_reports + 1,
+            datetime.now().isoformat(),
+            {**values, "node_id": self.node.id},
+        )
+        self.n_reports += 1
 
-    def evaluate(self) -> dict[str, float] | None:
-        """Evaluate the entity, e.g. its model on its test data.
+    def evaluate(
+        self,
+        record: ModelVersion,
+        data: DataView | None,
+    ) -> dict[str, float] | None:
+        """Evaluate a version of a model on the given data.
 
-        It is called on the device while the entity keeps stepping, so it
-        should evaluate a snapshot of the model (e.g. a ``ModelVersion``
-        record) rather than the live one. It does nothing by default, and is
-        meant to be overridden by subclasses.
+        It is called by ``run_evaluation``, and the version need not be the
+        loaded one: read its parameters with ``get_parameters(version=record)``.
+        It does nothing by default, and is meant to be overridden by subclasses.
+
+        Args:
+            record (ModelVersion): The version of the model to evaluate.
+            data (DataView | None): The data to evaluate it on, or None if the
+                entity holds no data.
 
         Returns:
             dict[str, float] | None: The value of each evaluation metric,
             keyed by name, or None if the entity does not evaluate.
         """
-        return None
+
+    def run_evaluation(
+        self,
+        record: ModelVersion,
+        split: str | None = None,
+        round: int | None = None,
+    ):
+        """Evaluate a version of a model, and report the results.
+
+        It is meant to be called from ``step``, with any version the entity
+        holds: its own, or one it received, loaded or not. The results are
+        reported together. The model is identified by ``version`` and by the
+        ``model`` hash of its parameters, as a version alone may be shared by
+        different models (e.g., two clients generating ``(3, 1)``), while
+        entities evaluating the same model get the same hash.
+
+        A failing evaluation is logged and reports nothing, so that the entity
+        carries on.
+
+        Args:
+            record (ModelVersion): The version of the model to evaluate.
+            split (str | None): The name of the part of ``splits`` to evaluate
+                it on. Defaults to None, meaning the ``data`` of the entity.
+            round (int | None): The round of the evaluation. Defaults to None,
+                meaning the coarsest counter of the version.
+        """
+        try:
+            data = self.data if split is None else self.splits[split]
+            metrics = self.evaluate(record, data)
+            if metrics is None:
+                return
+            self.report(
+                round=record.version[0] if round is None else round,
+                version=record.version,
+                model=blake2b(record.parameters.tobytes(), digest_size=8).hexdigest(),
+                split=split,
+                metrics=metrics,
+            )
+        except Exception:
+            self.logger.exception("Evaluation failed.")
 
     async def step(self):
         """Run a step of the entity.
@@ -200,13 +251,18 @@ class Entity(Service):
         return None
 
 
-def _nbytes(record: ModelVersion | None) -> int:
-    """Return the bytes of model carried by a message.
+def _to_plain(value: Any) -> Any:
+    """Convert a value JSON cannot represent, if it is numerical.
 
     Args:
-        record (ModelVersion | None): The version of the model, if any.
+        value (Any): The value, such as a numpy scalar or array.
 
     Returns:
-        int: The bytes of the parameters, or 0 for a control message.
+        Any: The value as plain numbers.
+
+    Raises:
+        TypeError: If the value has no plain form.
     """
-    return 0 if record is None else record.parameters.nbytes
+    if hasattr(value, "tolist"):
+        return value.tolist()
+    raise TypeError(f"Cannot report a value of type {type(value).__name__}.")

@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import numpy as np
 import pytest
@@ -33,18 +35,31 @@ class FakeMPI:
 
     async def send(self, recipients, body):
         self.sent.append(("send", recipients, body))
-        ids = [recipients] if isinstance(recipients, str) else recipients
-        return SimpleNamespace(recipient_ids=ids)
 
     async def bcast(self, body):
         self.sent.append(("bcast", None, body))
-        return SimpleNamespace(recipient_ids=self.neighbors)
 
     async def recv(self, timeout=None):
         self.timeout = timeout
         if not self.inbox:
             raise TimeoutError
         return self.inbox.pop(0)
+
+
+class FakeSimulator:
+    """An in-memory stand-in for the simulator actor."""
+
+    def __init__(self):
+        self.reports: list[tuple] = []
+        self.report = SimpleNamespace(remote=self._receive)
+
+    def _receive(self, *report):
+        self.reports.append(report)
+
+    @property
+    def values(self) -> list[dict]:
+        """The reported values, in order."""
+        return [report[-1] for report in self.reports]
 
 
 def _deploy(entity: Entity, data=None) -> Entity:
@@ -54,6 +69,39 @@ def _deploy(entity: Entity, data=None) -> Entity:
     entity.attach_node(device)
     entity.on_deploy()
     return entity
+
+
+def _connect(entity: Entity) -> FakeSimulator:
+    """Attach the entity to a device reaching a fake simulator."""
+    simulator = FakeSimulator()
+    device = Device.__new__(Device)
+    device.build()
+    device._node_id = "device"
+    device._infrastructure_id = "infrastructure"
+    device._actor_cache = {"infrastructure/manager": simulator}
+    entity.attach_node(device)
+    entity.application_id = "Fed"
+    return simulator
+
+
+class Evaluating(Entity):
+    """An entity returning given results, keeping what it was asked to evaluate."""
+
+    def __init__(self, results):
+        super().__init__("a")
+        self.results = results
+        self.evaluated: list[tuple] = []
+
+    def evaluate(self, record, data):
+        self.evaluated.append((record, data))
+        if isinstance(self.results, Exception):
+            raise self.results
+        return self.results
+
+
+def _record(version=(0, 0), value=0.0) -> ModelVersion:
+    """Return a record of the given version with a single parameter."""
+    return ModelVersion(version, 0.0, np.array([value], dtype=np.float32))
 
 
 def _with_mpi(mpi: FakeMPI) -> Entity:
@@ -80,12 +128,149 @@ async def test_entity_step_has_no_effect():
     assert await Entity("a").step() is None
 
 
+def test_entity_report_carries_its_identity():
+    """A report says who sent it, from where and when, besides its values."""
+    entity = Entity("a")
+    simulator = _connect(entity)
+
+    entity.report(round=3, split="test")
+
+    ((application_id, entity_id, n_report, timestamp, values),) = simulator.reports
+    assert (application_id, entity_id, n_report) == ("Fed", "a", 1)
+    assert datetime.fromisoformat(timestamp)
+    assert values == {"round": 3, "split": "test", "node_id": "device"}
+
+
+def test_entity_numbers_its_reports():
+    """The reports are numbered, so the simulator knows how many to expect."""
+    entity = Entity("a")
+    simulator = _connect(entity)
+
+    entity.report(value=1)
+    entity.report(value=2)
+
+    assert [report[2] for report in simulator.reports] == [1, 2]
+    assert entity.n_reports == 2
+
+
+def test_entity_reports_plain_numbers():
+    """Numerical scalars and arrays are converted, as the writer cannot take them."""
+    entity = Entity("a")
+    simulator = _connect(entity)
+
+    entity.report(loss=np.float32(0.5), n=np.int64(2), weights=np.array([1.0, 2.0]))
+
+    (values,) = simulator.values
+    assert (type(values["loss"]), type(values["n"])) == (float, int)
+    assert values["weights"] == [1.0, 2.0]
+
+
+def test_entity_refuses_values_the_report_cannot_write():
+    """Such a value fails where it is reported, instead of stopping the report."""
+    entity = Entity("a")
+    simulator = _connect(entity)
+
+    with pytest.raises(TypeError, match="object"):
+        entity.report(value=object())
+
+    assert not simulator.reports
+    assert entity.n_reports == 0
+
+
 def test_entity_does_not_evaluate_by_default():
     """The entity has no evaluation by default."""
     entity = Entity("a")
 
-    assert entity.evaluate() is None
-    assert entity.eval_metrics == {}
+    entity.run_evaluation(_record())
+
+    assert entity.n_reports == 0
+
+
+def test_run_evaluation_reports_one_record():
+    """A report identifies the round, the version, the model and the split."""
+    entity = Evaluating({"loss": 0.5, "accuracy": 0.9})
+    simulator = _connect(entity)
+    entity.splits = {"test": "the test part"}
+    record = _record((3, 1))
+
+    entity.run_evaluation(record, "test")
+
+    assert entity.evaluated == [(record, "the test part")]
+    (values,) = simulator.values
+    assert values == {
+        "round": 3,
+        "version": [3, 1],
+        "model": values["model"],
+        "split": "test",
+        "metrics": {"loss": 0.5, "accuracy": 0.9},
+        "node_id": "device",
+    }
+
+
+def test_run_evaluation_defaults_to_the_data_of_the_entity():
+    """Without a split, the whole data of the entity is evaluated."""
+    entity = Evaluating({"loss": 0.5})
+    simulator = _connect(entity)
+    entity.data = "the data"
+
+    entity.run_evaluation(_record())
+
+    assert entity.evaluated[0][1] == "the data"
+    assert simulator.values[0]["split"] is None
+
+
+def test_run_evaluation_accepts_an_explicit_round():
+    """The round may differ from the coarsest counter of the version."""
+    entity = Evaluating({"loss": 0.5})
+    simulator = _connect(entity)
+
+    entity.run_evaluation(_record((0, 7)), round=np.int64(7))
+
+    assert simulator.values[0]["round"] == 7
+    assert type(simulator.values[0]["round"]) is int
+
+
+def test_run_evaluation_reports_plain_numbers():
+    """Numpy scalars are converted, as the report cannot serialize them."""
+    entity = Evaluating({"loss": np.float32(0.5)})
+    simulator = _connect(entity)
+
+    entity.run_evaluation(_record())
+
+    assert type(simulator.values[0]["metrics"]["loss"]) is float
+
+
+def test_run_evaluation_tells_apart_models_sharing_a_version():
+    """The hash follows the parameters, whoever evaluates and whatever the version."""
+    first, second = Evaluating({"loss": 0.5}), Evaluating({"loss": 0.5})
+    reports, others = _connect(first), _connect(second)
+
+    first.run_evaluation(_record((3, 1), 1.0))
+    first.run_evaluation(_record((3, 1), 2.0))
+    second.run_evaluation(_record((3, 1), 1.0))
+
+    assert reports.values[0]["model"] != reports.values[1]["model"]
+    assert reports.values[0]["model"] == others.values[0]["model"]
+
+
+@pytest.mark.parametrize(
+    ("results", "split"),
+    [
+        (RuntimeError("boom"), None),
+        ({"loss": 0.5}, "unknown"),
+        ({"loss": object()}, None),
+    ],
+)
+def test_failing_evaluation_is_logged_and_reports_nothing(results, split, monkeypatch):
+    """A failure is logged, and the entity carries on."""
+    logger = Mock()
+    monkeypatch.setattr(Entity, "logger", logger)
+    entity = Evaluating(results)
+
+    entity.run_evaluation(_record(), split)
+
+    assert entity.n_reports == 0
+    logger.exception.assert_called_once()
 
 
 def test_entity_deploy_binds_its_view():
@@ -112,10 +297,12 @@ def test_entity_deploy_without_device_data():
 def test_entity_undeploy_releases_the_view():
     """Undeploying drops the bound view."""
     entity = _deploy(Entity("b"), _split_dataset())
+    entity.splits = {"test": entity.data}
 
     entity.on_undeploy()
 
     assert entity.data is None
+    assert entity.splits == {}
 
 
 def test_entity_redeploy_rebinds():
@@ -195,35 +382,6 @@ async def test_entity_control_messages_carry_only_data():
         ("send", "b", {"record": None, "data": {"stop": True}}),
         ("bcast", None, {"record": None, "data": {"round": 3}}),
     ]
-
-
-async def test_entity_counts_the_traffic_it_sends():
-    """Messages and model bytes are counted once per recipient."""
-    entity = _with_mpi(FakeMPI(neighbors=["b", "c", "d"]))
-    record = ModelVersion((0, 1), 1.0, np.ones(2))
-
-    await entity.send(["b", "c"], record)
-    await entity.bcast(stop=True)
-
-    assert entity.traffic.messages_sent == 5
-    assert entity.traffic.bytes_sent == 2 * record.parameters.nbytes
-    assert entity.traffic.send_time >= 0.0
-
-
-async def test_entity_counts_the_traffic_it_receives():
-    """Received messages and the time waited are counted, timeouts included."""
-    record = ModelVersion((1, 0), 2.0, np.zeros(3))
-    entity = _with_mpi(
-        FakeMPI(inbox=[{"record": record, "data": {}, "sender_id": "b"}])
-    )
-
-    await entity.receive()
-    with pytest.raises(TimeoutError):
-        await entity.receive(timeout=0.1)
-
-    assert entity.traffic.messages_received == 1
-    assert entity.traffic.bytes_received == record.parameters.nbytes
-    assert entity.traffic.receive_time >= 0.0
 
 
 def test_entity_rng_is_seeded_per_entity_at_deploy(monkeypatch):

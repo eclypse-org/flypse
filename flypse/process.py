@@ -14,30 +14,30 @@ nodes become devices holding the federation data.
 
 from __future__ import annotations
 
+from operator import itemgetter
 from typing import (
     TYPE_CHECKING,
     Any,
 )
 
 from eclypse.remote.bootstrap import RemoteBootstrap
+from eclypse.report.backend import load_jsonl_rows
+from eclypse.report.reporters import JSONReporter
 from eclypse.simulation import (
     Simulation,
     SimulationConfig,
 )
+from eclypse.utils.defaults import JSON_REPORT_DIR
 
-from flypse.report import (
-    get_evaluation_events,
-    get_federation_metrics,
-)
 from flypse.seed import get_seed
 from flypse.system import (
+    ENTITY_REPORT,
     Device,
+    FederatedSimulator,
     SystemConfig,
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
-
     from eclypse.graph import Application
     from eclypse.placement.strategies import PlacementStrategy
 
@@ -53,9 +53,6 @@ class FederatedProcess(Simulation):
         federation: Federation,
         data: FederatedDataset,
         system: SystemConfig | None = None,
-        include_federation_metrics: bool = True,
-        eval_metrics: Sequence[str] = (),
-        eval_every: int | None = None,
         **simulation_config: Any,
     ):
         """Create a federated process.
@@ -76,30 +73,20 @@ class FederatedProcess(Simulation):
                 federation, whose nodes are devices, and the placement of the
                 entities onto them. Defaults to None, meaning the mirror
                 infrastructure (``SystemConfig()``).
-            include_federation_metrics (bool): Whether to report the
-                federation metrics (steps and traffic of every entity),
-                besides any given ``events``. Defaults to True.
-            eval_metrics (Sequence[str]): The names of the metrics returned
-                by the ``evaluate`` of the entities, each reported whenever
-                the ``evaluate`` event is triggered (e.g.
-                ``process.trigger("evaluate")``). Defaults to no metrics.
-            eval_every (int | None): The number of steps of the process
-                between two evaluations of the entities. Defaults to None,
-                meaning the entities are evaluated only when the ``evaluate``
-                event is triggered.
             **simulation_config: The arguments of the ECLYPSE
                 ``SimulationConfig``, except ``remote``.
         """
         self.federation = federation
         self.data = data
 
-        events = list(simulation_config.pop("events", None) or [])
-        if include_federation_metrics:
-            events += get_federation_metrics()
-        events += get_evaluation_events(eval_metrics, eval_every)
+        reporters = simulation_config.pop("reporters", None) or {}
         config = SimulationConfig(
-            remote=RemoteBootstrap(node_class=Device, data=data),
-            events=events,
+            remote=RemoteBootstrap(
+                sim_class=FederatedSimulator,
+                node_class=Device,
+                data=data,
+            ),
+            reporters={JSON_REPORT_DIR: JSONReporter, **reporters},
             **simulation_config,
         )
         # expose the seed of the process before anything random is built
@@ -148,4 +135,33 @@ class FederatedProcess(Simulation):
         super().register(
             self.federation,
             placement_strategy or self._placement_strategy,
+        )
+
+    @property
+    def reported(self) -> list[dict[str, Any]]:
+        """The values reported by the entities of the finished process.
+
+        They are kept apart from ``report``, in the JSON report, as each one is
+        a single record: the values of a call of ``Entity.report``, with its
+        ``entity_id``, ``node_id``, ``timestamp`` and ``n_report``, which
+        identifies it among those of the entity.
+
+        Returns:
+            list[dict[str, Any]]: One record per report, oldest first.
+        """
+        self.wait()
+        path = self.path / JSON_REPORT_DIR / "service.jsonl"
+        rows = load_jsonl_rows(path, "service") if path.exists() else []
+        return sorted(
+            (
+                {
+                    **row["value"],
+                    "entity_id": row["service_id"],
+                    "timestamp": row["timestamp"],
+                    "n_report": row["n_event"],
+                }
+                for row in rows
+                if row["callback_id"] == ENTITY_REPORT
+            ),
+            key=itemgetter("timestamp"),
         )

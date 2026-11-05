@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import random
 
@@ -13,9 +14,12 @@ from eclypse.placement.strategies import (
 )
 from eclypse.remote.bootstrap import RemoteBootstrap
 from eclypse.report.metrics import metric
+from eclypse.report.reporters import (
+    CSVReporter,
+    JSONReporter,
+)
 from eclypse.simulation import Simulation
 from eclypse.utils.constants import RND_SEED
-from eclypse.workflow.trigger import PeriodicCascadeTrigger
 
 from flypse.data import (
     DirichletDataset,
@@ -26,10 +30,11 @@ from flypse.federation import (
     Federation,
 )
 from flypse.process import FederatedProcess
-from flypse.report import EVALUATE_EVENT
 from flypse.system import (
+    ENTITY_REPORT,
     SINGLETON_NODE,
     Device,
+    FederatedSimulator,
     SystemConfig,
 )
 
@@ -95,6 +100,7 @@ def test_process_wires_devices_and_data(fake_build):
     assert captured["bootstrap"] is process.remote
     assert process.remote is not None
     assert process.remote._node_class is Device
+    assert process.remote._sim_class is FederatedSimulator
     assert process.remote.node_args["data"] is dataset
 
 
@@ -326,64 +332,102 @@ def test_register_prefers_an_explicit_strategy(monkeypatch):
     assert registered["strategy"] is strategy
 
 
-def _event_names(process: FederatedProcess) -> set[str]:
-    """Return the names of the events of a process."""
-    return {event.name for event in process._sim_config.events}
-
-
-def test_process_reports_the_federation_metrics():
-    """The federation metrics are included by default, besides given events."""
+def test_process_forwards_the_given_events():
+    """Events given to the process reach the simulation."""
     custom = metric.service(lambda service, **_: 0, name="custom", remote=True)
 
     process = FederatedProcess(
         _federation("a"), UniformDataset(list(range(2))), _custom(), events=[custom]
     )
 
-    assert {"custom", "steps", "bytes_sent"} <= _event_names(process)
+    assert custom in process._sim_config.events
 
 
-def test_process_federation_metrics_can_be_left_out():
-    """The federation metrics can be switched off."""
+@pytest.mark.parametrize("report_format", ["csv", "json", "parquet"])
+def test_process_always_has_the_json_reporter(report_format):
+    """The reports of the entities are written whatever the report format."""
     process = FederatedProcess(
         _federation("a"),
         UniformDataset(list(range(2))),
         _custom(),
-        include_federation_metrics=False,
+        report_format=report_format,
     )
 
-    assert "steps" not in _event_names(process)
+    assert process._sim_config.reporters["json"] is JSONReporter
 
 
-def test_process_always_has_the_evaluate_event():
-    """The evaluate event is always there, with one metric per given name."""
-    plain = FederatedProcess(
-        _federation("a"), UniformDataset(list(range(2))), _custom()
-    )
-    evaluating = FederatedProcess(
-        _federation("a"),
-        UniformDataset(list(range(2))),
-        _custom(),
-        eval_metrics=["loss"],
-    )
-
-    assert EVALUATE_EVENT in _event_names(plain)
-    assert "loss" not in _event_names(plain)
-    assert {EVALUATE_EVENT, "loss"} <= _event_names(evaluating)
-
-
-def test_process_evaluates_periodically():
-    """The evaluate event fires every ``eval_every`` steps."""
+def test_process_keeps_the_given_reporters():
+    """Reporters given to the process are added to the JSON one."""
     process = FederatedProcess(
         _federation("a"),
         UniformDataset(list(range(2))),
         _custom(),
-        eval_every=5,
+        reporters={"custom": CSVReporter},
     )
 
-    (evaluate,) = (e for e in process._sim_config.events if e.name == EVALUATE_EVENT)
-    (trigger,) = evaluate.trigger_bucket.triggers
-    assert isinstance(trigger, PeriodicCascadeTrigger)
-    assert trigger.every_n_triggers == 5
+    assert process._sim_config.reporters["custom"] is CSVReporter
+    assert process._sim_config.reporters["json"] is JSONReporter
+
+
+def _process_with_report(tmp_path, monkeypatch, rows=None) -> FederatedProcess:
+    """Return a finished process with the given rows in its JSON report."""
+    monkeypatch.setattr(FederatedProcess, "wait", lambda _self: None)
+    process = FederatedProcess(
+        _federation("a"),
+        UniformDataset(list(range(2))),
+        _custom(),
+        path=tmp_path / "run",
+    )
+    if rows is not None:
+        report = process.path / "json" / "service.jsonl"
+        report.parent.mkdir(parents=True)
+        report.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    return process
+
+
+def test_process_reads_the_reports_oldest_first(tmp_path, monkeypatch):
+    """One record per report, in time order, leaving the metrics out."""
+
+    def row(timestamp, name, n, entity_id, value):
+        return {
+            "timestamp": timestamp,
+            "event_name": name,
+            "event_idx": n,
+            "callback_name": name,
+            "data": ["Fed", entity_id, value],
+        }
+
+    process = _process_with_report(
+        tmp_path,
+        monkeypatch,
+        [
+            row("2", ENTITY_REPORT, 1, "b", {"round": 1, "node_id": "x"}),
+            row("3", "steps", 1, "a", 4),
+            row("1", ENTITY_REPORT, 1, "a", {"round": 1, "node_id": "y"}),
+        ],
+    )
+
+    assert process.reported == [
+        {
+            "round": 1,
+            "node_id": "y",
+            "entity_id": "a",
+            "timestamp": "1",
+            "n_report": 1,
+        },
+        {
+            "round": 1,
+            "node_id": "x",
+            "entity_id": "b",
+            "timestamp": "2",
+            "n_report": 1,
+        },
+    ]
+
+
+def test_process_without_reports_reads_nothing(tmp_path, monkeypatch):
+    """Nothing is written if no entity reports, and that is not an error."""
+    assert _process_with_report(tmp_path, monkeypatch).reported == []
 
 
 def _class(item: int) -> int:
