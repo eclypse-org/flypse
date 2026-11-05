@@ -75,6 +75,19 @@ class FederatedModel(ABC):
 
     The current version is in ``version``, while ``versions`` holds the
     version history, oldest first.
+
+    Example:
+        .. code-block:: python
+
+            class MeanModel(FederatedModel):
+                def _read_parameters(self):
+                    yield "mean", self.model["mean"]
+
+                def _write_parameter(self, name, value):
+                    self.model[name] = value
+
+
+            model = MeanModel({"mean": np.zeros(1)})
     """
 
     def __init__(
@@ -107,13 +120,16 @@ class FederatedModel(ABC):
                 less than 1.
         """
         self.model = model
+        """The wrapped framework model."""
         self.dtype = np.dtype(dtype)
+        """The dtype of the parameter arrays."""
         levels = tuple(version_levels)
         if not levels or len(set(levels)) != len(levels):
             raise ValueError("the version_levels must be non-empty and unique")
         if max_versions is not None and max_versions < 1:
             raise ValueError("max_versions must be at least 1")
         self.version_levels = levels
+        """The version levels, from the coarsest to the finest."""
         entries = self._read()
         if not entries:
             raise ValueError(
@@ -124,11 +140,13 @@ class FederatedModel(ABC):
         self._offsets = np.cumsum(sizes)[:-1]
         self._total = sum(sizes)
         self.version = (0,) * len(self.version_levels)
+        """The current version: one counter per level."""
         flat = np.concatenate([value.ravel() for value in entries.values()])
         flat.flags.writeable = False
         self.versions = deque(
             [ModelVersion(self.version, time(), flat)], maxlen=max_versions
         )
+        """The version history, oldest first."""
 
     @overload
     def get_parameters(
@@ -208,6 +226,11 @@ class FederatedModel(ABC):
         Raises:
             ValueError: If the level is unknown, or the parameters do not
                 match the ones of the model.
+
+        Example:
+            .. code-block:: python
+
+                await self.bcast(self.model.update_version(average, "global"))
         """
         if level not in self.version_levels:
             raise ValueError(f"unknown level {level!r}")

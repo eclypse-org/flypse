@@ -31,6 +31,15 @@ class DirichletDataset(FederatedDataset):
     while large values approach the uniform, i.i.d. split. The class of an
     item is obtained, whenever needed, by applying ``class_fn`` to the
     result of ``source[index]``.
+
+    Example:
+        .. code-block:: python
+
+            def label(item):
+                return item[1]
+
+
+            data = DirichletDataset(source, class_fn=label, alpha=0.5, seed=0)
     """
 
     def __init__(
@@ -59,8 +68,11 @@ class DirichletDataset(FederatedDataset):
         if alpha <= 0:
             raise ValueError("alpha must be positive.")
         self.class_fn = class_fn
+        """The function returning the class of an item."""
         self.alpha = alpha
+        """The concentration of the Dirichlet distribution."""
         self.seed = seed
+        """The seed of the split randomness, or None for the one of the process."""
 
     def split(self, entity_ids: Sequence[str]) -> dict[str, Sequence[int]]:
         """Assign the items of each class via Dirichlet-drawn proportions.

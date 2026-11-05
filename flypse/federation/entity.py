@@ -46,7 +46,21 @@ if TYPE_CHECKING:
 
 
 class Entity(Service):
-    """A federated entity, running on a device and bound to its data."""
+    """A federated entity, running on a device and bound to its data.
+
+    Example:
+        .. code-block:: python
+
+            class Client(Entity):
+                async def step(self):
+                    train(self.model, self.data)
+                    record = self.model.update_version(
+                        self.model.get_parameters(), "local"
+                    )
+                    await self.send("server", record, n_samples=len(self.data))
+                    message = await self.receive()
+                    self.model.load_version(message.record)
+    """
 
     def __init__(
         self,
@@ -70,10 +84,15 @@ class Entity(Service):
             store_step=store_step,
         )
         self.with_data = with_data
+        """Whether the entity holds a portion of the federation data."""
         self.rng = random.Random()
+        """The generator of the entity, seeded when it is deployed."""
         self.n_reports = 0
+        """The number of reports the entity has made."""
         self.data: DataView | None = None
+        """The view of the data of the entity, bound when it is deployed."""
         self.splits: dict[str, DataView] = {}
+        """The named parts of the data of the entity, set by the entity."""
 
     def on_deploy(self):
         """Seed the ``rng`` of the entity and bind its view of the data.
@@ -119,6 +138,10 @@ class Entity(Service):
                 Defaults to None, meaning a control message carrying only
                 its data.
             **data: The data attached to the message.
+
+        Raises:
+            RouteNotFoundError: If a recipient is not a neighbour, or cannot be
+                reached. The entity logs it and starts its next step.
         """
         await self.mpi.send(recipients, {"record": record, "data": data})
 
@@ -132,6 +155,11 @@ class Entity(Service):
                 Defaults to None, meaning a control message carrying only
                 its data.
             **data: The data attached to the message.
+
+        Raises:
+            RouteNotFoundError: If a neighbour cannot be reached. The entity logs
+                it and starts its next step, and other neighbours may have
+                received the message.
         """
         await self.mpi.bcast({"record": record, "data": data})
 
@@ -150,6 +178,14 @@ class Entity(Service):
 
         Raises:
             TimeoutError: If no message arrives within the timeout.
+
+        Example:
+            .. code-block:: python
+
+                try:
+                    message = await self.receive(timeout=2.0)
+                except TimeoutError:
+                    message = None
         """
         body = await self.mpi.recv(timeout=timeout)
         return Message(body["sender_id"], body["record"], body["data"])
@@ -169,6 +205,11 @@ class Entity(Service):
 
         Raises:
             TypeError: If a value cannot be represented.
+
+        Example:
+            .. code-block:: python
+
+                self.report(round=record.version[0], loss=loss)
         """
         # eclypse#51: a value the writer cannot serialize would hang the shutdown
         values = json.loads(json.dumps(values, default=_to_plain))
@@ -200,6 +241,15 @@ class Entity(Service):
         Returns:
             dict[str, float] | None: The value of each evaluation metric,
             keyed by name, or None if the entity does not evaluate.
+
+        Example:
+            .. code-block:: python
+
+                def evaluate(self, record, data):
+                    parameters = self.model.get_parameters(
+                        flattened=False, version=record
+                    )
+                    return {"loss": test_loss(parameters, data)}
         """
 
     def run_evaluation(

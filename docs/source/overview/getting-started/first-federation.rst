@@ -2,17 +2,35 @@
 Run your first federation
 ==========================
 
-This page builds a small client-server federation that estimates the mean of
-a dataset split across three clients. Each client moves the global estimate
-towards the mean of its own data, and the server averages the estimates of
-the clients, weighted by the size of their data.
+This page shows the shortest path to a first federated run.
 
-The model
----------
+We will:
+
+#. wrap a model so that its parameters can be exchanged,
+#. implement a client and a server,
+#. build the federation and split the data across it,
+#. run the process and read what the server reported.
+
+The federation estimates the mean of a dataset split across three clients. Each
+client moves the global estimate towards the mean of its own data, and the
+server averages the estimates of the clients, weighted by the size of their data.
+
+The following example uses:
+
+- :class:`~flypse.federation.model.FederatedModel`, to exchange the parameters
+  of a model,
+- :class:`~flypse.federation.entity.Entity`, to implement the behaviour of the
+  client and the server,
+- :func:`~flypse.federation.topology.get_star`, to connect them,
+- :class:`~flypse.data.uniform.UniformDataset`, to split the data,
+- :class:`~flypse.process.FederatedProcess`, to emulate the federation.
+
+Define the model
+----------------
 
 A :class:`~flypse.federation.model.FederatedModel` wraps a model of any
-framework and exposes its parameters as numpy arrays. Subclasses implement
-two hooks: ``_read_parameters`` yields the parameters to exchange, and
+framework and exposes its parameters as numpy arrays. Subclasses implement two
+hooks: ``_read_parameters`` yields the parameters to exchange, and
 ``_write_parameter`` writes one of them back into the wrapped model.
 
 Here, the wrapped model is a dictionary holding a single estimate:
@@ -33,29 +51,12 @@ Here, the wrapped model is a dictionary holding a single estimate:
        def _write_parameter(self, name, value):
            self.model[name] = value
 
-Every write is recorded as a new version, a
-:class:`~flypse.federation.model.ModelVersion` holding the version counters,
-a timestamp, and the parameters as a flat vector. ``update_version`` is used
-by the entity generating a new model, at a given level (``"local"`` or
-``"global"`` by default), while ``load_version`` is used by the entity
-receiving it. Both return the recorded version, ready to be sent.
+Implement the entities
+----------------------
 
-The entities
-------------
-
-An :class:`~flypse.federation.entity.Entity` is an ECLYPSE service: its
-behaviour is the ``step`` method, executed repeatedly once the entity is
-deployed. When deployed, the entity binds its portion of the federation data,
-available as ``self.data``: a view that can be indexed, iterated, and
-sliced (e.g., ``self.data[:32]`` is a view of the first 32 items, for a
-batch). Entities exchange versions of their models with
-``send``, ``bcast`` and ``receive``, attaching any other data as keyword
-arguments, and find their neighbours with ``get_neighbors``. A message sent
-without a model is a control message, carrying only its data (e.g.,
-``await self.bcast(stop=True)``), whose ``record`` is None. ``receive``
-waits for the next message, for at most ``timeout`` seconds when given. The
-value returned by ``step`` is stored in the report when ``store_step`` is
-True.
+An :class:`~flypse.federation.entity.Entity` is an ECLYPSE service: its behaviour
+is the ``step`` method, which runs repeatedly once the entity is deployed.
+``self.data`` holds the portion of the data assigned to the entity.
 
 .. code-block:: python
 
@@ -66,7 +67,7 @@ True.
        """Moves the global estimate towards the mean of its own data."""
 
        def __init__(self, entity_id, server_id):
-           super().__init__(entity_id, store_step=True)
+           super().__init__(entity_id)
            self.server_id = server_id
            self.model = MeanModel({"mean": np.zeros(1)})
 
@@ -85,7 +86,7 @@ True.
        """Averages the estimates of its clients, weighted by their data size."""
 
        def __init__(self, entity_id):
-           super().__init__(entity_id, store_step=True, with_data=False)
+           super().__init__(entity_id, with_data=False)
            self.model = MeanModel({"mean": np.zeros(1)})
 
        async def step(self):
@@ -95,23 +96,24 @@ True.
                sum(m.record.parameters * m.data["n_samples"] for m in messages)
                / n_total
            )
-           await self.bcast(self.model.update_version(average, "global"))
-           return float(average[0])
+           record = self.model.update_version(average, "global")
+           self.report(round=record.version[0], estimate=average[0])
+           await self.bcast(record)
 
-The synchronization of the federation emerges from the entities themselves:
-each client waits for the global estimate after sending its own, and the
-server waits for an estimate from each of its neighbours.
+``update_version`` records a new version of a model, which ``send`` and ``bcast``
+deliver to other entities, and ``load_version`` adopts a received one.
 
-The federation and its data
----------------------------
+The synchronisation of the federation emerges from the entities themselves: each
+client waits for the global estimate after sending its own, and the server waits
+for an estimate from each of its neighbours.
+
+Build the federation and its data
+---------------------------------
 
 A :class:`~flypse.federation.federation.Federation` is an ECLYPSE application
-whose nodes are the entities and whose edges are their connections. It can be
-built entity by entity with ``add_entity`` and ``add_connection``, or with a
-topology builder: :func:`~flypse.federation.topology.get_star`,
-:func:`~flypse.federation.topology.get_tree` (e.g., for hierarchical
-aggregation) or :func:`~flypse.federation.topology.get_ring` (e.g., for
-decentralized peers). A :class:`~flypse.data.uniform.UniformDataset` splits a data source (anything
+whose nodes are the entities and whose edges are their connections.
+:func:`~flypse.federation.topology.get_star` connects a server to its clients,
+and a :class:`~flypse.data.uniform.UniformDataset` splits a data source (anything
 with ``__len__`` and ``__getitem__``) into contiguous blocks, one per entity:
 
 .. code-block:: python
@@ -127,72 +129,38 @@ with ``__len__`` and ``__getitem__``) into contiguous blocks, one per entity:
 
    data = UniformDataset(list(range(100)))
 
-The data is split across the entities holding data: the server is created with
-``with_data=False``, so the 100 items are split among the three clients.
-
-The data of an entity can be split further into named parts with a
-:class:`~flypse.data.splitter.ViewSplitter`. The default
-:class:`~flypse.data.splitter.FractionSplitter` sizes the parts by fractions,
-optionally stratifying by class or following the order of the items (e.g., by
-time, so that no part precedes the earlier ones). Each part is a view of the
-entity's data, and can be split again:
-
-.. code-block:: python
-
-   from flypse.data import FractionSplitter
-
-   splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=0)
-   parts = splitter.apply(self.data)  # e.g., in the on_deploy of an entity
-   parts["train"][0], len(parts["test"])
-
-Subclasses of :class:`~flypse.data.splitter.ViewSplitter` define their own
-splits by implementing ``split``.
-
-Reproducibility
----------------
-
-A process has a single seed, the ``seed`` argument of the simulation
-configuration. Every component given no seed of its own falls back to it: the
-split of the data, the ``"singleton"`` and ``"mirror"`` infrastructures, the
-federation, and the splitters. For its own randomness, an entity draws from
-its ``rng``, seeded from the seed of the process and the identifier of the
-entity, so that entities draw different but reproducible sequences; it can
-also drive a splitter, e.g., ``FractionSplitter(parts, seed=self.rng)``.
+The server is created with ``with_data=False``, so the 100 items are split among
+the three clients.
 
 Run the process
 ---------------
 
 A :class:`~flypse.process.FederatedProcess` emulates the federation: it splits
-the data, gives it to the devices of the infrastructure described by a
-:class:`~flypse.system.config.SystemConfig` (the ``"mirror"`` infrastructure
-when omitted), and registers the federation. Any other argument is passed to
-the ECLYPSE simulation configuration.
+the data, gives it to the devices of an infrastructure, and registers the
+federation. Any other argument goes to the ECLYPSE simulation configuration:
 
 .. code-block:: python
 
    from flypse.process import FederatedProcess
 
-   process = FederatedProcess(
-       federation,
-       data,
-       step_every_ms=100.0,
-       include_default_metrics=True,
-   )
+   process = FederatedProcess(federation, data, step_every_ms=100.0, seed=0)
    process.run(seconds=5)
 
-With the default ``"mirror"`` infrastructure, each entity runs on its own
-device. The clients hold the items from 0 to 99, so the estimate of the server
-converges to their mean, 49.5.
+   print(process.reported[-1])
 
-.. note::
+.. code-block:: text
 
-   Each device runs in its own Ray worker. When the script is launched with
-   ``uv run``, Ray starts its workers through ``uv`` as well, setting up a new
-   environment for each of them. Setting the ``RAY_ENABLE_UV_RUN_RUNTIME_ENV``
-   environment variable to ``0`` before Ray is imported makes the workers
-   reuse the current environment instead.
+   {'round': 511, 'estimate': 49.4999885559082, 'node_id': 'server', 'entity_id': 'server', 'timestamp': '2026-11-05T23:27:15.781024', 'n_report': 511}
+
+The clients hold the items from 0 to 99, so the estimate of the server converges
+to their mean, 49.5. The number of rounds depends on the speed of your machine.
+
+.. important::
+
+   ``step_every_ms`` is required: it is how often ECLYPSE enacts the placement,
+   and without it the entities are never deployed.
 
 .. seealso::
 
-   - :doc:`infrastructure`
    - :doc:`inspect-results`
+   - :doc:`infrastructure`

@@ -27,6 +27,10 @@ from examples.fedavg.model import (
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    import numpy as np
+
+    from flypse.federation import Message
+
 
 class FedAvgClient(Entity):
     """A learner of the federation.
@@ -46,6 +50,7 @@ class FedAvgClient(Entity):
         lr: float,
         eval_every: int,
         store_step: bool = True,
+        version_levels: Sequence[str] = ("global", "local"),
     ):
         """Initialize the learner.
 
@@ -58,6 +63,8 @@ class FedAvgClient(Entity):
             eval_every (int): The number of rounds between two evaluations.
             store_step (bool): Whether the local loss is stored for reporting.
                 Defaults to True.
+            version_levels (Sequence[str]): The version levels of the model.
+                Defaults to ``("global", "local")``.
         """
         super().__init__(entity_id, store_step=store_step)
         self._server_id = server_id
@@ -65,7 +72,9 @@ class FedAvgClient(Entity):
         self._epochs = epochs
         self._lr = lr
         self._eval_every = eval_every
-        self.model = FedAvgModel(LinearModel([0.0] * n_features, 0.0))
+        self.model = FedAvgModel(
+            LinearModel([0.0] * n_features, 0.0), version_levels=version_levels
+        )
 
     def on_deploy(self):
         """Bind the local data, initialize the model and split off a test part.
@@ -135,7 +144,14 @@ class FedAvgServer(Entity):
     back to them.
     """
 
-    def __init__(self, entity_id: str, *, n_features: int, store_step: bool = True):
+    def __init__(
+        self,
+        entity_id: str,
+        *,
+        n_features: int,
+        store_step: bool = True,
+        version_levels: Sequence[str] = ("global", "local"),
+    ):
         """Initialize the aggregator.
 
         Args:
@@ -143,9 +159,13 @@ class FedAvgServer(Entity):
             n_features (int): The number of features of the model.
             store_step (bool): Whether the global loss is stored for
                 reporting. Defaults to True.
+            version_levels (Sequence[str]): The version levels of the model.
+                Defaults to ``("global", "local")``.
         """
         super().__init__(entity_id, store_step=store_step, with_data=False)
-        self.model = FedAvgModel(LinearModel([0.0] * n_features, 0.0))
+        self.model = FedAvgModel(
+            LinearModel([0.0] * n_features, 0.0), version_levels=version_levels
+        )
 
     async def step(self):
         """Aggregate the local models of the neighbors and broadcast them.
@@ -158,21 +178,30 @@ class FedAvgServer(Entity):
         if not messages:
             return None
 
-        # a fixed order: float rounding would make the model follow the arrivals
-        messages.sort(key=lambda message: message.sender)
-
-        # FedAvg: Θ = Σ_c (n_c / n) Θ_c
-        n_total = sum(m.data["n_samples"] for m in messages)
-        average = (
-            sum(m.record.parameters * m.data["n_samples"] for m in messages) / n_total
-        )
+        average = weighted_average(messages)
         await self.bcast(self.model.update_version(average, "global"))
 
+        n_total = sum(m.data["n_samples"] for m in messages)
         global_loss = (
             sum(m.data["loss"] * m.data["n_samples"] for m in messages) / n_total
         )
         self.logger.info(f"FedAvg round loss: {global_loss:.6f}")
         return global_loss
+
+
+def weighted_average(messages: list[Message]) -> np.ndarray:
+    """Average the models of the messages, weighted by their number of samples.
+
+    Args:
+        messages (list[Message]): The messages, sorted by sender in place.
+
+    Returns:
+        np.ndarray: The average model: Θ = Σ_c (n_c / n) Θ_c.
+    """
+    # a fixed order: float rounding would make the model follow the arrivals
+    messages.sort(key=lambda message: message.sender)
+    n_total = sum(m.data["n_samples"] for m in messages)
+    return sum(m.record.parameters * m.data["n_samples"] for m in messages) / n_total
 
 
 def build_federation(

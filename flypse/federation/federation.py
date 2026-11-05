@@ -93,7 +93,8 @@ class Federation(Application):
             **assets: The assets required by the entity.
 
         Raises:
-            TypeError: If the entity is not an :class:`Entity`.
+            TypeError: If the entity is not an
+                :class:`~flypse.federation.entity.Entity`.
             ValueError: If an entity with the same identifier is already in
                 the federation.
         """
