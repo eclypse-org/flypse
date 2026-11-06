@@ -37,7 +37,7 @@ class DataSource(Protocol):
     """A protocol for anything that can serve data items by index.
 
     Any object exposing ``__len__`` and ``__getitem__`` (a list, an array, a
-    dataframe, a torch-style dataset, ...) is a valid ``DataSource``. The
+    torch-style dataset, ...) is a valid ``DataSource``. The
     items it yields are opaque to FLYPSE.
     """
 
@@ -63,7 +63,7 @@ class FederatedDataset(ABC):
     """The data of a federation, partitioned across its entities."""
 
     def __init__(self, source: DataSource):
-        """Initialize the federated dataset.
+        """Initialise the federated dataset.
 
         Args:
             source (DataSource): The data source of the federation.

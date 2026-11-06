@@ -8,10 +8,10 @@ distances) is plain numpy math, while local training stays on the wrapped
 model.
 
 The entries the model exchanges, with their names and shapes, are selected
-by the ``_read_parameters`` hook and fixed at initialization. For instance,
+by the ``_read_parameters`` hook and fixed at initialisation. For instance,
 integer counters are never yielded, while yielding BatchNorm statistics or
 not is the only difference between FedAvg and FedBN. Non-parametric models
-(e.g., tree ensembles) cannot conform and fail at initialization.
+(e.g., tree ensembles) cannot conform and fail at initialisation.
 
 Versions are hierarchical: a version carries one counter per level (by
 default ``("global", "local")``; e.g., ``("global", "group", "local")`` for
@@ -97,7 +97,7 @@ class FederatedModel(ABC):
         version_levels: Sequence[str] = ("global", "local"),
         max_versions: int | None = None,
     ) -> None:
-        """Initialize the federated model.
+        """Initialise the federated model.
 
         The entries yielded by ``_read_parameters`` are read once, fixing
         their names, order and shapes, and the initial parameters are
@@ -186,7 +186,7 @@ class FederatedModel(ABC):
         Raises:
             ValueError: If the version is not in the history, or the
                 entries read from the model differ from the ones fixed at
-                initialization.
+                initialisation.
         """
         if version is None:
             entries = self._read_live()
@@ -352,7 +352,7 @@ class FederatedModel(ABC):
 
         Raises:
             ValueError: If the read hook yields different entries or
-                shapes than at initialization.
+                shapes than at initialisation.
         """
         entries = self._read()
         if {name: value.shape for name, value in entries.items()} != self._scheme:

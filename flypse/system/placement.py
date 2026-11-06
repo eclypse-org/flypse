@@ -1,11 +1,11 @@
 """Module for the placement strategies of FLYPSE.
 
 The placement strategies map the entities of a federation onto the devices of
-the infrastructure. The singleton and mirror strategies are ECLYPSE static
-strategies, whose mapping is derived from the federation: every entity onto
-the single node of the singleton infrastructure, or each entity onto its node
-of the mirror infrastructure. The exclusive strategy places each entity on a
-device of its own, on any infrastructure.
+the infrastructure. The singleton and mirror strategies are static, with a
+mapping derived from the federation: every entity onto the single node of the
+singleton infrastructure, or each entity onto its node of the mirror
+infrastructure. The exclusive strategy places each entity on a device of its
+own, on any infrastructure.
 """
 
 from __future__ import annotations
@@ -87,8 +87,7 @@ class ExclusiveStrategy(PlacementStrategy):
             infrastructure (Infrastructure): The infrastructure hosting the
                 federation.
             application (Application): The federation to place.
-            _ (dict[str, Placement]): The placements of all the applications
-                in the simulation.
+            _ (dict[str, Placement]): The placements of the process.
             placement_view (PlacementView): The snapshot of the current state
                 of the infrastructure.
 

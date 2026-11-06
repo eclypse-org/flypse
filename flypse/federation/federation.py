@@ -1,15 +1,11 @@
 """Module for the Federation class.
 
-A federation is an ECLYPSE application whose nodes are federated entities and
-whose edges are the interactions among them. This class verticalizes the
-``Application`` API around the federated setting: entities are added with
-``add_entity`` and their interactions with ``add_connection``, so that a
-federation can be built, and then emulated by ECLYPSE, without dealing with
-the generic service and application vocabulary.
+A federation is a graph whose nodes are federated entities and whose edges are
+the connections among them: entities are added with ``add_entity`` and their
+connections with ``add_connection``.
 
-The federation is only the *application* side of the emulation: it knows the
-entities and how they interact, not where they run nor the data they will
-find there (that is the infrastructure side, see ``flypse.system``).
+The federation knows the entities and how they interact, not where they run nor
+the data they will find there (that is the system side, see ``flypse.system``).
 """
 
 from __future__ import annotations
@@ -32,7 +28,7 @@ if TYPE_CHECKING:
 
 
 class Federation(Application):
-    """A federated learning application: entities and their interactions."""
+    """A federation: entities and the connections among them."""
 
     def __init__(
         self,
@@ -50,18 +46,18 @@ class Federation(Application):
         Args:
             federation_id (str): The identifier of the federation. Defaults
                 to "Federation".
-            update_policies (UpdatePolicies): The graph update policies
-                executed during ``evolve()``. Defaults to None.
-            node_assets (dict[str, Asset] | None): The assets of the
-                entities. Defaults to None.
-            edge_assets (dict[str, Asset] | None): The assets of the
-                interactions. Defaults to None.
+            update_policies (UpdatePolicies): The functions changing the
+                requirements, called at every process step. Defaults to None.
+            node_assets (dict[str, Asset] | None): The resources the entities
+                can require, on top of the default ones. Defaults to None.
+            edge_assets (dict[str, Asset] | None): The resources the connections
+                can require, on top of the default ones. Defaults to None.
             include_default_assets (bool): Whether to include the default
-                assets. Defaults to True.
-            requirement_init (InitPolicy): The initialization of the
-                requirements. Defaults to "min".
-            flows (list[list[str]] | None): The flows of the federation.
-                Defaults to None.
+                resources. Defaults to True.
+            requirement_init (InitPolicy): The initialisation of the
+                requirements. Defaults to "min", requiring nothing.
+            flows (list[list[str]] | None): The flows of the federation, as
+                lists of entity identifiers. Defaults to None.
             seed (int | None): The seed for the random number generator.
                 Defaults to None.
         """
@@ -90,7 +86,7 @@ class Federation(Application):
 
         Args:
             entity (Entity): The entity to add.
-            **assets: The assets required by the entity.
+            **assets: The requirements of the entity.
 
         Raises:
             TypeError: If the entity is not an
@@ -111,14 +107,14 @@ class Federation(Application):
         symmetric: bool = True,
         **assets,
     ):
-        """Add an interaction between two entities of the federation.
+        """Add a connection between two entities of the federation.
 
         Args:
             source (Entity | str): The source entity, or its identifier.
             target (Entity | str): The target entity, or its identifier.
-            symmetric (bool): Whether the interaction is bidirectional.
-                Defaults to True.
-            **assets: The assets of the interaction.
+            symmetric (bool): Whether the connection works in both
+                directions. Defaults to True.
+            **assets: The requirements of the connection.
         """
         super().add_edge(
             _entity_id(source),

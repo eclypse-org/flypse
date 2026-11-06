@@ -23,7 +23,7 @@ class UniformDataset(FederatedDataset):
     """
 
     def __init__(self, source: DataSource, seed: int | None = None):
-        """Initialize the dataset.
+        """Initialise the dataset.
 
         Args:
             source (DataSource): The data source of the federation.

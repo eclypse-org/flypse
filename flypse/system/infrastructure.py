@@ -1,12 +1,10 @@
 """Module for the infrastructure builders of FLYPSE.
 
 The singleton infrastructure is the minimal system a federation can be
-emulated on: a single node hosting every entity. It follows the signature of
-the ECLYPSE infrastructure builders, so it can be swapped with any of them.
-The mirror infrastructure copies the topology of a federation, with one device
-per entity and one link per connection. Both infrastructures include the
-default assets with their maximal resources, so that by default they can host
-any federation, whose requirements are minimal.
+emulated on: a single node hosting every entity. The mirror infrastructure copies
+the topology of a federation, with one device per entity and one link per
+connection. Both have maximal resources, so that by default they can host any
+federation, whose requirements are minimal.
 """
 
 from __future__ import annotations
@@ -50,21 +48,21 @@ def get_singleton(
     """Create an infrastructure with a single node hosting every entity.
 
     Args:
-        infrastructure_id (str): The ID of the infrastructure. Defaults to
+        infrastructure_id (str): The identifier of the infrastructure. Defaults to
             "singleton".
-        update_policies (UpdatePolicies): The graph update policies. Defaults
-            to None.
-        node_assets (dict[str, Asset] | None): The assets of the node.
-            Defaults to None.
-        link_assets (dict[str, Asset] | None): The assets of the links.
-            Defaults to None.
-        node_assets_values (dict[str, Any] | None): The values of the assets
+        update_policies (UpdatePolicies): The functions changing the
+            infrastructure, called at every process step. Defaults to None.
+        node_assets (dict[str, Asset] | None): The resources of the node, on
+            top of the default ones. Defaults to None.
+        link_assets (dict[str, Asset] | None): The resources of the links, on
+            top of the default ones. Defaults to None.
+        node_assets_values (dict[str, Any] | None): The values of the resources
             of the node. Defaults to None.
-        include_default_assets (bool): Whether to include the default assets.
-            Defaults to True.
+        include_default_assets (bool): Whether to include the default
+            resources. Defaults to True.
         strict (bool): If True, raises an error if the node already exists.
             Defaults to False.
-        resource_init (InitPolicy): The initialization policy for the
+        resource_init (InitPolicy): The initialisation policy for the
             resources. Defaults to "max".
         path_algorithm (Callable[[nx.Graph, str, str], list[str]] | None):
             The algorithm used to compute the paths. Defaults to None.
@@ -106,21 +104,21 @@ def get_mirror(
 
     Every entity becomes a device with the same identifier, and every
     connection becomes a link. Devices and links have the same assets as the
-    entities and the connections, initialized according to ``resource_init``.
+    entities and the connections, initialised according to ``resource_init``.
 
     Args:
         federation (Federation): The federation to mirror.
-        infrastructure_id (str): The ID of the infrastructure. Defaults to
+        infrastructure_id (str): The identifier of the infrastructure. Defaults to
             "mirror".
-        update_policies (UpdatePolicies): The graph update policies. Defaults
-            to None.
+        update_policies (UpdatePolicies): The functions changing the
+            infrastructure, called at every process step. Defaults to None.
         strict (bool): If True, raises an error if a node or a link is not
             consistent. Defaults to False.
-        resource_init (InitPolicy): The initialization policy for the
+        resource_init (InitPolicy): The initialisation policy for the
             resources. Defaults to "max".
         path_assets_aggregators (dict[str, Callable[[list[Any]], Any]] | None):
-            The aggregators of the path assets. Defaults to the ECLYPSE
-            default ones (latency, bandwidth).
+            The functions combining the resources of the links along a path.
+            Defaults to the ones of latency and bandwidth.
         path_algorithm (Callable[[nx.Graph, str, str], list[str]] | None):
             The algorithm used to compute the paths. Defaults to None.
         seed (int | None): The seed for the random number generator. Defaults
