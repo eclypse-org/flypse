@@ -1,27 +1,28 @@
-==================================
+================================
 Choose where the federation runs
-==================================
+================================
 
 The third argument of :class:`~flypse.process.FederatedProcess`, ``system``, is a
 :class:`~flypse.system.config.SystemConfig`: the infrastructure hosting the
-federation, and the placement strategy mapping the entities onto it. Each node of
-the infrastructure becomes a :class:`~flypse.system.device.Device` holding the
-federation data, from which the entities deployed on it bind their own portion.
+federation, and the placement strategy mapping the entities onto it. An infrastructure
+is a graph of devices and the links between them. Each device holds the federation
+data, from which the entities deployed on it bind their own portion.
 
-There are three ways to choose the system:
+There are two built-in systems, and a mirror you can adjust:
 
 - ``"singleton"``, a single device hosting every entity,
 - ``"mirror"``, the default, a copy of the topology of the federation,
-- any ECLYPSE infrastructure, with its placement strategy.
+- a mirror you adjust yourself, with the conditions you want to study.
 
 Check the logic on one device
 -----------------------------
 
-With ``"singleton"``, the infrastructure has a single node, with maximal
+With ``"singleton"``, the infrastructure has a single device, with maximal
 resources, and every entity is placed on it:
 
 .. code-block:: python
 
+   from flypse.process import FederatedProcess
    from flypse.system import SystemConfig
 
    process = FederatedProcess(
@@ -44,48 +45,39 @@ entity is placed on its own device:
 
    process = FederatedProcess(federation, data, step_every_ms=100.0)
 
-The communication cost of a message depends on the latency and the bandwidth of
-the links it traverses, and on the size of the message.
+The time a message takes depends on the latency and the bandwidth of the links it
+crosses, and on its size. The links of a mirror start with zero latency and maximal
+bandwidth, so messages cost next to nothing.
 
-Use any ECLYPSE infrastructure
-------------------------------
+Adjust the system
+-----------------
 
-Any :class:`~eclypse.graph.infrastructure.Infrastructure` can host the federation,
-for instance one built with the ECLYPSE builders, together with the placement
-strategy deciding where each entity runs:
+:func:`~flypse.system.infrastructure.get_mirror` builds the same infrastructure as
+``"mirror"``, for you to change before the run. A link has one edge per direction,
+so this delays the messages from ``client_0`` to the server by 100 ms:
 
 .. code-block:: python
 
-   from eclypse.builders.infrastructure import get_star
+   from flypse.system import get_mirror, get_mirror_strategy
 
-   from flypse.system import ExclusiveStrategy
-
-   infrastructure = get_star(
-       n_clients=5,
-       symmetric=True,
-       include_default_assets=True,
-       resource_init="max",
-       seed=0,
-   )
+   infrastructure = get_mirror(federation, seed=0)
+   infrastructure.edges["client_0", "server"]["latency"] = 100.0
 
    process = FederatedProcess(
        federation,
        data,
-       SystemConfig(infrastructure, ExclusiveStrategy()),
+       SystemConfig(infrastructure, get_mirror_strategy(federation)),
        step_every_ms=100.0,
    )
 
-:class:`~flypse.system.placement.ExclusiveStrategy` places each entity on a device
-of its own, among those satisfying its requirements.
+An infrastructure you build comes with its placement strategy:
+:func:`~flypse.system.placement.get_mirror_strategy` places each entity on the device
+named after it.
 
-.. important::
-
-   The ECLYPSE builders default to ``resource_init="min"``, which leaves no
-   resources for the paths between the devices: the entities are placed, the
-   placement is reset at every step, and nothing runs. Pass ``"max"`` unless you
-   set the resources yourself.
+The server waits for every client, so one slow link holds the whole federation back:
+a round now takes at least 100 ms, whatever the speed of your machine.
 
 .. seealso::
 
-   - `ECLYPSE infrastructure builders <https://eclypse.readthedocs.io/en/latest/source/overview/concepts/builders.html>`_
-   - `ECLYPSE placement strategies <https://eclypse.readthedocs.io/en/latest/source/overview/concepts/placement-strategy.html>`_
+   - :doc:`../concepts/system`
+   - :doc:`../advanced/heterogeneity`

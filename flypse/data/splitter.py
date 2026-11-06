@@ -6,7 +6,7 @@ its parent view: a part refers to the view it was split from, which in turn
 refers to the data of the federation. How the positions of the view are
 assigned to the parts is defined by subclasses, implementing ``split``.
 
-:class:`FractionSplitter` is the default splitter: it sizes the parts by
+:class:`FractionSplitter` is the ready-made splitter: it sizes the parts by
 fractions, optionally stratifying by class or following the order of the
 items (e.g., by time, so that no part precedes the earlier ones).
 """
@@ -91,7 +91,7 @@ class FractionSplitter(ViewSplitter):
         order: Callable[[Any], Any] | None = None,
         seed: int | random.Random | None = None,
     ):
-        """Initialize the splitter.
+        """Initialise the splitter.
 
         Args:
             parts (Mapping[str, float]): The fraction of each part, keyed by

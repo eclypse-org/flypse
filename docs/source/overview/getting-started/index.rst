@@ -12,10 +12,10 @@ Getting started
 
 Let's get started with FLYPSE.
 
-FLYPSE runs every federation as an ECLYPSE remote emulation: the entities are
-remote services, deployed onto the devices of an infrastructure and
-communicating through ECLYPSE's MPI interface. The guided paths below take
-you from a first run to the results it produces, and to the system it runs on.
+FLYPSE emulates a federation on your machine: the entities run on emulated devices,
+each device in its own process, and exchange real messages over links that delay them
+as a network would. The guided paths below take you from a first run to the results it
+produces, and to the system it runs on.
 
 Happy paths
 -----------
@@ -37,8 +37,8 @@ Happy paths
          :link: inspect-results
          :link-type: doc
 
-         Read the records the entities reported during the run, and the
-         metrics collected by ECLYPSE.
+         Read the records the entities reported during the run, and turn them
+         into a table.
 
    .. grid-item::
 
@@ -46,9 +46,9 @@ Happy paths
          :link: infrastructure
          :link-type: doc
 
-         Place the federation on a single device, on a copy of its own
-         topology, or on any ECLYPSE infrastructure.
+         Place the federation on a single device or on a copy of its own
+         topology, and adjust the links between the devices.
 
 .. tip::
 
-   If you have not yet installed FLYPSE, refer to the :doc:`Installation <../install>` page.
+   If you have not yet installed FLYPSE, refer to the :doc:`Install FLYPSE <../install>` page.

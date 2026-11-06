@@ -1,11 +1,13 @@
 Federation
 ==========
 
-In FLYPSE, a :class:`~flypse.federation.federation.Federation` is an ECLYPSE
-:class:`~eclypse.graph.application.Application` whose nodes are
-:doc:`entities <entities>` and whose edges are the connections between them. It
-describes who takes part in the learning process and who can talk to whom, not
-where they run nor the data they hold.
+In FLYPSE, a :class:`~flypse.federation.federation.Federation` is a graph whose
+nodes are :doc:`entities <entities>` and whose edges are the connections between
+them. It describes who takes part in the learning process and who can talk to whom,
+not where they run nor the data they hold.
+
+On this page, ``Server``, ``Client``, ``Aggregator`` and ``Peer`` stand for your own
+subclasses of :class:`~flypse.federation.entity.Entity`.
 
 There are two ways to build a federation:
 
@@ -41,7 +43,7 @@ argument goes to the :class:`~flypse.federation.federation.Federation`, such as
    .. tab-item:: Star
       :sync: star
 
-      :func:`~flypse.federation.topology.get_star` connects a center to each of
+      :func:`~flypse.federation.topology.get_star` connects a centre to each of
       its leaves, as in client-server federated learning:
 
       .. code-block:: python
@@ -50,7 +52,7 @@ argument goes to the :class:`~flypse.federation.federation.Federation`, such as
 
          federation = get_star(
              Server("server"),
-             [Client(f"client_{i}") for i in range(5)],
+             [Client(f"client_{i}", "server") for i in range(5)],
              federation_id="ClientServer",
          )
 
@@ -68,8 +70,8 @@ argument goes to the :class:`~flypse.federation.federation.Federation`, such as
              Server("server"),
              {
                  "server": [Aggregator("edge_0"), Aggregator("edge_1")],
-                 "edge_0": [Client("client_0"), Client("client_1")],
-                 "edge_1": [Client("client_2"), Client("client_3")],
+                 "edge_0": [Client("client_0", "edge_0"), Client("client_1", "edge_0")],
+                 "edge_1": [Client("client_2", "edge_1"), Client("client_3", "edge_1")],
              },
          )
 
@@ -80,7 +82,7 @@ argument goes to the :class:`~flypse.federation.federation.Federation`, such as
       :sync: ring
 
       :func:`~flypse.federation.topology.get_ring` connects each entity to the
-      next, as in decentralized federated learning. It requires at least three
+      next, as in decentralised federated learning. It requires at least three
       entities:
 
       .. code-block:: python
@@ -97,7 +99,7 @@ Build it by hand
 Any other topology is a matter of adding the entities with
 :meth:`~flypse.federation.federation.Federation.add_entity` and connecting them
 with :meth:`~flypse.federation.federation.Federation.add_connection`, which takes
-entities or their identifiers:
+their identifiers or the entities themselves:
 
 .. code-block:: python
 
@@ -105,12 +107,11 @@ entities or their identifiers:
 
    federation = Federation(federation_id="Custom")
 
-   server = Server("server")
-   federation.add_entity(server)
-   federation.add_entity(Client("client_0"))
-   federation.add_entity(Client("client_1"))
+   federation.add_entity(Server("server"))
+   federation.add_entity(Client("client_0", "server"))
+   federation.add_entity(Client("client_1", "server"))
 
-   federation.add_connection(server, "client_0")
+   federation.add_connection("server", "client_0")
    federation.add_connection("server", "client_1")
 
 ``entities`` holds the entities of the federation, keyed by identifier. Adding two
@@ -129,23 +130,25 @@ send messages to. A connection works in both directions by default.
    to ``target`` but not the other way round: ``target`` does not have ``source``
    among its neighbours, and cannot reply.
 
-Requirements and update policies
---------------------------------
+Requirements
+------------
 
-A federation includes the ECLYPSE default assets at their minimum, so it fits any
+Entities and connections require nothing by default, so a federation fits any
 infrastructure. Keyword arguments of ``add_entity`` and ``add_connection`` set
-what an entity or a connection requires:
+what an entity or a connection requires, out of the
+:ref:`resources of the system <system-resources>`:
 
 .. code-block:: python
 
-   federation.add_entity(Client("client_2"), cpu=2, ram=4.0)
+   federation.add_entity(Client("client_2", "server"), cpu=2, ram=4.0)
    federation.add_connection("server", "client_2", latency=50.0, bandwidth=10.0)
 
 The :doc:`placement strategy <system>` then only uses devices and paths that
-satisfy them. Like any ECLYPSE application, a federation also accepts
-``update_policies``, which change its requirements during the run.
+satisfy them. A federation also accepts ``update_policies``, functions changing its
+requirements during the run, as an infrastructure does with its
+:doc:`resources <../advanced/heterogeneity>`.
 
 .. seealso::
 
-   - :doc:`ECLYPSE assets <eclypse:source/overview/concepts/assets>`
-   - :doc:`ECLYPSE update policies <eclypse:source/overview/concepts/update-policy>`
+   - :doc:`entities`
+   - :doc:`system`

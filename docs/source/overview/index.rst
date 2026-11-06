@@ -16,7 +16,7 @@ Overview
 
    .. grid-item::
 
-      .. card:: :octicon:`desktop-download;1em;info` **Installation**
+      .. card:: :octicon:`desktop-download;1em;info` **Install FLYPSE**
          :link-type: doc
          :link: install
 
@@ -24,7 +24,7 @@ Overview
 
    .. grid-item::
 
-      .. card:: :octicon:`repo;1em;info` **Getting Started**
+      .. card:: :octicon:`repo;1em;info` **Getting started**
          :link-type: doc
          :link: getting-started/index
 
@@ -41,11 +41,12 @@ Overview
 
    .. grid-item::
 
-      .. card:: :octicon:`terminal;1em;info` **Advanced**
+      .. card:: :octicon:`terminal;1em;info` **Advanced topics**
          :link-type: doc
          :link: advanced/index
 
-         Go deeper into reporting, evaluation, reproducibility and heterogeneity.
+         Go deeper into reporting, evaluation, reproducibility, heterogeneity and
+         custom infrastructures.
 
    .. grid-item::
 

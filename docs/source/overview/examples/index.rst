@@ -37,12 +37,12 @@ subdirectory of the repository. Run them from the repository root, after
          :link-type: doc
          :link: hierarchical
 
-         Group aggregators between the clients and the root, with three version
+         Group aggregators between the clients and the server, with three version
          levels recording where a model comes from.
 
    .. grid-item::
 
-      .. card:: :octicon:`share-android;1em;info` **Decentralized federated averaging**
+      .. card:: :octicon:`share-android;1em;info` **Decentralised federated averaging**
          :link-type: doc
          :link: decentralized
 
@@ -55,5 +55,5 @@ subdirectory of the repository. Run them from the repository root, after
          :link-type: doc
          :link: stragglers
 
-         A link slows down during the run, while an aggregator with a deadline
-         carries on without the client behind it.
+         A link slows down during the run, while a server with a deadline carries
+         on without the client behind it.

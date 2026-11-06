@@ -1,4 +1,4 @@
-"""Run a decentralized federated averaging experiment.
+"""Run a decentralised federated averaging experiment.
 
 Run from the repository root with::
 
@@ -42,7 +42,7 @@ EVAL_EVERY = 10
 """The number of rounds between two evaluations."""
 
 STEP_EVERY_MS = 100.0
-"""How often the simulation enacts the placement (and deploys the entities)."""
+"""How often the process takes a step; the first one deploys the entities."""
 
 SECONDS = 10.0
 """How long the emulation runs."""
@@ -52,7 +52,7 @@ N_ROWS = 6
 
 
 def main() -> None:
-    """Build and run the decentralized federated averaging experiment."""
+    """Build and run the decentralised federated averaging experiment."""
     federation = build_federation(
         PEER_IDS,
         n_features=N_FEATURES,

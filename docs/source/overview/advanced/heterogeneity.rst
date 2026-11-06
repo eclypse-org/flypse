@@ -1,14 +1,14 @@
 Heterogeneity
 =============
 
-A federation on the Cloud-Edge continuum is heterogeneous in two independent ways:
+A federation on the Cloud–Edge continuum is heterogeneous in two independent ways:
 
 - *statistical* heterogeneity: the entities hold different data,
 - *system* heterogeneity: the entities run on different devices, over different
   links, which change over time.
 
 FLYPSE takes the first from the :doc:`federated datasets <../concepts/data>`, and
-the second from ECLYPSE: the assets of an infrastructure and its update policies.
+the second from the resources of the system and the update policies changing them.
 
 Statistical heterogeneity
 -------------------------
@@ -17,81 +17,76 @@ The kind of split sets how the entities differ, and ``alpha`` how much:
 
 .. code-block:: python
 
+   from flypse.data import DirichletDataset
+
    data = DirichletDataset(source, class_fn=label, alpha=0.1, seed=0)
 
 See :doc:`../concepts/data` for how to choose one.
 
-What the system can do
-----------------------
+System heterogeneity
+--------------------
 
-Each asset of an infrastructure acts on an emulation in its own way:
+Each device and link can have its own :ref:`resources <system-resources>`, set before
+the run. Latency, bandwidth and processing time delay the messages, which really take
+:ref:`that long <message-cost>` to arrive:
 
-.. list-table::
-   :widths: 35 65
-   :header-rows: 1
+.. code-block:: python
 
-   * - Assets
-     - Effect on the emulation
-   * - ``latency``, ``bandwidth``, ``processing_time``
-     - Delay messages, which really take that long to arrive.
-   * - ``cpu``, ``ram``, ``storage``, ``gpu``
-     - Decide where entities can be placed. They do not slow a ``step`` down.
-   * - ``availability``
-     - A device at zero drops out of the paths, which
-       :ref:`resets the placement <placement-reset>`.
+   from flypse.system import get_mirror
 
-A message costs its modelled time, computed from the route it follows:
-
-.. code-block:: text
-
-   cost = processing_time / 1000 + sum over the links of
-          (bytes * 8e-6 / bandwidth + latency / 1000)
-
-with ``processing_time`` and ``latency`` in milliseconds, and ``bandwidth`` in
-megabits per second, for a cost in seconds. Nothing throttles the computation of an
-entity: emulated devices run as fast as your machine.
+   infrastructure = get_mirror(federation, seed=0)
+   infrastructure.edges["client_0", "server"]["latency"] = 100.0
 
 Slow down a link
 ----------------
 
-An update policy changes the infrastructure during a run. ECLYPSE policies target
-assets by name, and a mirror link has one edge per direction, so one direction can
-slow down alone. This policy sets the latency of the uplink of a client:
+An update policy changes the infrastructure during a run: it is a function, called at
+every process step with the infrastructure. A link has one edge per direction, so one
+direction can slow down alone. This policy sets the latency of the uplink of a client:
 
 .. code-block:: python
 
-   from eclypse import policies
+   def slow_down(infrastructure):
+       infrastructure.edges["client_0", "server"]["latency"] = 1000.0
 
-   slow_down = policies.degrade.set_value(
-       1000.0,
-       edge_assets="latency",
-       edge_ids=[("client_0", "server")],
-   )
+
+   infrastructure = get_mirror(federation, update_policies=slow_down, seed=0)
 
 .. warning::
 
    The links of a mirror start with zero latency, so a policy multiplying it has no
-   effect. Use ``set_value``.
+   effect. Set a value.
 
 Schedule changes
 ----------------
 
-``policies.at`` runs a policy at given simulation steps, and ``policies.between``
-within a range of them. Steps follow ``step_every_ms``, so at 100 ms per step, step
-30 comes about three seconds into the run:
+To act at a given moment, a policy counts the process steps. They follow
+``step_every_ms``, so at 100 ms per step, step 30 comes about three seconds into the
+run:
 
 .. code-block:: python
 
+   from flypse.process import FederatedProcess
    from flypse.system import SystemConfig, get_mirror, get_mirror_strategy
 
-   recover = policies.degrade.set_value(
-       0.0,
-       edge_assets="latency",
-       edge_ids=[("client_0", "server")],
-   )
+
+   def slow_uplink(client_id, start, end):
+       step = 0
+
+       def update(infrastructure):
+           nonlocal step
+           if step == start:
+               infrastructure.edges[client_id, "server"]["latency"] = 1000.0
+           elif step == end:
+               infrastructure.edges[client_id, "server"]["latency"] = 0.0
+           step += 1
+
+       return update
+
+
    infrastructure = get_mirror(
        federation,
-       update_policies=[policies.at(30, slow_down), policies.at(60, recover)],
+       update_policies=slow_uplink("client_0", 30, 60),
        seed=0,
    )
 
@@ -105,6 +100,12 @@ within a range of them. Steps follow ``step_every_ms``, so at 100 ms per step, s
 What failures do
 ----------------
 
+A policy can also take a device down, by setting its availability to zero:
+
+.. code-block:: python
+
+   infrastructure.nodes["client_0"]["availability"] = 0.0
+
 .. warning::
 
    A failed device does not slow one client down: it resets the whole federation.
@@ -113,10 +114,12 @@ What failures do
    :ref:`placement-reset`.
 
 To model entities that fall behind or drop out of a round while the federation
-carries on, degrade their links instead, and give the aggregator a
-:ref:`timeout <messaging-timeouts>`.
+carries on, degrade their links instead, and give the server a
+:ref:`timeout <messaging-timeouts>`. Leave those links without
+:doc:`requirements <../concepts/federation>`: one that stops meeting a requirement
+resets the placement too.
 
 .. seealso::
 
    - :doc:`../examples/stragglers`
-   - :doc:`ECLYPSE update policies <eclypse:source/overview/concepts/update-policy>`
+   - :ref:`ready-made-policies`

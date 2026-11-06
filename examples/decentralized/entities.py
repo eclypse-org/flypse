@@ -1,4 +1,4 @@
-"""The entities of the decentralized federated averaging example.
+"""The entities of the decentralised federated averaging example.
 
 There is no server: every peer trains on its data, exchanges its model with its
 neighbours and averages what it gets back. The models of the peers reach a
@@ -44,7 +44,7 @@ class Peer(FedAvgClient):
         lr: float,
         eval_every: int,
     ):
-        """Initialize the peer.
+        """Initialise the peer.
 
         Args:
             entity_id (str): The identifier of the peer.

@@ -1,9 +1,9 @@
 """Module for the FederatedSimulator class.
 
-The federated simulator is the ECLYPSE remote simulator of a federated process,
-with an endpoint the entities push their reports to. A report does not fit the
-columns of the tabular formats, so it is handed to the JSON reporter of the
-simulation, and it lands in the ``service`` report as a single row, whatever the
+The federated simulator is the part of a federated process that runs the
+emulation, with an endpoint the entities push their reports to. A report does not
+fit the columns of the tabular formats, so it is handed to the JSON reporter of
+the process, and it lands in the ``service`` report as a single row, whatever the
 ``report_format`` of the process.
 
 A report needs no event: it is written even if it arrives while the process is
@@ -45,7 +45,7 @@ class FederatedSimulator(RemoteSimulator):
         timestamp: str,
         values: dict[str, Any],
     ):
-        """Hand a report of an entity to the JSON reporter of the simulation.
+        """Hand a report of an entity to the JSON reporter of the process.
 
         Args:
             application_id (str): The identifier of the federation.

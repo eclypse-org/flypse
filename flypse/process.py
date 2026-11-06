@@ -1,15 +1,10 @@
 """Module for the FederatedProcess class.
 
 A federated process is the emulation of a federation: it binds together the
-**system** (the infrastructure, whose nodes are devices, and the placement of
-the entities onto them), the **federation** (the application, made of entities
-and their interactions) and the **federation data**, and runs them through
-ECLYPSE's remote emulation.
-
-Being a :class:`~eclypse.simulation.simulation.Simulation`, it inherits the whole
-ECLYPSE lifecycle (``register``, ``start``, ``step``, ``run``, reporting),
-while the emulation of the federation is set up implicitly: the infrastructure
-nodes become devices holding the federation data.
+**federation** (the entities and their connections), the **federation data** and
+the **system** (the infrastructure, whose nodes are devices, and the placement of
+the entities onto them), and runs them. The emulation is set up implicitly: the
+nodes of the infrastructure become devices holding the federation data.
 """
 
 from __future__ import annotations
@@ -68,21 +63,21 @@ class FederatedProcess(Simulation):
         and given to every device, and the federation is registered, so the
         process is ready to ``run``.
 
-        The process has a single seed, the ``seed`` of the simulation: every
+        The process has a single seed, its ``seed`` option: every
         component given no seed of its own (the split of the data, the
         built-in infrastructures, the federation, the splitters and the
         ``rng`` of the entities) falls back to it.
 
         Args:
-            federation (Federation): The application of the federation.
+            federation (Federation): The federation to emulate.
             data (FederatedDataset): The data of the federation.
             system (SystemConfig | None): The infrastructure hosting the
                 federation, whose nodes are devices, and the placement of the
                 entities onto them. Defaults to None, meaning the mirror
                 infrastructure (``SystemConfig()``).
-            **simulation_config: The arguments of the ECLYPSE
-                ``SimulationConfig``, except ``remote``. ``step_every_ms`` must be
-                given to run the process: without it, entities are not deployed.
+            **simulation_config: The options of the run, such as ``seed`` or
+                ``include_default_metrics``. ``step_every_ms`` must be given to
+                run for a given time: without it, entities are not deployed.
         """
         self.federation = federation
         """The federation of the process."""
@@ -121,7 +116,7 @@ class FederatedProcess(Simulation):
 
         The federation is the one given at construction, so it can be
         omitted. A federated process emulates a single federation: any other
-        application is rejected.
+        one is rejected.
 
         Args:
             application (Application | None): The federation to register. It
@@ -133,8 +128,7 @@ class FederatedProcess(Simulation):
                 configuration.
 
         Raises:
-            ValueError: If the application is not the federation of the
-                process.
+            ValueError: If it is not the federation of the process.
         """
         if application is not None and application is not self.federation:
             raise ValueError(

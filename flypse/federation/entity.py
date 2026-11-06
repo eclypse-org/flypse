@@ -1,7 +1,7 @@
 """Module for the Entity class.
 
-An entity is the basic unit of a federation: an ECLYPSE service deployed onto
-a device of the infrastructure, from which it binds its view of the federation
+An entity is the basic unit of a federation: a participant deployed onto a
+device of the infrastructure, from which it binds its view of the federation
 data, available as ``data`` (None if the entity holds no data). An entity may
 reassign ``data``, e.g. to a part of its view. What an entity does with its
 data, what it exchanges, and how it collaborates with the other entities is
@@ -9,12 +9,11 @@ defined by subclasses, implementing the ``step`` method.
 
 Entities exchange versions of their models, or control messages carrying only
 data, with ``send``, ``bcast`` and ``receive``, and find the entities they are
-connected to with ``get_neighbors``, without dealing with the underlying
-ECLYPSE MPI interface. For its own randomness, an entity draws from its ``rng``,
-seeded from the seed of the process and the identifier of the entity, so that
-entities draw different but reproducible sequences.
+connected to with ``get_neighbors``. For its own randomness, an entity draws from
+its ``rng``, seeded from the seed of the process and the identifier of the entity,
+so that entities draw different but reproducible sequences.
 
-An entity pushes whatever it wants to report straight to the simulator with
+An entity pushes whatever it wants to report straight to the process with
 ``report``, instead of waiting for a metric to read it. It evaluates a version of
 a model by calling ``run_evaluation`` from its ``step``: the ``evaluate`` hook
 computes the results on the data or on one of the named ``splits``, and they are
@@ -53,7 +52,7 @@ class Entity(Service):
 
             class Client(Entity):
                 async def step(self):
-                    train(self.model, self.data)
+                    train(self.model.model, self.data)
                     record = self.model.update_version(
                         self.model.get_parameters(), "local"
                     )
@@ -68,12 +67,12 @@ class Entity(Service):
         store_step: bool = False,
         with_data: bool = True,
     ):
-        """Initialize the entity.
+        """Initialise the entity.
 
         Args:
             entity_id (str): The identifier of the entity.
-            store_step (bool): Whether the underlying service stores the
-                results of each step. Defaults to False.
+            store_step (bool): Whether to keep the value returned by each
+                ``step``, for the ``step_result`` metric. Defaults to False.
             with_data (bool): Whether the entity holds a portion of the
                 federation data (e.g., False for an aggregator). Defaults to
                 True.
@@ -117,7 +116,7 @@ class Entity(Service):
         """Get the entities connected to this entity.
 
         Returns:
-            list[str]: The identifiers of the neighbor entities.
+            list[str]: The identifiers of the neighbour entities.
         """
         return await self.mpi.get_neighbors()
 
@@ -146,7 +145,7 @@ class Entity(Service):
         await self.mpi.send(recipients, {"record": record, "data": data})
 
     async def bcast(self, record: ModelVersion | None = None, **data: Any):
-        """Send a message to all the neighbor entities.
+        """Send a message to all the neighbour entities.
 
         It waits for the modelled communication cost of the message.
 
@@ -191,9 +190,9 @@ class Entity(Service):
         return Message(body["sender_id"], body["record"], body["data"])
 
     def report(self, **values: Any):
-        """Push values to the simulator, which writes them in the report.
+        """Push values to the process, which writes them in the report.
 
-        It does not wait for the simulator, and it is meant to be called from
+        It does not wait for the process, and it is meant to be called from
         ``step``, as often as a round allows. The values are reported together,
         with the name of the entity and of its device, when they were reported,
         and the progressive number of the report: ``entity_id``, ``node_id``,

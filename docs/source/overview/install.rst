@@ -7,8 +7,8 @@ It requires Python ``>=3.11,<3.14``.
 
 .. note::
 
-    Do not use the global environment to install FLYPSE.
-    It is recommended to create a `virtual environment <https://docs.python.org/3/library/venv.html>`_ first.
+   Do not use the global environment to install FLYPSE.
+   It is recommended to create a `virtual environment <https://docs.python.org/3/library/venv.html>`_ first.
 
 Using pip
 ---------
@@ -49,4 +49,4 @@ The documentation dependencies live in the ``docs`` group:
 
    uv sync --group docs
 
-Now you are ready to run :doc:`your first federation <getting-started/index>`!
+Now you are ready to run :doc:`your first federation <getting-started/first-federation>`!

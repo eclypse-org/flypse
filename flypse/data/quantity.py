@@ -38,7 +38,7 @@ class QuantitySkewDataset(FederatedDataset):
         min_size: int = 1,
         seed: int | None = None,
     ):
-        """Initialize the dataset.
+        """Initialise the dataset.
 
         Args:
             source (DataSource): The data source of the federation.

@@ -4,7 +4,7 @@ Federated data
 In FLYPSE, a :class:`~flypse.data.dataset.FederatedDataset` embodies the data of
 the whole federation together with the way it is partitioned across the entities.
 It wraps a data source, anything with ``__len__`` and ``__getitem__``: a list, an
-array, a dataframe, a torch dataset. The items it yields are opaque to FLYPSE.
+array, a torch dataset. The items it yields are opaque to FLYPSE.
 
 The process splits the dataset across the entities holding data, and each entity
 binds its own portion when it is deployed.
@@ -84,7 +84,8 @@ concentration ``alpha``. It needs a function returning the class of an item:
    data = DirichletDataset(source, class_fn=label, alpha=0.5, seed=0)
 
 ``alpha`` is the knob of the heterogeneity. On 1000 items of 10 balanced classes
-across 5 entities, the largest class of an entity holds, on average:
+across 5 entities, with ``seed=0``, the largest class of an entity holds, on average
+across the entities:
 
 .. list-table::
    :widths: 20 40 40
@@ -122,7 +123,7 @@ at least ``min_size`` items:
 
    data = QuantitySkewDataset(source, alpha=0.5, min_size=10, seed=0)
 
-With these values, 1000 items are split into blocks of 146, 154, 11, 639 and 50.
+With these values, 1000 items across 5 entities are split into blocks of 146, 154, 11, 639 and 50.
 
 .. _write-your-own-split:
 

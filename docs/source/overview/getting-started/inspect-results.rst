@@ -2,17 +2,25 @@
 Inspect the results
 ===================
 
-A :class:`~flypse.process.FederatedProcess` gives you two views of a finished run:
+This page shows how to read what the entities reported during a run.
 
-- ``reported``, the records the entities pushed during the run,
-- ``report``, the metrics collected by ECLYPSE, which must be requested.
+We will:
 
-Read the records of the entities
---------------------------------
+#. report values from an entity,
+#. read them as records once the process has finished,
+#. turn the records into a table.
 
-An entity can report anything at any moment of its ``step`` with
-:meth:`~flypse.federation.entity.Entity.report`. Its values are pushed straight
-to the simulator, without waiting for it, and with no metric reading them:
+The following example uses:
+
+- :meth:`~flypse.federation.entity.Entity.report`, to push values from an entity,
+- :attr:`~flypse.process.FederatedProcess.reported`, to read them back.
+
+Report from an entity
+---------------------
+
+An entity can report any value JSON can represent, at any moment of its ``step``, with
+:meth:`~flypse.federation.entity.Entity.report`. Its values go straight to the
+process, without waiting for it:
 
 .. code-block:: python
 
@@ -21,11 +29,16 @@ to the simulator, without waiting for it, and with no metric reading them:
            ...
            self.report(round=record.version[0], estimate=average[0])
 
+Read the records
+----------------
+
 Once the process has finished, ``reported`` holds one record per report, oldest
 first. The values of a report stay together, with who reported them, from where
 and when:
 
 .. code-block:: python
+
+   from flypse.process import FederatedProcess
 
    process = FederatedProcess(federation, data, step_every_ms=100.0, seed=0)
    process.run(seconds=5)
@@ -39,55 +52,27 @@ and when:
 ``entity_id`` and ``n_report``, the progressive number of the report for that
 entity, identify a record.
 
-Read the ECLYPSE metrics
-------------------------
+Turn them into a table
+----------------------
 
-``report`` exposes the ECLYPSE metrics as frames. To collect the value returned
-by the ``step`` of an entity, create the entity with ``store_step=True``, return
-the value, and request the default metrics:
+A record is a plain dictionary, so ``reported`` feeds any tool you like. pandas,
+which is installed with FLYPSE, turns it into a table in one call:
 
 .. code-block:: python
 
-   class Server(Entity):
-       def __init__(self, entity_id):
-           super().__init__(entity_id, store_step=True, with_data=False)
-           self.model = MeanModel({"mean": np.zeros(1)})
+   import pandas as pd
 
-       async def step(self):
-           ...
-           return float(average[0])
-
-
-   process = FederatedProcess(
-       federation,
-       data,
-       step_every_ms=100.0,
-       seed=0,
-       include_default_metrics=True,
-   )
-   process.run(seconds=5)
-
-   frame = process.report.service(service_ids="server")
-   results = frame[frame["callback_id"] == "step_result"]
-   print(results[["n_event", "timestamp", "value"]].tail(2))
+   frame = pd.DataFrame(process.reported)
+   print(frame[["round", "estimate"]].tail(2))
 
 .. code-block:: text
 
-         n_event                   timestamp      value
-   1027       49  2026-11-05T23:27:37.599781  49.499989
-   1048       50  2026-11-05T23:27:37.698982  49.499989
-
-Each row of ``results`` is a value returned by the server, in the ``value``
-column, with the timestamp at which it was collected.
-
-.. note::
-
-   With no metric requested, there is no tabular report and ``process.report``
-   raises ``FileNotFoundError``, while ``reported`` still works.
+        round   estimate
+   568    569  49.499989
+   569    570  49.499989
 
 .. seealso::
 
    - :doc:`infrastructure`
    - :doc:`../advanced/reporting`
    - :doc:`../advanced/evaluation`
-   - `ECLYPSE: inspect the results <https://eclypse.readthedocs.io/en/latest/source/overview/getting-started/inspect-results.html>`_

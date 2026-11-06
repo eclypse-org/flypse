@@ -39,11 +39,12 @@
       <section class="hero" aria-labelledby="title">
         <div class="copy">
           <p class="eyebrow">FLYPSE / DOCUMENTATION</p>
-          <h1 id="title">Emulate federated learning across the Cloud–Edge <span>in Python.</span></h1>
+          <h1 id="title">Emulate federated learning across the Cloud–Edge continuum <span>in Python.</span></h1>
           <p class="intro">
             Implement the entities of a federation, split the data across them, and choose the
-            devices they run on. Entities run as remote services and exchange real messages, so the
-            statistics of the data and the limits of the system both shape the learning.
+            devices they run on. Each device runs in its own process and entities exchange real
+            messages, so the statistics of the data and the limits of the system both shape the
+            learning.
           </p>
           <div class="actions">
             <a class="button primary" href="source/overview/getting-started/first-federation.html"
@@ -112,8 +113,8 @@
               ><span class="card-number">03 / SYSTEM</span>
               <h3>Devices and placement</h3>
               <p>
-                Run on one device, on a copy of the topology of the federation, or on any ECLYPSE
-                infrastructure with the placement strategy you choose.
+                Run on one device or on a copy of the topology of the federation, then shape its
+                links and devices to match the system you want to study.
               </p>
               <span class="card-link">Choose where it runs →</span></a
             >
@@ -153,7 +154,7 @@
             </p>
             <dl>
               <dt>Vary</dt>
-              <dd>The shape of the tree and how often groups report to the root.</dd>
+              <dd>The shape of the tree and how often groups report to the server.</dd>
               <dt>Inspect</dt>
               <dd>Loss per version of the model, across its version levels.</dd>
             </dl>
@@ -165,14 +166,14 @@
             <span class="card-number">SLOW LINKS</span>
             <h3>Some clients fall behind</h3>
             <p>
-              Degrade a link during the run. What does an aggregator with a deadline lose, and what
-              does it save?
+              Degrade a link during the run. What does a server with a deadline lose, and what does
+              it save?
             </p>
             <dl>
               <dt>Vary</dt>
-              <dd>Link latency, its timing and the deadline of the aggregator.</dd>
+              <dd>Link latency, its timing and the deadline of the server.</dd>
               <dt>Inspect</dt>
-              <dd>Rounds completed, participants and late updates.</dd>
+              <dd>Rounds completed, participants and late models.</dd>
             </dl>
             <a class="card-link" href="source/overview/examples/stragglers.html"
               >Follow the stragglers example →</a
@@ -196,14 +197,14 @@
           >
         </div>
         <div class="report-example">
-          <pre><code>self.report(round=round, loss=loss)  # in an entity
+          <pre><code>self.report(round=round_, loss=loss)  # in an entity
 
 process.run(seconds=10)
 records = process.reported
-frame = process.report.service()</code></pre>
+frame = pandas.DataFrame(records)</code></pre>
           <p>
-            Reports stay whole, whatever the report format. ECLYPSE metrics are available in CSV,
-            JSON or Parquet, with a pandas or Polars report backend.
+            A record is a plain dictionary, ready for pandas or any other tool. A process can also
+            collect metrics at every step, as frames.
           </p>
         </div>
       </section>
@@ -223,14 +224,14 @@ frame = process.report.service()</code></pre>
             >
           </article>
           <article class="card">
-            <span class="card-number">ANY ECLYPSE INFRASTRUCTURE</span>
-            <h3>Bring your own system</h3>
+            <span class="card-number">YOUR OWN TOPOLOGY</span>
+            <h3>Shape the system</h3>
             <p>
-              Use the ECLYPSE builders or your own graph of nodes and links, with update policies
-              that change it during the run.
+              Set the latency of a link, add devices between the entities, and change any of them
+              during the run with a plain Python function.
             </p>
-            <a class="card-link" href="source/overview/concepts/system.html"
-              >Configure the system →</a
+            <a class="card-link" href="source/overview/concepts/system.html#adjust-a-built-in-system"
+              >Adjust the system →</a
             >
           </article>
         </div>

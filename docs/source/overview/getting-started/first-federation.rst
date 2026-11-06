@@ -1,6 +1,6 @@
-==========================
+=========================
 Run your first federation
-==========================
+=========================
 
 This page shows the shortest path to a first federated run.
 
@@ -54,9 +54,10 @@ Here, the wrapped model is a dictionary holding a single estimate:
 Implement the entities
 ----------------------
 
-An :class:`~flypse.federation.entity.Entity` is an ECLYPSE service: its behaviour
-is the ``step`` method, which runs repeatedly once the entity is deployed.
-``self.data`` holds the portion of the data assigned to the entity.
+An :class:`~flypse.federation.entity.Entity` is a participant of the federation.
+Its behaviour is the ``step`` method, which runs repeatedly once the entity is
+deployed on a device. ``self.data`` holds the portion of the data assigned to the
+entity.
 
 .. code-block:: python
 
@@ -110,8 +111,8 @@ for an estimate from each of its neighbours.
 Build the federation and its data
 ---------------------------------
 
-A :class:`~flypse.federation.federation.Federation` is an ECLYPSE application
-whose nodes are the entities and whose edges are their connections.
+A :class:`~flypse.federation.federation.Federation` is a graph whose nodes are the
+entities and whose edges are their connections.
 :func:`~flypse.federation.topology.get_star` connects a server to its clients,
 and a :class:`~flypse.data.uniform.UniformDataset` splits a data source (anything
 with ``__len__`` and ``__getitem__``) into contiguous blocks, one per entity:
@@ -136,8 +137,8 @@ Run the process
 ---------------
 
 A :class:`~flypse.process.FederatedProcess` emulates the federation: it splits
-the data, gives it to the devices of an infrastructure, and registers the
-federation. Any other argument goes to the ECLYPSE simulation configuration:
+the data, gives it to the devices of the system, and deploys the entities on them.
+Its keyword arguments configure the run:
 
 .. code-block:: python
 
@@ -157,8 +158,9 @@ to their mean, 49.5. The number of rounds depends on the speed of your machine.
 
 .. important::
 
-   ``step_every_ms`` is required: it is how often ECLYPSE enacts the placement,
-   and without it the entities are never deployed.
+   ``step_every_ms`` is required to run for a given time: it sets how often the
+   process takes a step, and the first step is what deploys the entities. Without it,
+   nothing runs.
 
 .. seealso::
 

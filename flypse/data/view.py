@@ -27,11 +27,11 @@ class DataView:
     """
 
     def __init__(self, source: DataSource, indices: Sequence[int]):
-        """Initialize the view.
+        """Initialise the view.
 
         Args:
-            source (DataSource): The data source of the federation.
-            indices (Sequence[int]): The source indices of the entity.
+            source (DataSource): The data source, or a parent view.
+            indices (Sequence[int]): The indices of the view within its source.
         """
         self.source = source
         """The source the view delegates to: the data source, or a parent view."""

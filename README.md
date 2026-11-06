@@ -13,11 +13,11 @@
 [![Checked with mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://www.mypy-lang.org/)
 [![Import sorted with isort](https://img.shields.io/badge/isort-checked-brightgreen)](https://pycqa.github.io/isort/)
 
-**FLYPSE** is a Python library for experimenting with federated learning on the cloud-edge continuum. It builds on [ECLYPSE](https://github.com/eclypse-org/eclypse) to place, run, and observe federated learning workloads on emulated infrastructures.
+**FLYPSE** is a Python library for experimenting with federated learning on the Cloud–Edge continuum. It builds on [ECLYPSE](https://github.com/eclypse-org/eclypse) to place, run, and observe federated learning workloads on emulated infrastructures.
 
 ## Installation
 
-To install FLYPSE and all its dependencies, you can run the following commands:
+To install FLYPSE and all its dependencies, you can run the following command:
 
 ```bash
 
@@ -35,13 +35,13 @@ Good places to start:
 
 - [Getting started](https://flypse.readthedocs.io/en/latest/source/overview/getting-started/index.html), from a first federation to its results.
 - [Concepts](https://flypse.readthedocs.io/en/latest/source/overview/concepts/index.html), the building blocks of a federation.
-- [Examples](https://flypse.readthedocs.io/en/latest/source/overview/examples/index.html), runnable walkthroughs: federated averaging, hierarchical and decentralized federations, stragglers.
+- [Examples](https://flypse.readthedocs.io/en/latest/source/overview/examples/index.html), runnable walkthroughs: federated averaging, hierarchical and decentralised federations, stragglers.
 - [API reference](https://flypse.readthedocs.io/en/latest/source/api/index.html).
 
 ## Maintainers
 
 FLYPSE is maintained by [Valerio De Caro](https://github.com/vdecaro) and [Jacopo Massa](https://github.com/jacopo-massa).
 
-## Contact Us
+## Contact us
 
 If you want to get in touch with us, [drop us an e-mail](mailto:valerio@valeriodecaro.com,jacopo.massa@di.unipi.it?subject=[FLYPSE]%20Request%20for%20information)!

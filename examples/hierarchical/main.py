@@ -51,7 +51,7 @@ EVAL_EVERY = 1
 """The number of global rounds between two evaluations."""
 
 STEP_EVERY_MS = 100.0
-"""How often the simulation enacts the placement (and deploys the entities)."""
+"""How often the process takes a step; the first one deploys the entities."""
 
 SECONDS = 10.0
 """How long the emulation runs."""

@@ -49,7 +49,7 @@ class DirichletDataset(FederatedDataset):
         alpha: float = 1.0,
         seed: int | None = None,
     ):
-        """Initialize the dataset.
+        """Initialise the dataset.
 
         Args:
             source (DataSource): The data source of the federation.

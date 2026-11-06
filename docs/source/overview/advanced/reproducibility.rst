@@ -1,11 +1,12 @@
 Reproducibility
 ===============
 
-A process has a single seed, the ``seed`` of the ECLYPSE simulation configuration,
-random if omitted. Components given no seed of their own fall back to it, so one
-number reproduces the whole run:
+A process has a single seed, its ``seed`` option, random if omitted. Components
+given no seed of their own fall back to it, so one number reproduces the whole run:
 
 .. code-block:: python
+
+   from flypse.process import FederatedProcess
 
    process = FederatedProcess(federation, data, step_every_ms=100.0, seed=0)
 
@@ -36,12 +37,14 @@ also drive a splitter:
 
 .. code-block:: python
 
+   from flypse.data import FractionSplitter
+
    weights = [self.rng.uniform(-0.1, 0.1) for _ in range(n_features)]
    splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
 
 .. warning::
 
-   ECLYPSE seeds the global ``random`` of every device with the same value, so
+   The global ``random`` of every device is seeded with the same value, so
    entities using it draw correlated sequences. The global random generator of
    numpy is not seeded at all. Use ``self.rng``, or a generator seeded from it.
 
@@ -65,7 +68,7 @@ What stays non-deterministic
 The seed fixes what the entities compute, not when:
 
 - the number of rounds in a given time depends on the machine,
-- a protocol driven by a deadline or by the simulation steps depends on the wall
+- a protocol driven by a deadline or by the process steps depends on the wall
   clock, so which messages arrive in time differs between runs.
 
 .. seealso::

@@ -1,9 +1,8 @@
 Entities
 ========
 
-An :class:`~flypse.federation.entity.Entity` is the basic unit of a federation: an
-ECLYPSE :class:`~eclypse.remote.service.service.Service` deployed onto a device,
-bound to its portion of the data.
+An :class:`~flypse.federation.entity.Entity` is the basic unit of a federation: a
+participant deployed on a device, bound to its portion of the data.
 
 FLYPSE has no client or server class. What an entity is follows from what its
 ``step`` does, and the protocol of a federation emerges from the steps of its
@@ -24,17 +23,14 @@ on its data, sends the result to a server and waits for the next global model:
        def __init__(self, entity_id, server_id):
            super().__init__(entity_id)
            self.server_id = server_id
-           self.model = LinearModel()
+           self.model = MeanModel({"mean": np.zeros(1)})
 
        async def step(self):
-           train(self.model, self.data)
+           train(self.model.model, self.data)
            record = self.model.update_version(self.model.get_parameters(), "local")
            await self.send(self.server_id, record, n_samples=len(self.data))
            message = await self.receive()
            self.model.load_version(message.record)
-
-With ``store_step=True``, the value returned by ``step`` is available to the
-:doc:`step_result metric <../getting-started/inspect-results>`.
 
 .. important::
 
@@ -71,6 +67,9 @@ calling the method of the parent class:
 
 .. code-block:: python
 
+   from flypse.data import FractionSplitter
+
+
    class Client(Entity):
        def on_deploy(self):
            super().on_deploy()
@@ -80,7 +79,7 @@ calling the method of the parent class:
 
 An entity can be deployed more than once: when the placement of a federation is
 reset, its entities are undeployed and deployed again, and they run ``on_deploy``
-again. See :doc:`system` for when that happens.
+again. See :ref:`placement-reset` for when that happens.
 
 Local data
 ----------
@@ -103,14 +102,16 @@ sequences:
 
 .. code-block:: python
 
-   local_batch = self.rng.sample(range(len(self.data)), k=32)
+   positions = self.rng.sample(range(len(self.data)), k=32)
+   batch = [self.data[i] for i in positions]
 
 Roles are behaviour
 -------------------
 
-Learner, aggregator, or both: the same class covers all of them. An aggregator is an entity with ``with_data=False``
-that combines what it receives. A group aggregator receives from its children and
-sends to its parent. A peer trains and aggregates in the same ``step``.
+Learner, aggregator, or both: the same class covers all of them. An aggregator is
+an entity with ``with_data=False`` that combines what it receives. A group aggregator
+receives from its children and sends to its parent. A peer trains and aggregates in
+the same ``step``.
 
 When a step fails
 -----------------

@@ -1,9 +1,9 @@
 """Module for the seed of the federated process.
 
-A federated process has a single seed: the one of its ECLYPSE simulation,
-which ECLYPSE exposes to the main process and to every device through the
-``ECLYPSE_RND_SEED`` environment variable. The FLYPSE components given no seed
-fall back to it, so that the seed of the process reproduces all of them.
+A federated process has a single seed, which reaches your script and every device
+through the ``ECLYPSE_RND_SEED`` environment variable. The FLYPSE components
+given no seed fall back to it, so that the seed of the process reproduces all of
+them.
 """
 
 from __future__ import annotations

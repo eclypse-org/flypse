@@ -15,6 +15,9 @@ the loaded one, so read its parameters from the record:
 
 .. code-block:: python
 
+   from flypse.federation import Entity
+
+
    class Client(Entity):
        def evaluate(self, record, data):
            parameters = self.model.get_parameters(flattened=False, version=record)
@@ -31,6 +34,9 @@ evaluate on it, or nothing to use its ``data``:
 
 .. code-block:: python
 
+   from flypse.data import FractionSplitter
+
+
    class Client(Entity):
        def on_deploy(self):
            super().on_deploy()
@@ -44,7 +50,7 @@ evaluate on it, or nothing to use its ``data``:
            self.run_evaluation(message.record, "test")
            self.model.load_version(message.record)
 
-The version can be any the entity holds: one it generated, or one it received from
+It can be any version the entity holds: one it generated, or one it received from
 a peer or a server, even without loading it.
 
 .. note::

@@ -3,7 +3,7 @@
 The builders create a federation from its entities, connecting them according
 to a common topology: a star (e.g., a server and its clients), a tree (e.g., a
 server, group aggregators and their clients), or a ring (e.g., peers of a
-decentralized federation). Any other argument is passed to the
+decentralised federation). Any other argument is passed to the
 :class:`~flypse.federation.federation.Federation`.
 """
 
@@ -31,11 +31,11 @@ MIN_RING_SIZE = 3
 def get_star(
     center: Entity, leaves: Sequence[Entity], **federation_args: Any
 ) -> Federation:
-    """Create a federation connecting a center to each of the leaves.
+    """Create a federation connecting a centre to each of the leaves.
 
     Args:
-        center (Entity): The entity at the center (e.g., the server).
-        leaves (Sequence[Entity]): The entities connected to the center
+        center (Entity): The entity at the centre (e.g., the server).
+        leaves (Sequence[Entity]): The entities connected to the centre
             (e.g., the clients).
         **federation_args: The arguments of the federation.
 
@@ -78,8 +78,14 @@ def get_tree(
                 Server("server"),
                 {
                     "server": [Aggregator("edge_0"), Aggregator("edge_1")],
-                    "edge_0": [Client("client_0"), Client("client_1")],
-                    "edge_1": [Client("client_2"), Client("client_3")],
+                    "edge_0": [
+                        Client("client_0", "edge_0"),
+                        Client("client_1", "edge_0"),
+                    ],
+                    "edge_1": [
+                        Client("client_2", "edge_1"),
+                        Client("client_3", "edge_1"),
+                    ],
                 },
             )
     """
