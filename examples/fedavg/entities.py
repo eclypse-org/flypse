@@ -1,8 +1,8 @@
 """The entities of the federated averaging example.
 
-The synchronization protocol is *not* part of FLYPSE core: it emerges entirely
-from the implementation of the entities' ``step`` methods. Learners train
-locally and exchange their models with the aggregator; the aggregator averages
+The synchronisation protocol is *not* part of FLYPSE core: it emerges entirely
+from the implementation of the entities' ``step`` methods. Clients train
+locally and exchange their models with the server; the server averages
 them and broadcasts the result back.
 """
 
@@ -33,10 +33,10 @@ if TYPE_CHECKING:
 
 
 class FedAvgClient(Entity):
-    """A learner of the federation.
+    """A client of the federation.
 
     On every step it trains the received global model on its local data, sends
-    the local model to the aggregator, and waits for the next global model,
+    the local model to the server, and waits for the next global model,
     evaluating it on its test part every few rounds.
     """
 
@@ -52,11 +52,11 @@ class FedAvgClient(Entity):
         store_step: bool = True,
         version_levels: Sequence[str] = ("global", "local"),
     ):
-        """Initialize the learner.
+        """Initialise the client.
 
         Args:
-            entity_id (str): The identifier of the learner.
-            server_id (str): The identifier of the aggregator.
+            entity_id (str): The identifier of the client.
+            server_id (str): The identifier of the server.
             n_features (int): The number of features of the model.
             epochs (int): The number of local passes over the data.
             lr (float): The learning rate.
@@ -77,7 +77,7 @@ class FedAvgClient(Entity):
         )
 
     def on_deploy(self):
-        """Bind the local data, initialize the model and split off a test part.
+        """Bind the local data, initialise the model and split off a test part.
 
         The initial model and the split are drawn from the ``rng`` of the
         entity, seeded from the seed of the process. The entity trains on 80%
@@ -106,7 +106,7 @@ class FedAvgClient(Entity):
         return {"loss": mean_squared_error(self.model.snapshot(record), data)}
 
     async def step(self):
-        """Train locally and synchronize with the aggregator.
+        """Train locally and synchronise with the server.
 
         Returns:
             float | None: The local loss, or None if no data is bound.
@@ -137,9 +137,9 @@ class FedAvgClient(Entity):
 
 
 class FedAvgServer(Entity):
-    """The aggregator of the federation.
+    """The server of the federation.
 
-    On every step it collects the local models of all its neighbors, averages
+    On every step it collects the local models of all its neighbours, averages
     them (weighted by the number of samples), and broadcasts the global model
     back to them.
     """
@@ -152,10 +152,10 @@ class FedAvgServer(Entity):
         store_step: bool = True,
         version_levels: Sequence[str] = ("global", "local"),
     ):
-        """Initialize the aggregator.
+        """Initialise the server.
 
         Args:
-            entity_id (str): The identifier of the aggregator.
+            entity_id (str): The identifier of the server.
             n_features (int): The number of features of the model.
             store_step (bool): Whether the global loss is stored for
                 reporting. Defaults to True.
@@ -168,11 +168,11 @@ class FedAvgServer(Entity):
         )
 
     async def step(self):
-        """Aggregate the local models of the neighbors and broadcast them.
+        """Aggregate the local models of the neighbours and broadcast them.
 
         Returns:
             float | None: The weighted average of the local losses, or None if
-            there are no neighbors.
+            there are no neighbours.
         """
         messages = [await self.receive() for _ in await self.get_neighbors()]
         if not messages:
@@ -216,8 +216,8 @@ def build_federation(
     """Build the star-shaped federation of the example.
 
     Args:
-        client_ids (Sequence[str]): The identifiers of the learners.
-        server_id (str): The identifier of the aggregator.
+        client_ids (Sequence[str]): The identifiers of the clients.
+        server_id (str): The identifier of the server.
         n_features (int): The number of features of the model.
         epochs (int): The number of local passes over the data.
         lr (float): The learning rate.

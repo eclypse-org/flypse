@@ -4,11 +4,11 @@ Run from the repository root with::
 
     uv run python -m examples.fedavg.main
 
-A star federation of learners around one aggregator is emulated with a mirror
+A star federation of clients around one server is emulated with a mirror
 infrastructure (one device per entity, with maximal resources).
-Every learner trains a linear model on its own (non-IID) slice of the data and
-exchanges it with the aggregator, which averages the models (FedAvg) and
-broadcasts the global one back. Every learner keeps 20% of its data as a test
+Every client trains a linear model on its own (non-IID) slice of the data and
+exchanges it with the server, which averages the models (FedAvg) and
+broadcasts the global one back. Every client keeps 20% of its data as a test
 part, on which it evaluates the received global model every few rounds.
 """
 
@@ -24,10 +24,10 @@ from examples.fedavg.data import make_source
 from examples.fedavg.entities import build_federation
 
 SERVER_ID = "server"
-"""The identifier of the aggregator."""
+"""The identifier of the server."""
 
 CLIENT_IDS = [f"client_{i}" for i in range(5)]
-"""The identifiers of the learners."""
+"""The identifiers of the clients."""
 
 N_FEATURES = 1
 """The number of features of the linear model."""
@@ -42,7 +42,7 @@ LR = 0.02
 """The learning rate of the local SGD."""
 
 STEP_EVERY_MS = 100.0
-"""How often the simulation enacts the placement (and deploys the entities)."""
+"""How often the process takes a step; the first one deploys the entities."""
 
 SECONDS = 10.0
 """How long the emulation runs."""

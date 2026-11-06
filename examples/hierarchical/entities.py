@@ -49,7 +49,7 @@ class GroupAggregator(FedAvgServer):
         n_features: int,
         global_every: int,
     ):
-        """Initialize the group aggregator.
+        """Initialise the group aggregator.
 
         Args:
             entity_id (str): The identifier of the aggregator.
@@ -67,7 +67,7 @@ class GroupAggregator(FedAvgServer):
         self._rounds = 0
 
     async def step(self):
-        """Aggregate the clients, and synchronize with the root when it is time."""
+        """Aggregate the clients, and synchronise with the root when it is time."""
         messages = [await self.receive() for _ in self._client_ids]
         record = self.model.update_version(weighted_average(messages), "group")
 

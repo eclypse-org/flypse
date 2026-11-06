@@ -5,7 +5,7 @@ Run from the repository root with::
     uv run python -m examples.stragglers.main
 
 A star federation is emulated with a mirror infrastructure, whose update policies
-slow down the uplink of one client for a few seconds. The aggregator closes each
+slow down the uplink of one client for a few seconds. The server closes each
 round at a deadline, so the table shows, second by second, how many rounds it
 completes, with how many clients, and how many models arrive late.
 """
@@ -15,8 +15,7 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import datetime
 from statistics import mean
-
-from eclypse import policies
+from typing import TYPE_CHECKING
 
 from flypse.data import UniformDataset
 from flypse.process import FederatedProcess
@@ -29,11 +28,14 @@ from flypse.system import (
 from examples.fedavg.data import make_source
 from examples.stragglers.entities import build_federation
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 SERVER_ID = "server"
-"""The identifier of the aggregator."""
+"""The identifier of the server."""
 
 CLIENT_IDS = [f"client_{i}" for i in range(5)]
-"""The identifiers of the learners."""
+"""The identifiers of the clients."""
 
 STRAGGLER_ID = "client_0"
 """The identifier of the client whose uplink slows down."""
@@ -60,41 +62,41 @@ DEADLINE = 0.2
 """The duration of a round, at most, in seconds."""
 
 STEP_EVERY_MS = 100.0
-"""How often the simulation enacts the placement and applies the policies."""
+"""How often the process takes a step, which applies the update policy."""
 
 SLOW_FROM, SLOW_UNTIL = 30, 60
-"""The simulation steps at which the uplink slows down and recovers."""
+"""The process steps at which the uplink slows down and recovers."""
 
 SECONDS = 10.0
 """How long the emulation runs."""
 
 
-def slow_uplink(client_id: str, start: int, end: int) -> list:
-    """Create the update policies slowing down the uplink of a client.
+def slow_uplink(client_id: str, start: int, end: int) -> Callable:
+    """Create the update policy slowing down the uplink of a client.
 
-    Only the direction towards the aggregator slows down, as a mirror link has
-    one edge per direction: this way, the replies of the aggregator take no time.
+    The process calls it with the infrastructure at every step. Only the direction
+    towards the server slows down, as a mirror link has one edge per direction:
+    this way, the replies of the server take no time.
 
     Args:
         client_id (str): The identifier of the client.
-        start (int): The simulation step at which the uplink slows down.
-        end (int): The simulation step at which it recovers.
+        start (int): The process step at which the uplink slows down.
+        end (int): The process step at which it recovers.
 
     Returns:
-        list: The update policies of the infrastructure.
+        Callable: The update policy of the infrastructure.
     """
+    step = 0
 
-    def set_latency(latency: float):
-        return policies.degrade.set_value(
-            latency,
-            edge_assets="latency",
-            edge_ids=[(client_id, SERVER_ID)],
-        )
+    def update(infrastructure) -> None:
+        nonlocal step
+        if step == start:
+            infrastructure.edges[client_id, SERVER_ID]["latency"] = SLOW_LATENCY_MS
+        elif step == end:
+            infrastructure.edges[client_id, SERVER_ID]["latency"] = 0.0
+        step += 1
 
-    return [
-        policies.at(start, set_latency(SLOW_LATENCY_MS)),
-        policies.at(end, set_latency(0.0)),
-    ]
+    return update
 
 
 def main() -> None:

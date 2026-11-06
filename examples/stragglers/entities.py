@@ -1,6 +1,6 @@
 """The entities of the stragglers example.
 
-The clients are the ones of the federated averaging example: only the aggregator
+The clients are the ones of the federated averaging example: only the server
 changes. It closes a round at a deadline, with whichever models arrived in time.
 """
 
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 
 class DeadlineServer(FedAvgServer):
-    """An aggregator that does not wait for its slowest clients.
+    """A server that does not wait for its slowest clients.
 
     A round ends when every client has answered, or at the deadline. A model
     generated for a previous round is late: it does not take part in the average.
@@ -34,10 +34,10 @@ class DeadlineServer(FedAvgServer):
     """
 
     def __init__(self, entity_id: str, *, n_features: int, deadline: float):
-        """Initialize the aggregator.
+        """Initialise the server.
 
         Args:
-            entity_id (str): The identifier of the aggregator.
+            entity_id (str): The identifier of the server.
             n_features (int): The number of features of the model.
             deadline (float): The duration of a round, at most, in seconds.
         """
@@ -101,8 +101,8 @@ def build_federation(
     """Build the star-shaped federation of the example.
 
     Args:
-        client_ids (Sequence[str]): The identifiers of the learners.
-        server_id (str): The identifier of the aggregator.
+        client_ids (Sequence[str]): The identifiers of the clients.
+        server_id (str): The identifier of the server.
         n_features (int): The number of features of the model.
         epochs (int): The number of local passes over the data.
         lr (float): The learning rate.
