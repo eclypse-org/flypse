@@ -29,7 +29,7 @@ system they run on.
          :link: federation
          :link-type: doc
 
-         Connect entities into a star, a tree, a ring, or any graph of your own.
+         Connect entities into a star, a tree, a ring or any graph of your own.
 
    .. grid-item::
 

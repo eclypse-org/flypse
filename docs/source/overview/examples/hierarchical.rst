@@ -1,9 +1,9 @@
 Hierarchical federated averaging
 ================================
 
-The hierarchical example adds a tier between the clients and the server: group
-aggregators average their clients at every round, and the root averages the groups
-every few rounds.
+The hierarchical example adds a tier between the clients and the server, the root of
+the tree: group aggregators average their clients at every round, and the root
+averages the groups every few rounds.
 
 Use it when you want to understand:
 

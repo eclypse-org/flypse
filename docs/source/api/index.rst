@@ -1,5 +1,5 @@
-Reference
-=========
+API reference
+=============
 
 .. currentmodule:: flypse
 
@@ -11,4 +11,4 @@ Reference
     federation
     system
     process
-   seed
+    seed

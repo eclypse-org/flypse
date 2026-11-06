@@ -60,7 +60,7 @@ which stays available as ``model`` for local training and inference.
 The entries yielded by the hook are read once and fixed: their names, order and
 shapes must stay the same. Only floating-point entries are accepted, so integer
 counters must be skipped, and a model with no parameters to expose fails at
-initialization. Choosing what to yield is a decision of the algorithm: yielding
+initialisation. Choosing what to yield is a decision of the algorithm: yielding
 BatchNorm statistics or not is the only difference between FedAvg and FedBN.
 
 .. important::
@@ -124,14 +124,14 @@ The history
 -----------
 
 ``versions`` holds the records of a model, oldest first, and ``version`` the
-current one. Each record is a read-only copy, so neither local training nor the
+counters of the current one. Each record is a read-only copy, so neither local training nor the
 caller can alter it.
 
 .. warning::
 
    The history is unbounded by default, and every record holds all the parameters.
    For long runs or large models, pass ``max_versions`` to drop the oldest records:
-   ``MeanModel(model, max_versions=10)``.
+   ``MeanModel({"mean": np.zeros(1)}, max_versions=10)``.
 
 Reading any version
 -------------------

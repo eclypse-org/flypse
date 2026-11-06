@@ -24,7 +24,7 @@ There are two ways to split a view:
          :link: split-by-fractions
          :link-type: ref
 
-         Use :class:`~flypse.data.splitter.FractionSplitter`, the default.
+         Use :class:`~flypse.data.splitter.FractionSplitter`, the ready-made splitter.
 
    .. grid-item::
 
@@ -45,6 +45,7 @@ must sum to 1. An entity calls it once its data is bound, in ``on_deploy``:
 .. code-block:: python
 
    from flypse.data import FractionSplitter
+   from flypse.federation import Entity
 
 
    class Client(Entity):
@@ -71,6 +72,10 @@ With ``stratify``, a function returning the class of an item, the items are spli
 class by class, so each part keeps the class proportions of the view:
 
 .. code-block:: python
+
+   def label(item):
+       return item[1]
+
 
    splitter = FractionSplitter({"train": 0.8, "test": 0.2}, stratify=label, seed=self.rng)
 

@@ -2,8 +2,7 @@ Messaging
 =========
 
 Entities exchange versions of their models, and any data attached to them, with
-three methods of :class:`~flypse.federation.entity.Entity`. They wrap the ECLYPSE
-MPI interface, so you never call it directly.
+three methods of :class:`~flypse.federation.entity.Entity`.
 
 Send and receive
 ----------------
@@ -28,8 +27,8 @@ Keyword arguments are attached to the message:
    message.record  # the ModelVersion sent
    message.data  # {"n_samples": 240, "loss": 0.04}
 
-A record is one flat, read-only vector, so it is sized correctly on the wire and
-cannot be altered by the entities sharing it.
+A record holds its parameters as one flat, read-only vector, so it is sized correctly
+on the wire and cannot be altered by the entities sharing it.
 
 Attach what the sender knows, such as how much data it trained on. How much a
 collaborator weighs is decided by whoever aggregates, when it aggregates.
@@ -64,15 +63,23 @@ for the next call:
    ``receive(timeout=0)`` raises ``TimeoutError`` even with a message waiting. To
    poll the queue, use a small positive timeout.
 
+.. _message-cost:
+
 What a message costs
 --------------------
 
-Awaiting ``send`` or ``bcast`` takes the modelled time of the message, which
-ECLYPSE computes from the route it follows through the infrastructure:
+Awaiting ``send`` or ``bcast`` takes the modelled time of the message, computed
+from the route it follows through the infrastructure:
 
 .. code-block:: text
 
-   cost = processing_time + sum over the links of (size / bandwidth + latency)
+   cost = sum over the devices of processing_time / 1000 +
+          sum over the links of (bytes * 8e-6 / bandwidth + latency / 1000)
+
+with ``processing_time`` and ``latency`` in milliseconds, and ``bandwidth`` in
+megabits per second, for a cost in seconds. The devices and the links are those along
+the route, both ends included. Entities on the same device exchange messages at no
+cost.
 
 The size of the message comes from the size of the record, so a bigger model
 really does take longer to send. To several recipients, the wait lasts as long as
@@ -82,17 +89,24 @@ Ordering
 --------
 
 ``receive`` returns messages as they arrive, whoever sent them: there is no way
-to wait for a given sender. When the order matters, keep what arrives early aside,
-one queue per sender:
+to wait for a given sender. When the order matters, keep what arrives early aside on
+the entity, one queue per sender:
 
 .. code-block:: python
 
-   inbox = collections.defaultdict(collections.deque)
+   import collections
 
-   while not inbox[neighbour]:
-       message = await self.receive()
-       inbox[message.sender].append(message)
-   message = inbox[neighbour].popleft()
+
+   class Peer(Entity):
+       def __init__(self, entity_id):
+           super().__init__(entity_id)
+           self.inbox = collections.defaultdict(collections.deque)
+
+       async def receive_from(self, sender):
+           while not self.inbox[sender]:
+               message = await self.receive()
+               self.inbox[message.sender].append(message)
+           return self.inbox[sender].popleft()
 
 Messages from the same sender keep their order, as long as the sender awaits each
 ``send``.
@@ -109,12 +123,12 @@ When a message cannot be delivered
 ----------------------------------
 
 An entity can only reach its neighbours: sending to any other entity raises
-``eclypse.remote.communication.RouteNotFoundError``, as does sending when the
-infrastructure has no path to the recipient. The entity logs a warning and starts
+``RouteNotFoundError``, as does sending when the infrastructure has no path to the
+recipient. The entity logs a warning and starts
 its next ``step``, so the rest of the step is skipped. A ``bcast`` can reach some
 neighbours before it fails.
 
 .. seealso::
 
    - :doc:`../examples/decentralized`
-   - :doc:`ECLYPSE messaging <eclypse:source/overview/advanced/emulation/messaging>`
+   - :doc:`../advanced/heterogeneity`

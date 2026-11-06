@@ -9,6 +9,7 @@ Advanced topics
    evaluation
    reproducibility
    heterogeneity
+   building-on-eclypse
 
 .. grid:: 2
 
@@ -18,7 +19,7 @@ Advanced topics
          :link-type: doc
          :link: reporting
 
-         Report anything from an entity, add ECLYPSE metrics, and choose how the
+         Report anything from an entity, collect metrics, and choose how the
          results are stored.
 
    .. grid-item::
@@ -47,3 +48,11 @@ Advanced topics
 
          Make the data and the system differ across the federation, and change
          the system during a run.
+
+   .. grid-item::
+
+      .. card:: :octicon:`stack;1em;info` **Building on ECLYPSE**
+         :link-type: doc
+         :link: building-on-eclypse
+
+         Go beyond the built-in systems with the framework FLYPSE runs on.

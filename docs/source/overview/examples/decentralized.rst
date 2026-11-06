@@ -1,7 +1,7 @@
-Decentralized federated averaging
+Decentralised federated averaging
 =================================
 
-The decentralized example has no server: five peers in a ring each train on their
+The decentralised example has no server: five peers in a ring each train on their
 own data and average their model with those of their two neighbours.
 
 Use it when you want to understand:
@@ -30,7 +30,7 @@ weighted by the number of samples.
 
 Two details make the protocol work:
 
-- A neighbour can be a round ahead of the other, so its next message may arrive
+- One neighbour can be a round ahead of the other, so its next message may arrive
   first. ``receive`` returns messages as they come, so a peer keeps them in a queue
   per sender, and takes one message per neighbour at every round.
 - A peer reads ``message.record`` and never loads it: ``load_version`` would adopt
@@ -71,7 +71,7 @@ What to inspect
 There is no global model here: every peer has its own, and the last column is the
 distance between the two peers furthest apart. It shrinks as models cross the ring
 one hop at a time, and the loss follows. A model has to go through several peers to
-reach the other side, so a sparse graph like a ring converges slower than a star.
+reach the other side, so a sparse graph like a ring converges more slowly than a star.
 
 The process is seeded, and each round is made of the same messages in the same
 order, so the table is the same on every run.
