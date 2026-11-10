@@ -11,7 +11,9 @@ Entities exchange versions of their models, or control messages carrying only
 data, with ``send``, ``bcast`` and ``receive``, and find the entities they are
 connected to with ``get_neighbors``. For its own randomness, an entity draws from
 its ``rng``, seeded from the seed of the process and the identifier of the entity,
-so that entities draw different but reproducible sequences.
+so that entities draw different but reproducible sequences. An entity sharing its
+device with others holds a slot of the device for its critical operations, such
+as a local training, with its ``concurrency``.
 
 An entity pushes whatever it wants to report straight to the process with
 ``report``, instead of waiting for a metric to read it. It evaluates a version of
@@ -41,7 +43,10 @@ from flypse.seed import get_seed
 if TYPE_CHECKING:
     from flypse.data.view import DataView
     from flypse.federation.model import ModelVersion
-    from flypse.system import Device
+    from flypse.system import (
+        ConcurrencyHandler,
+        Device,
+    )
 
 
 class Entity(Service):
@@ -108,9 +113,36 @@ class Entity(Service):
             self.data = data.bind(self.id)
 
     def on_undeploy(self):
-        """Release the view of the dataset bound at deploy time, and its splits."""
+        """Release the view of the dataset bound at deploy time, and its splits.
+
+        A slot of the device the entity still holds, or waits for, is given
+        back: a stopped entity may not have left its ``concurrency`` block.
+        """
         self.data = None
         self.splits = {}
+        self.concurrency.release()
+
+    @property
+    def concurrency(self) -> ConcurrencyHandler:
+        """The slots of the device, used on behalf of the entity.
+
+        The entity holds a slot within ``async with self.concurrency``: a
+        device admits at most ``max_concurrency`` entities at once (see
+        ``SystemConfig``), and gives its slots in the order they are asked. The
+        entity cannot ``receive`` within the block: waiting for another entity
+        while keeping a slot could wait forever, e.g. clients waiting for the
+        model of a server that cannot get a slot to compute it. Sending is
+        allowed.
+
+        Example:
+            .. code-block:: python
+
+                message = await self.receive()
+                self.model.load_version(message.record)
+                async with self.concurrency:
+                    train(self.model.model, self.data)
+        """
+        return cast("Device", self.node).concurrency.bind(self.id)
 
     async def get_neighbors(self) -> list[str]:
         """Get the entities connected to this entity.
@@ -177,6 +209,7 @@ class Entity(Service):
 
         Raises:
             TimeoutError: If no message arrives within the timeout.
+            RuntimeError: If the entity holds a slot of its device.
 
         Example:
             .. code-block:: python
@@ -186,6 +219,11 @@ class Entity(Service):
                 except TimeoutError:
                     message = None
         """
+        if self.id in self.concurrency.holders:
+            raise RuntimeError(
+                f"Entity {self.id} cannot receive while holding a slot of its "
+                "device: leave the concurrency block first."
+            )
         body = await self.mpi.recv(timeout=timeout)
         return Message(body["sender_id"], body["record"], body["data"])
 

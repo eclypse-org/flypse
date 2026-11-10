@@ -72,9 +72,10 @@ class FederatedProcess(Simulation):
             federation (Federation): The federation to emulate.
             data (FederatedDataset): The data of the federation.
             system (SystemConfig | None): The infrastructure hosting the
-                federation, whose nodes are devices, and the placement of the
-                entities onto them. Defaults to None, meaning the mirror
-                infrastructure (``SystemConfig()``).
+                federation, whose nodes are devices, the placement of the
+                entities onto them, and the slots of the devices.
+                Defaults to None, meaning the mirror infrastructure with no
+                limit (``SystemConfig()``).
             **simulation_config: The options of the run, such as ``seed`` or
                 ``include_default_metrics``. ``step_every_ms`` must be given to
                 run for a given time: without it, entities are not deployed.
@@ -84,12 +85,14 @@ class FederatedProcess(Simulation):
         self.data = data
         """The data of the federation."""
 
+        system = system or SystemConfig()
         reporters = simulation_config.pop("reporters", None) or {}
         config = SimulationConfig(
             remote=RemoteBootstrap(
                 sim_class=FederatedSimulator,
                 node_class=Device,
                 data=data,
+                max_concurrency=system.max_concurrency,
             ),
             reporters={JSON_REPORT_DIR: JSONReporter, **reporters},
             **simulation_config,
@@ -102,7 +105,6 @@ class FederatedProcess(Simulation):
             data._split(holders)
         if federation.seed is None:
             federation.rnd.seed(get_seed())
-        system = system or SystemConfig()
         infrastructure, self._placement_strategy = system.build(federation)
         super().__init__(infrastructure, config)
         self.register()

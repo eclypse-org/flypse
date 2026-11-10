@@ -370,6 +370,34 @@ async def test_entity_receive_forwards_the_timeout():
     assert mpi.timeout == 0.5
 
 
+def test_entity_concurrency_is_that_of_its_device():
+    """The entity uses the slots of its device, on its own behalf."""
+    entity = _deploy(Entity("a"))
+
+    assert entity.concurrency.entity_id == "a"
+    assert entity.concurrency.holders is entity.node.concurrency.holders
+
+
+async def test_entity_cannot_receive_while_holding_a_slot():
+    """Waiting for a message while holding a slot is refused."""
+    entity = _with_mpi(FakeMPI(inbox=[{"record": None, "data": {}, "sender_id": "b"}]))
+
+    async with entity.concurrency:
+        with pytest.raises(RuntimeError, match="holding a slot"):
+            await entity.receive()
+
+
+async def test_entity_undeploy_gives_back_its_slot():
+    """A slot still held when the entity is undeployed goes back to the device."""
+    entity = _deploy(Entity("a"))
+    device = entity.node
+    await entity.concurrency.acquire()
+
+    entity.on_undeploy()
+
+    assert device.concurrency.holders == set()
+
+
 async def test_entity_control_messages_carry_only_data():
     """A message without a model travels with its data alone."""
     mpi = FakeMPI()

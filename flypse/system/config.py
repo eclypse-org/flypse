@@ -1,10 +1,12 @@
 """Module for the SystemConfig class.
 
 The system configuration describes where a federation runs: the infrastructure
-hosting the entities, and the placement strategy mapping the entities onto its
-devices. It keeps the two consistent: the "singleton" and "mirror"
-infrastructures come with their own placement strategy, which is inferred when
-none is given, while any other infrastructure requires an explicit one.
+hosting the entities, the placement strategy mapping the entities onto its
+devices, and how many entities a device admits at once in their critical
+operations. It keeps the infrastructure and the strategy consistent: the
+"singleton" and "mirror" infrastructures come with their own placement
+strategy, which is inferred when none is given, while any other infrastructure
+requires an explicit one.
 """
 
 from __future__ import annotations
@@ -16,6 +18,7 @@ from typing import (
 )
 
 from flypse.seed import get_seed
+from flypse.system.concurrency import ConcurrencyHandler
 from flypse.system.infrastructure import (
     get_mirror,
     get_singleton,
@@ -38,13 +41,15 @@ class SystemConfig:
 
     Raises:
         ValueError: If the infrastructure is an unknown name, or an
-            ``Infrastructure`` given without a placement strategy.
+            ``Infrastructure`` given without a placement strategy, or if
+            ``max_concurrency`` is below 1.
 
     Example:
         .. code-block:: python
 
             SystemConfig("singleton")
             SystemConfig(infrastructure, ExclusiveStrategy())
+            SystemConfig("singleton", max_concurrency=2)
     """
 
     infrastructure: Infrastructure | Literal["singleton", "mirror"] = "mirror"
@@ -62,8 +67,17 @@ class SystemConfig:
     infrastructure.
     """
 
+    max_concurrency: int | None = None
+    """The number of entities holding a slot of a device at once.
+
+    An entity holds one within ``async with self.concurrency``, the others
+    wait for it in the order they asked. Defaults to None, meaning no limit.
+    """
+
     def __post_init__(self):
-        """Check the consistency of the infrastructure and the strategy."""
+        """Check the limit, and the infrastructure against the strategy."""
+        # the same check as each device, before any is built
+        ConcurrencyHandler(self.max_concurrency)
         if isinstance(self.infrastructure, str):
             if self.infrastructure not in ("singleton", "mirror"):
                 raise ValueError(

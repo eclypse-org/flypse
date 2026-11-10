@@ -1,5 +1,6 @@
 """Package for the devices, infrastructures, placement and simulator."""
 
+from flypse.system.concurrency import ConcurrencyHandler
 from flypse.system.config import SystemConfig
 from flypse.system.device import Device
 from flypse.system.infrastructure import (
@@ -20,6 +21,7 @@ from flypse.system.simulator import (
 __all__ = [
     "ENTITY_REPORT",
     "SINGLETON_NODE",
+    "ConcurrencyHandler",
     "Device",
     "ExclusiveStrategy",
     "FederatedSimulator",

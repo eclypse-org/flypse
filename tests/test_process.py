@@ -278,6 +278,18 @@ def test_process_defaults_to_the_mirror():
     assert process.infrastructure.id == "mirror"
 
 
+def test_process_limits_the_concurrency_of_the_devices():
+    """Every device admits as many entities at once as the system allows."""
+    process = FederatedProcess(
+        _federation("a", "b"),
+        UniformDataset(list(range(4))),
+        SystemConfig("singleton", max_concurrency=2),
+    )
+
+    assert process.remote is not None
+    assert process.remote.node_args["max_concurrency"] == 2
+
+
 def test_mirror_maps_every_entity_to_itself():
     """The mirror strategy maps each entity onto its own device."""
     process = FederatedProcess(
