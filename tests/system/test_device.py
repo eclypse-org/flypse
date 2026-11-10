@@ -34,3 +34,18 @@ def test_device_data_defaults_to_none():
     device = _make_device()
 
     assert device.data is None
+
+
+def test_device_build_sets_up_its_slots():
+    """The limit given to the node setup is that of the device."""
+    device = Device.__new__(Device)
+    device.build(max_concurrency=2)
+
+    assert device.concurrency.max_concurrency == 2
+
+
+def test_device_has_no_limit_by_default():
+    """A device built without a limit admits every entity at once."""
+    device = _make_device()
+
+    assert device.concurrency.max_concurrency is None

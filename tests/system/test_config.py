@@ -76,6 +76,12 @@ def test_custom_infrastructure_requires_a_strategy():
         SystemConfig(Infrastructure("Infra"))
 
 
+def test_a_limit_no_device_could_have_is_rejected():
+    """A device admitting no entity at once fails before any is built."""
+    with pytest.raises(ValueError, match="at least 1"):
+        SystemConfig(max_concurrency=0)
+
+
 def test_unknown_infrastructure_name_is_rejected():
     """Only the built-in infrastructures can be given by name."""
     with pytest.raises(ValueError, match="Unknown infrastructure"):
