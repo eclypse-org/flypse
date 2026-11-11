@@ -20,8 +20,8 @@ from statistics import mean
 from flypse.data import UniformDataset
 from flypse.process import FederatedProcess
 
+from examples.decentralized.data import make_source
 from examples.decentralized.entities import build_federation
-from examples.fedavg.data import make_source
 
 PEER_IDS = [f"peer_{i}" for i in range(5)]
 """The identifiers of the peers, in ring order."""

@@ -12,21 +12,28 @@ from collections import (
     defaultdict,
     deque,
 )
+from typing import TYPE_CHECKING
 
+from flypse.data import FractionSplitter
 from flypse.federation import (
+    Entity,
     Federation,
     Message,
     get_ring,
 )
 
-from examples.fedavg.entities import (
-    FedAvgClient,
-    weighted_average,
+from examples.decentralized.model import (
+    FedAvgModel,
+    LinearModel,
+    local_train,
+    mean_squared_error,
 )
-from examples.fedavg.model import local_train
+
+if TYPE_CHECKING:
+    import numpy as np
 
 
-class Peer(FedAvgClient):
+class Peer(Entity):
     """A peer of the federation, both a learner and an aggregator.
 
     On every step it trains locally, sends its model to its neighbours, and
@@ -53,15 +60,42 @@ class Peer(FedAvgClient):
             lr (float): The learning rate.
             eval_every (int): The number of rounds between two evaluations.
         """
-        super().__init__(
-            entity_id,
-            None,
-            n_features=n_features,
-            epochs=epochs,
-            lr=lr,
-            eval_every=eval_every,
-        )
+        super().__init__(entity_id)
+        self._n_features = n_features
+        self._epochs = epochs
+        self._lr = lr
+        self._eval_every = eval_every
         self._inbox: dict[str, deque[Message]] = defaultdict(deque)
+        self.model = FedAvgModel(LinearModel([0.0] * n_features, 0.0))
+
+    def on_deploy(self):
+        """Bind the local data, initialise the model and split off a test part.
+
+        The initial model and the split are drawn from the ``rng`` of the
+        entity, seeded from the seed of the process. The peer trains on 80% of
+        its data and keeps the rest to evaluate the model.
+        """
+        super().on_deploy()
+        self.model.model = LinearModel(
+            [self.rng.uniform(-0.1, 0.1) for _ in range(self._n_features)],
+            self.rng.uniform(-0.1, 0.1),
+        )
+        if self.data is not None:
+            splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
+            self.splits = splitter.apply(self.data)
+            self.data = self.splits["train"]
+
+    def evaluate(self, record, data):
+        """Evaluate a version of the model on the given data.
+
+        Args:
+            record (ModelVersion): The version of the model to evaluate.
+            data (DataView): The data to evaluate it on.
+
+        Returns:
+            dict[str, float]: The loss of the version on the data.
+        """
+        return {"loss": mean_squared_error(self.model.snapshot(record), data)}
 
     async def _receive_from(self, sender: str) -> Message:
         """Receive the next message of a sender, keeping the others aside.
@@ -98,6 +132,21 @@ class Peer(FedAvgClient):
         if record.version[0] % self._eval_every == 0:
             self.run_evaluation(record, "test")
             self.report(round=record.version[0], parameters=record.parameters)
+
+
+def weighted_average(messages: list[Message]) -> np.ndarray:
+    """Average the models of the messages, weighted by their number of samples.
+
+    Args:
+        messages (list[Message]): The messages, sorted by sender in place.
+
+    Returns:
+        np.ndarray: The average model: Θ = Σ_c (n_c / n) Θ_c.
+    """
+    # a fixed order: float rounding would make the model follow the arrivals
+    messages.sort(key=lambda message: message.sender)
+    n_total = sum(m.data["n_samples"] for m in messages)
+    return sum(m.record.parameters * m.data["n_samples"] for m in messages) / n_total
 
 
 def build_federation(

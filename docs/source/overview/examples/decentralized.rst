@@ -20,13 +20,31 @@ Run it from the repository root with:
 
    uv run python -m examples.decentralized.main
 
+Model and data
+--------------
+
+The model and the data are the ones of the :doc:`federated averaging example
+<fedavg>`: a linear model trained with stochastic gradient descent, and a synthetic
+regression source sorted by its input feature. The example keeps its own copy of
+both, so that it reads on its own.
+
+.. dropdown:: Model code
+
+    .. literalinclude:: ../../../../examples/decentralized/model.py
+        :language: python
+
+.. dropdown:: Data code
+
+    .. literalinclude:: ../../../../examples/decentralized/data.py
+        :language: python
+
 Entities
 --------
 
-``Peer`` builds on ``FedAvgClient`` from the
-:doc:`federated averaging example <fedavg>`. At every step it trains, sends its model
+``Peer`` is both a learner and an aggregator. At every step it trains, sends its model
 to its neighbours, collects theirs and averages everything, its own model included,
-weighted by the number of samples.
+weighted by the number of samples. Peers draw their initial model from their ``rng``
+in ``on_deploy``, and keep 20% of their data aside as a test part.
 
 Two details make the protocol work:
 
