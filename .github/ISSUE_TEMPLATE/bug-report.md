@@ -12,7 +12,7 @@ A clear and concise description of what the bug is.
 
 ## Environment
 - OS: Ubuntu/MacOS
-- Python version:  3.11/3.12/3.13
+- Python version:  3.11/3.12/3.13/3.14
 - FLYPSE version:
 - ECLYPSE version:
 
