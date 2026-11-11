@@ -20,7 +20,7 @@ from statistics import mean
 from flypse.data import UniformDataset
 from flypse.process import FederatedProcess
 
-from examples.fedavg.data import make_source
+from examples.hierarchical.data import make_source
 from examples.hierarchical.entities import build_federation
 
 ROOT_ID = "root"

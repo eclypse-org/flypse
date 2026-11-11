@@ -20,12 +20,30 @@ Run it from the repository root with:
 
    uv run python -m examples.stragglers.main
 
+Model and data
+--------------
+
+The model and the data are the ones of the :doc:`federated averaging example
+<fedavg>`: a linear model trained with stochastic gradient descent, and a synthetic
+regression source sorted by its input feature. The example keeps its own copy of
+both, so that it reads on its own.
+
+.. dropdown:: Model code
+
+    .. literalinclude:: ../../../../examples/stragglers/model.py
+        :language: python
+
+.. dropdown:: Data code
+
+    .. literalinclude:: ../../../../examples/stragglers/data.py
+        :language: python
+
 Entities
 --------
 
-The clients are ``FedAvgClient``, from the
-:doc:`federated averaging example <fedavg>`, with no changes. ``DeadlineServer``
-closes a round when every client has answered, or when the deadline expires.
+``Client`` trains, sends its model to the server and waits for the next global one,
+as in the federated averaging example. ``DeadlineServer`` closes a round when every
+client has answered, or when the deadline expires.
 
 A model generated for a previous round is late, so it does not take part in the
 average. Everyone who wrote gets the latest model back, on time or not: every client

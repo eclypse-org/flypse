@@ -21,12 +21,32 @@ Run it from the repository root with:
 
    uv run python -m examples.hierarchical.main
 
+Model and data
+--------------
+
+The model and the data are the ones of the :doc:`federated averaging example
+<fedavg>`: a linear model trained with stochastic gradient descent, and a synthetic
+regression source sorted by its input feature. The example keeps its own copy of
+both, so that it reads on its own.
+
+.. dropdown:: Model code
+
+    .. literalinclude:: ../../../../examples/hierarchical/model.py
+        :language: python
+
+.. dropdown:: Data code
+
+    .. literalinclude:: ../../../../examples/hierarchical/data.py
+        :language: python
+
 Entities
 --------
 
-The clients are ``FedAvgClient`` and the root is ``FedAvgServer``, both from the
-:doc:`federated averaging example <fedavg>`, with one more version level:
-``("global", "group", "local")``. Only ``GroupAggregator`` is new.
+``Client`` trains, sends its model to its group aggregator and waits for the next
+one. ``Root`` averages the models of the groups and broadcasts the global one. They
+work as the client and the server of the federated averaging example, with one more
+version level: ``("global", "group", "local")``. ``GroupAggregator`` sits between
+them.
 
 At every round, a group aggregator averages the models of its clients with
 ``update_version(average, "group")``. Every ``GLOBAL_EVERY`` rounds, it also sends
@@ -47,8 +67,8 @@ Process
 -------
 
 ``main`` runs four clients in two groups on the default mirror infrastructure. The
-data comes from the same sorted source as the federated averaging example, so each
-group holds one half of the feature range.
+source is sorted by its input feature, so each group holds one half of the feature
+range.
 
 Clients evaluate every model they receive, and the example groups the records by
 version.

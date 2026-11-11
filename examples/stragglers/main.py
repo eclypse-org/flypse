@@ -25,7 +25,7 @@ from flypse.system import (
     get_mirror_strategy,
 )
 
-from examples.fedavg.data import make_source
+from examples.stragglers.data import make_source
 from examples.stragglers.entities import build_federation
 
 if TYPE_CHECKING:

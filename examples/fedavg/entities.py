@@ -49,8 +49,6 @@ class FedAvgClient(Entity):
         epochs: int,
         lr: float,
         eval_every: int,
-        store_step: bool = True,
-        version_levels: Sequence[str] = ("global", "local"),
     ):
         """Initialise the client.
 
@@ -61,20 +59,14 @@ class FedAvgClient(Entity):
             epochs (int): The number of local passes over the data.
             lr (float): The learning rate.
             eval_every (int): The number of rounds between two evaluations.
-            store_step (bool): Whether the local loss is stored for reporting.
-                Defaults to True.
-            version_levels (Sequence[str]): The version levels of the model.
-                Defaults to ``("global", "local")``.
         """
-        super().__init__(entity_id, store_step=store_step)
+        super().__init__(entity_id, store_step=True)
         self._server_id = server_id
         self._n_features = n_features
         self._epochs = epochs
         self._lr = lr
         self._eval_every = eval_every
-        self.model = FedAvgModel(
-            LinearModel([0.0] * n_features, 0.0), version_levels=version_levels
-        )
+        self.model = FedAvgModel(LinearModel([0.0] * n_features, 0.0))
 
     def on_deploy(self):
         """Bind the local data, initialise the model and split off a test part.
@@ -144,28 +136,15 @@ class FedAvgServer(Entity):
     back to them.
     """
 
-    def __init__(
-        self,
-        entity_id: str,
-        *,
-        n_features: int,
-        store_step: bool = True,
-        version_levels: Sequence[str] = ("global", "local"),
-    ):
+    def __init__(self, entity_id: str, *, n_features: int):
         """Initialise the server.
 
         Args:
             entity_id (str): The identifier of the server.
             n_features (int): The number of features of the model.
-            store_step (bool): Whether the global loss is stored for
-                reporting. Defaults to True.
-            version_levels (Sequence[str]): The version levels of the model.
-                Defaults to ``("global", "local")``.
         """
-        super().__init__(entity_id, store_step=store_step, with_data=False)
-        self.model = FedAvgModel(
-            LinearModel([0.0] * n_features, 0.0), version_levels=version_levels
-        )
+        super().__init__(entity_id, store_step=True, with_data=False)
+        self.model = FedAvgModel(LinearModel([0.0] * n_features, 0.0))
 
     async def step(self):
         """Aggregate the local models of the neighbours and broadcast them.

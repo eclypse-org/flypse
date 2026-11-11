@@ -28,8 +28,7 @@ subdirectory of the repository. Run them from the repository root, after
          :link-type: doc
          :link: fedavg
 
-         A server and five clients learn a linear model from non-IID data, the
-         starting point of the other examples.
+         A server and five clients learn a linear model from non-IID data.
 
    .. grid-item::
 
