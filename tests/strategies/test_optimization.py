@@ -1,11 +1,11 @@
-"""Tests for the update strategies."""
+"""Tests for the optimisation strategies."""
 
 from __future__ import annotations
 
 import numpy as np
 import pytest
 
-from flypse.strategies.updates import (
+from flypse.strategies.optimization import (
     SGD,
     Adam,
     Yogi,

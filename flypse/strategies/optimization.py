@@ -1,8 +1,13 @@
-"""Module for the update strategies.
+"""Module for the optimisation strategies.
 
-An update is how the result of an aggregation changes the entity's own model.
-Replacing the model is :meth:`~flypse.federation.model.FederatedModel.update_version`
-itself; the strategies here compute the new parameters to pass it.
+Optimisation decides how the result changes the entity's own model. The entity
+can adopt it (federated averaging), move part of the way towards it (FedAsync),
+or treat its difference from the model as a gradient and take an optimiser step
+(FedAvgM, FedAdam). Adopting the result is
+:meth:`~flypse.federation.model.FederatedModel.update_version` itself, and
+adopting only part of a received model (e.g., keeping local layers, as FedPer
+and FedBN do) is :meth:`~flypse.federation.model.FederatedModel.load_version`
+with a ``mask``.
 
 The optimisers follow one sign convention: the update Δ is the result minus the
 entity's own model (e.g., the mean of the pseudogradients θ_c - θ), and every
