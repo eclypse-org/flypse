@@ -1,6 +1,6 @@
 <p align="center">
 <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/eclypse-org/flypse/refs/heads/main/docs/_static/images/dark-transparent.png"><img width=450 alt="flypse-logo" src="https://raw.githubusercontent.com/eclypse-org/flypse/refs/heads/main/docs/_static/images/light-transparent.png"/>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/eclypse-org/flypse/refs/heads/main/docs/_static/images/dark/transparent.png"><img width=450 alt="flypse-logo" src="https://raw.githubusercontent.com/eclypse-org/flypse/refs/heads/main/docs/_static/images/light/transparent.png"/>
 </picture>
 </p>
 
