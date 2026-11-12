@@ -489,3 +489,48 @@ def test_max_versions_per_level_must_be_valid(limits):
     """A limit below one, or for an unknown level, raises."""
     with pytest.raises(ValueError, match="max_versions"):
         make_model({"w": np.zeros(1)}, max_versions=limits)
+
+
+def _hierarchy() -> VectorModel:
+    """A three-level model that loaded (2, 6, 0) and then went on locally."""
+    model = make_model({"w": np.zeros(1)}, version_levels=("global", "group", "local"))
+    model.update_version(np.full(1, 1.0), "global")
+    model.load_version(ModelVersion((2, 0, 0), 0.0, np.full(1, 2.0)))
+    model.load_version(ModelVersion((2, 6, 0), 0.0, np.full(1, 3.0)))
+    return model
+
+
+def test_base_is_the_version_a_record_was_generated_from():
+    """The base keeps the counters down to the level, from the history."""
+    model = _hierarchy()
+    update = ModelVersion((2, 6, 4), 0.0, np.full(1, 9.0, dtype=np.float32))
+
+    assert model.base(update, "global").version == (2, 0, 0)
+    assert model.base(update, "group").parameters.tolist() == [3.0]
+
+
+def test_base_missing_from_the_history_raises():
+    """A base dropped from the history, or never seen, cannot be read."""
+    with pytest.raises(ValueError, match="unknown version"):
+        _hierarchy().base(ModelVersion((1, 3, 2), 0.0, np.zeros(1)), "group")
+
+
+def test_lag_counts_the_versions_behind_the_model():
+    """At the coarsest level the lag is the staleness."""
+    model = _hierarchy()
+
+    assert model.lag(ModelVersion((0, 0, 5), 0.0, np.zeros(1)), "global") == 2
+    assert model.lag(ModelVersion((2, 4, 1), 0.0, np.zeros(1)), "group") == 2
+
+
+def test_lag_below_a_differing_level_raises():
+    """Group counters of different global versions do not compare."""
+    with pytest.raises(ValueError, match="differ above"):
+        _hierarchy().lag(ModelVersion((1, 4, 0), 0.0, np.zeros(1)), "group")
+
+
+def test_version_arithmetic_refuses_unknown_levels():
+    """Unknown levels raise, as for updates."""
+    record = ModelVersion((0, 0, 0), 0.0, np.zeros(1))
+    with pytest.raises(ValueError, match="unknown level"):
+        _hierarchy().lag(record, "round")

@@ -294,10 +294,8 @@ class FederatedModel(ABC):
 
                 await self.bcast(self.model.update_version(average, "global"))
         """
-        if level not in self.version_levels:
-            raise ValueError(f"unknown level {level!r}")
+        index = self._index(level)
         flat = self._validate(parameters)
-        index = self.version_levels.index(level)
         counters = list(self.version)
         counters[index] += 1
         for finer in range(index + 1, len(counters)):
@@ -344,6 +342,61 @@ class FederatedModel(ABC):
             flat = np.where(mask, flat, self.get_parameters())
         return self._commit(flat, self._as_version(record.version), record.timestamp)
 
+    def base(self, record: ModelVersion, level: str) -> ModelVersion:
+        """Return the version of the history a record was generated from.
+
+        The base at a level keeps the counters of the record down to that
+        level, resetting the finer ones: e.g., a client update ``(2, 3)``
+        was generated from the global version ``(2, 0)``, the reference of
+        its pseudogradient.
+
+        Args:
+            record (ModelVersion): The record, e.g. a received one.
+            level (str): The level of the base.
+
+        Returns:
+            ModelVersion: The base, as recorded in the history.
+
+        Raises:
+            ValueError: If the level is unknown, or the base is not in the
+                history (e.g., dropped by ``max_versions``).
+
+        Example:
+            .. code-block:: python
+
+                base = self.model.base(message.record, "global")
+                delta = message.record.parameters - base.parameters
+        """
+        index = self._index(level)
+        version = self._as_version(record.version)
+        return self._record(version[: index + 1] + (0,) * (len(version) - index - 1))
+
+    def lag(self, record: ModelVersion, level: str) -> int:
+        """Return how many versions at a level a record is behind the model.
+
+        At the coarsest level it is the staleness of the record (e.g., of a
+        client update reaching the server); at a finer level the coarser
+        counters must agree.
+
+        Args:
+            record (ModelVersion): The record, e.g. a received one.
+            level (str): The level to count the versions at.
+
+        Returns:
+            int: The difference of the counters at the level.
+
+        Raises:
+            ValueError: If the level is unknown, or the coarser counters
+                differ.
+        """
+        index = self._index(level)
+        version = self._as_version(record.version)
+        if version[:index] != self.version[:index]:
+            raise ValueError(
+                f"{version} and {self.version} differ above the level {level!r}"
+            )
+        return self.version[index] - version[index]
+
     def _commit(
         self,
         flat: np.ndarray,
@@ -380,6 +433,22 @@ class FederatedModel(ABC):
             if len(same) > self._limits[level]:
                 del self.versions[same[0]]
         return record
+
+    def _index(self, level: str) -> int:
+        """Return the position of a level among the levels.
+
+        Args:
+            level (str): The level.
+
+        Returns:
+            int: Its position, from the coarsest.
+
+        Raises:
+            ValueError: If the level is unknown.
+        """
+        if level not in self.version_levels:
+            raise ValueError(f"unknown level {level!r}")
+        return self.version_levels.index(level)
 
     def _level(self, version: tuple[int, ...]) -> str:
         """Return the level of a version: its finest non-zero counter.
