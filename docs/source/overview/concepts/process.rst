@@ -31,10 +31,11 @@ A process emulates a single federation, and registers it by itself. Calling
 What happens at runtime
 -----------------------
 
-#. Creating the process splits the data across the entities holding it, builds the
-   system, and starts one Ray actor per device, each with a copy of the dataset.
+#. Creating the process seeds the ``rng`` of the entities, splits the data across
+   the entities holding it, builds the system, and starts one Ray actor per device,
+   each with a copy of the dataset.
 #. ``run`` fires the first step, which places the entities and deploys them. Each
-   entity seeds its ``rng``, binds its data, and starts looping on its ``step``.
+   entity binds its data and starts looping on its ``step``.
 #. Every ``step_every_ms``, the process takes a step: it applies the update policies,
    checks the placement, and collects the metrics. Entities keep running in between,
    at their own pace.

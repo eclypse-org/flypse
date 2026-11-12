@@ -39,7 +39,6 @@ from typing import (
 from eclypse.remote.service import Service
 
 from flypse.federation.message import Message
-from flypse.seed import get_seed
 
 if TYPE_CHECKING:
     from flypse.data.view import DataView
@@ -91,7 +90,7 @@ class Entity(Service):
         self.with_data = with_data
         """Whether the entity holds a portion of the federation data."""
         self.rng = random.Random()
-        """The generator of the entity, seeded when it is deployed."""
+        """The generator of the entity, seeded by the process."""
         self.n_reports = 0
         """The number of reports the entity has made."""
         self.data: DataView | None = None
@@ -100,15 +99,10 @@ class Entity(Service):
         """The named parts of the data of the entity, set by the entity."""
 
     def on_deploy(self):
-        """Seed the ``rng`` of the entity and bind its view of the data.
+        """Bind the view of the data of the entity.
 
-        The ``rng`` is seeded from the seed of the process and the identifier
-        of the entity; the view is the one of the dataset held by the hosting
-        device.
+        The view is the one of the dataset held by the hosting device.
         """
-        seed = get_seed()
-        if seed is not None:
-            self.rng.seed(f"{seed}/{self.id}")
         data = cast("Device", self.node).data
         if self.with_data and data is not None:
             self.data = data.bind(self.id)
@@ -122,6 +116,18 @@ class Entity(Service):
         self.data = None
         self.splits = {}
         self.concurrency.release()
+
+    def _seed(self, seed: int | None):
+        """Seed the generators of the entity, once per process.
+
+        They are seeded from the seed of the process and the identifier of the
+        entity, and they go on across redeploys: a reset of the federation does
+        not replay the draws of an entity.
+
+        Args:
+            seed (int | None): The seed of the process.
+        """
+        self.rng.seed(f"{seed}/{self.id}")
 
     @property
     def concurrency(self) -> ConcurrencyHandler:

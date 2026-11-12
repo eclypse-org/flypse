@@ -51,10 +51,11 @@ An entity lives in two places, and each method runs in only one of them:
      - What happens
    * - ``__init__``
      - your script
-     - The entity is created. ``data`` is None and ``rng`` is not seeded yet.
+     - The entity is created. ``data`` is None, and ``rng`` is seeded once the
+       process is created.
    * - ``on_deploy``
      - the device
-     - ``rng`` is seeded and ``data`` is bound.
+     - ``data`` is bound.
    * - ``step``
      - the device
      - Runs in a loop until the entity is stopped.
@@ -98,7 +99,8 @@ Randomness
 
 ``self.rng`` is a ``random.Random`` seeded from the seed of the process and the
 identifier of the entity, so that entities draw different but reproducible
-sequences:
+sequences. A redeployed entity goes on with its sequence, so a reset of the
+federation does not replay its draws:
 
 .. code-block:: python
 

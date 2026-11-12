@@ -105,6 +105,8 @@ class FederatedProcess(Simulation):
             data._split(holders)
         if federation.seed is None:
             federation.rnd.seed(get_seed())
+        for entity in federation.entities.values():
+            entity._seed(get_seed())
         infrastructure, self._placement_strategy = system.build(federation)
         super().__init__(infrastructure, config)
         self.register()

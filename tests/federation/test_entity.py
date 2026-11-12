@@ -11,7 +11,6 @@ from unittest.mock import (
 
 import numpy as np
 import pytest
-from eclypse.utils.constants import RND_SEED
 
 from flypse.data import (
     FractionSplitter,
@@ -441,13 +440,24 @@ async def test_entity_control_messages_carry_only_data():
     ]
 
 
-def test_entity_rng_is_seeded_per_entity_at_deploy(monkeypatch):
+def test_entity_rng_is_seeded_per_entity():
     """Entities draw different, reproducible sequences from the process seed."""
-    monkeypatch.setenv(RND_SEED, "7")
 
     def draws(entity_id: str) -> list[float]:
-        entity = _deploy(Entity(entity_id))
+        entity = Entity(entity_id)
+        entity._seed(7)
         return [entity.rng.random() for _ in range(3)]
 
     assert draws("a") == draws("a")
     assert draws("a") != draws("b")
+
+
+def test_entity_rng_goes_on_across_redeploys():
+    """A redeployed entity does not replay its draws."""
+    entity = Entity("a")
+    entity._seed(7)
+    first = _deploy(entity).rng.random()
+
+    entity.on_undeploy()
+
+    assert _deploy(entity).rng.random() != first
