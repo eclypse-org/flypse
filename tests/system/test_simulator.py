@@ -140,3 +140,14 @@ def test_connections_follow_the_federation_of_the_process(simulator):
     assert {peer: c["degree"] for peer, c in out.items()} == {"b": 2}
     assert {peer: c["degree"] for peer, c in incoming.items()} == {"b": 2, "c": 2}
     assert "latency" in out["b"]
+
+
+def test_device_follows_the_infrastructure_of_the_process(simulator):
+    """An entity learns the resources of its device, as a copy."""
+    resources = {"cpu": 4, "availability": 1.0}
+    simulator._infrastructure = cast("Any", SimpleNamespace(nodes={"d": resources}))
+
+    device = simulator.device("d")
+
+    assert device == resources
+    assert device is not resources

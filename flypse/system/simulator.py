@@ -10,8 +10,9 @@ A report needs no event: it is written even if it arrives while the process is
 stopping. The simulator counts them, so that it closes the report only once it
 has received everything the stopped entities sent.
 
-The simulator is also the source of truth about the federation as it is now: the
-entities ask it about their connections, which the update policies may change.
+The simulator is also the source of truth about the federation and the
+infrastructure as they are now: the entities ask it about their connections and
+their devices, which the update policies may change.
 """
 
 from __future__ import annotations
@@ -92,6 +93,17 @@ class FederatedSimulator(RemoteSimulator):
             other: {**attributes, "degree": federation.out_degree(other)}
             for other, attributes in ends
         }
+
+    def device(self, node_id: str) -> dict[str, Any]:
+        """Return the resources of a device, as the infrastructure has them now.
+
+        Args:
+            node_id (str): The identifier of the device.
+
+        Returns:
+            dict[str, Any]: The resources of the device, by name.
+        """
+        return dict(self.infrastructure.nodes[node_id])
 
     def _enqueue(self, row: dict[str, Any]):
         """Queue a row for the JSON reporter.

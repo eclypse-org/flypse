@@ -9,10 +9,12 @@ defined by subclasses, implementing the ``step`` method.
 
 Entities exchange versions of their models, or control messages carrying only
 data, with ``send``, ``bcast`` and ``receive``, and find the entities they are
-connected to with ``get_neighbors``. For its own randomness, an entity draws from
-its ``rng``, or from ``np_rng`` for numpy arrays, seeded from the seed of the
-process and the identifier of the entity, so that entities draw different but
-reproducible sequences. An entity sharing its
+connected to with ``get_neighbors``, or ``get_connections`` with their attributes.
+An entity learns the resources of its device with ``get_device``, and takes the
+time its device needs for some work with ``compute``. For its own randomness, it
+draws from its ``rng``, or from ``np_rng`` for numpy arrays, seeded from the seed
+of the process and the identifier of the entity, so that entities draw different
+but reproducible sequences. An entity sharing its
 device with others holds a slot of the device for its critical operations, such
 as a local training, with its ``concurrency``.
 
@@ -28,6 +30,7 @@ from __future__ import annotations
 
 import json
 import random
+from asyncio import sleep
 from datetime import datetime
 from hashlib import blake2b
 from time import time
@@ -213,6 +216,47 @@ class Entity(Service):
         return await simulator.connections.remote(
             self.application_id, self.id, direction
         )
+
+    async def get_device(self) -> dict[str, Any]:
+        """Get the resources of the device of this entity, as they are now.
+
+        They are asked of the process at every call, so they follow its update
+        policies (e.g., a degrading cpu).
+
+        Returns:
+            dict[str, Any]: The resources of the device, by name (e.g.,
+            ``cpu``, ``ram``, ``availability``).
+        """
+        simulator = self.node.get_actor(self.node.manager_actor_name)
+        return await simulator.device.remote(self.node.id)
+
+    async def compute(self, work: float):
+        """Take the time the device of this entity needs for some work.
+
+        It waits ``work / cpu`` seconds, with the cpu of the device at the call:
+        the same work takes four times as long on 2 cores as on 8. It emulates
+        the speed of the device, on top of the real time the computation takes
+        on the machine running the process.
+
+        Args:
+            work (float): The work, in seconds of a single core.
+
+        Raises:
+            ValueError: If the work is negative, or the device has no cpu.
+
+        Example:
+            .. code-block:: python
+
+                async with self.concurrency:
+                    train(self.model.model, self.data)
+                    await self.compute(epochs * len(self.data) * 1e-3)
+        """
+        if work < 0:
+            raise ValueError(f"the work must be non-negative, got {work}")
+        cpu = (await self.get_device()).get("cpu", 0)
+        if cpu <= 0:
+            raise ValueError(f"device {self.node.id} has no cpu to compute with")
+        await sleep(work / cpu)
 
     async def send(
         self,

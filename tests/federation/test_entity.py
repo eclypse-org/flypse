@@ -52,12 +52,14 @@ class FakeMPI:
 class FakeSimulator:
     """An in-memory stand-in for the simulator actor."""
 
-    def __init__(self, connections=None):
+    def __init__(self, connections=None, device=None):
         self.reports: list[tuple] = []
         self.asked: list[tuple] = []
         self._connections = connections or {}
+        self._device = device or {}
         self.report = SimpleNamespace(remote=self._receive)
         self.connections = SimpleNamespace(remote=self._connect)
+        self.device = SimpleNamespace(remote=self._describe)
 
     def _receive(self, *report):
         self.reports.append(report)
@@ -65,6 +67,10 @@ class FakeSimulator:
     async def _connect(self, *question):
         self.asked.append(question)
         return self._connections
+
+    async def _describe(self, *question):
+        self.asked.append(question)
+        return self._device
 
     @property
     def values(self) -> list[dict]:
@@ -490,3 +496,37 @@ async def test_entity_refuses_an_unknown_direction():
     with pytest.raises(ValueError, match="direction"):
         await entity.get_connections("both")  # type: ignore[arg-type]
     assert simulator.asked == []
+
+
+async def test_entity_asks_the_simulator_for_its_device():
+    """The resources come from the process, for the device of the entity."""
+    entity = Entity("a")
+    simulator = _connect(entity, device={"cpu": 4})
+
+    assert await entity.get_device() == {"cpu": 4}
+    assert simulator.asked == [("device",)]
+
+
+async def test_entity_computes_at_the_speed_of_its_device(monkeypatch):
+    """Work takes work / cpu seconds."""
+    entity = Entity("a")
+    _connect(entity, device={"cpu": 4})
+    waited: list[float] = []
+
+    async def sleep(seconds):
+        waited.append(seconds)
+
+    monkeypatch.setattr("flypse.federation.entity.sleep", sleep)
+    await entity.compute(2.0)
+
+    assert waited == [0.5]
+
+
+@pytest.mark.parametrize(("work", "device"), [(-1.0, {"cpu": 4}), (1.0, {})])
+async def test_entity_cannot_compute_without_cpu_or_with_negative_work(work, device):
+    """Negative work, or a device with no cpu, raises."""
+    entity = Entity("a")
+    _connect(entity, device=device)
+
+    with pytest.raises(ValueError, match=r"work|cpu"):
+        await entity.compute(work)
