@@ -39,11 +39,12 @@ class FakeMPI:
     async def bcast(self, body):
         self.sent.append(("bcast", None, body))
 
-    async def recv(self, timeout=None):
+    async def recv(self, timeout=None, source=None):
         self.timeout = timeout
-        if not self.inbox:
-            raise TimeoutError
-        return self.inbox.pop(0)
+        for i, message in enumerate(self.inbox):
+            if source is None or message.source == source:
+                return self.inbox.pop(i)
+        raise TimeoutError
 
 
 class FakeSimulator:
@@ -97,6 +98,11 @@ class Evaluating(Entity):
         if isinstance(self.results, Exception):
             raise self.results
         return self.results
+
+
+def _arrived(sender: str, record=None, **data) -> SimpleNamespace:
+    """Return a message as the MPI interface delivers it."""
+    return SimpleNamespace(source=sender, data={"record": record, "data": data})
 
 
 def _record(version=(0, 0), value=0.0) -> ModelVersion:
@@ -352,11 +358,18 @@ async def test_entity_send_and_bcast_wrap_the_record_and_data():
 async def test_entity_receive_returns_a_message():
     """A received body becomes a message from its sender."""
     record = ModelVersion((1, 0), 2.0, np.zeros(2))
-    entity = _with_mpi(
-        FakeMPI(inbox=[{"record": record, "data": {"loss": 0.5}, "sender_id": "b"}])
-    )
+    entity = _with_mpi(FakeMPI(inbox=[_arrived("b", record, loss=0.5)]))
 
     assert await entity.receive() == Message("b", record, {"loss": 0.5})
+
+
+async def test_entity_receives_from_a_given_sender():
+    """Receiving from a sender leaves the messages of the others queued."""
+    mpi = FakeMPI(inbox=[_arrived("b", round=1), _arrived("c", round=2)])
+    entity = _with_mpi(mpi)
+
+    assert (await entity.receive(source="c")).sender == "c"
+    assert [message.source for message in mpi.inbox] == ["b"]
 
 
 async def test_entity_receive_forwards_the_timeout():
@@ -380,7 +393,7 @@ def test_entity_concurrency_is_that_of_its_device():
 
 async def test_entity_cannot_receive_while_holding_a_slot():
     """Waiting for a message while holding a slot is refused."""
-    entity = _with_mpi(FakeMPI(inbox=[{"record": None, "data": {}, "sender_id": "b"}]))
+    entity = _with_mpi(FakeMPI(inbox=[_arrived("b")]))
 
     async with entity.concurrency:
         with pytest.raises(RuntimeError, match="holding a slot"):

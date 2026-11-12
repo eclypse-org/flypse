@@ -194,15 +194,22 @@ class Entity(Service):
         """
         await self.mpi.bcast({"record": record, "data": data})
 
-    async def receive(self, timeout: float | None = None) -> Message:
+    async def receive(
+        self,
+        timeout: float | None = None,
+        source: str | None = None,
+    ) -> Message:
         """Receive the next message sent to the entity.
 
         It waits until a message is available, or until the timeout expires.
-        A message arriving after the timeout is kept for the next call.
+        A message arriving after the timeout is kept for the next call, and so
+        are the messages of other senders when receiving from a given one.
 
         Args:
             timeout (float | None): The maximum time to wait, in seconds.
                 Defaults to None, meaning no limit.
+            source (str | None): The entity to receive from. Defaults to None,
+                meaning the oldest message from any entity.
 
         Returns:
             Message: The received message.
@@ -218,14 +225,16 @@ class Entity(Service):
                     message = await self.receive(timeout=2.0)
                 except TimeoutError:
                     message = None
+                answer = await self.receive(source="server")
         """
         if self.id in self.concurrency.holders:
             raise RuntimeError(
                 f"Entity {self.id} cannot receive while holding a slot of its "
                 "device: leave the concurrency block first."
             )
-        body = await self.mpi.recv(timeout=timeout)
-        return Message(body["sender_id"], body["record"], body["data"])
+        message = await self.mpi.recv(timeout=timeout, source=source)
+        body = message.data
+        return Message(message.source, body["record"], body["data"])
 
     def report(self, **values: Any):
         """Push values to the process, which writes them in the report.
