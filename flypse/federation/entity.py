@@ -34,6 +34,7 @@ from time import time
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     cast,
 )
 
@@ -156,13 +157,62 @@ class Entity(Service):
         """
         return cast("Device", self.node).concurrency.bind(self.id)
 
-    async def get_neighbors(self) -> list[str]:
+    async def get_neighbors(self, direction: Literal["out", "in"] = "out") -> list[str]:
         """Get the entities connected to this entity.
+
+        Connections are symmetric unless added otherwise, so that the entities an
+        entity sends to are usually the ones sending to it.
+
+        Args:
+            direction (Literal["out", "in"]): ``"out"`` for the entities this
+                entity sends to, ``"in"`` for the ones sending to it. Defaults
+                to ``"out"``.
 
         Returns:
             list[str]: The identifiers of the neighbour entities.
         """
-        return await self.mpi.get_neighbors()
+        if direction == "out":
+            return await self.mpi.get_neighbors()
+        return list(await self.get_connections(direction))
+
+    async def get_connections(
+        self, direction: Literal["out", "in"] = "out"
+    ) -> dict[str, dict[str, Any]]:
+        """Get the connections of this entity, as the federation has them now.
+
+        They are asked of the process at every call, so they follow its update
+        policies.
+
+        Args:
+            direction (Literal["out", "in"]): ``"out"`` for the connections to
+                the entities this entity sends to, ``"in"`` for those from the
+                ones sending to it. Defaults to ``"out"``.
+
+        Returns:
+            dict[str, dict[str, Any]]: For each neighbour, the attributes of
+            the connection (e.g., its ``latency`` requirement) and the
+            ``degree`` of the neighbour: the number of entities it sends to.
+
+        Raises:
+            ValueError: If the direction is neither ``"out"`` nor ``"in"``.
+
+        Example:
+            .. code-block:: python
+
+                # Metropolis-Hastings weights of a peer
+                connections = await self.get_connections()
+                degree = len(connections)
+                weights = {
+                    peer: 1 / (1 + max(degree, c["degree"]))
+                    for peer, c in connections.items()
+                }
+        """
+        if direction not in ("out", "in"):
+            raise ValueError(f"unknown direction {direction!r}")
+        simulator = self.node.get_actor(self.node.manager_actor_name)
+        return await simulator.connections.remote(
+            self.application_id, self.id, direction
+        )
 
     async def send(
         self,

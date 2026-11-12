@@ -17,6 +17,10 @@ from eclypse.report.reporters import JSONReporter
 from eclypse.simulation._simulator import RemoteSimulator
 from eclypse.simulation._simulator.reporter import SimulationReporter
 
+from flypse.federation import (
+    Entity,
+    Federation,
+)
 from flypse.system import (
     ENTITY_REPORT,
     FederatedSimulator,
@@ -115,3 +119,24 @@ async def test_shutdown_without_reports_writes_nothing(simulator, tmp_path):
     await simulator._finalize_shutdown()
 
     assert not (tmp_path / "json" / "service.jsonl").exists()
+
+
+def test_connections_follow_the_federation_of_the_process(simulator):
+    """An entity learns its connections, either way, and the degree of the others."""
+    federation = Federation("Fed")
+    for entity_id in "abc":
+        federation.add_entity(Entity(entity_id))
+    federation.add_connection("a", "b")
+    federation.add_connection("c", "a", symmetric=False)
+    federation.add_connection("b", "c")
+    simulator._manager = cast(
+        "Any",
+        SimpleNamespace(placements={"Fed": SimpleNamespace(application=federation)}),
+    )
+
+    out = simulator.connections("Fed", "a", "out")
+    incoming = simulator.connections("Fed", "a", "in")
+
+    assert {peer: c["degree"] for peer, c in out.items()} == {"b": 2}
+    assert {peer: c["degree"] for peer, c in incoming.items()} == {"b": 2, "c": 2}
+    assert "latency" in out["b"]

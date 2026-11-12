@@ -52,12 +52,19 @@ class FakeMPI:
 class FakeSimulator:
     """An in-memory stand-in for the simulator actor."""
 
-    def __init__(self):
+    def __init__(self, connections=None):
         self.reports: list[tuple] = []
+        self.asked: list[tuple] = []
+        self._connections = connections or {}
         self.report = SimpleNamespace(remote=self._receive)
+        self.connections = SimpleNamespace(remote=self._connect)
 
     def _receive(self, *report):
         self.reports.append(report)
+
+    async def _connect(self, *question):
+        self.asked.append(question)
+        return self._connections
 
     @property
     def values(self) -> list[dict]:
@@ -74,9 +81,9 @@ def _deploy(entity: Entity, data=None) -> Entity:
     return entity
 
 
-def _connect(entity: Entity) -> FakeSimulator:
+def _connect(entity: Entity, **answers) -> FakeSimulator:
     """Attach the entity to a device reaching a fake simulator."""
-    simulator = FakeSimulator()
+    simulator = FakeSimulator(**answers)
     device = Device.__new__(Device)
     device.build()
     device._node_id = "device"
@@ -462,3 +469,24 @@ def test_entity_rng_goes_on_across_redeploys():
 
     again = _deploy(entity).rng.random(), entity.np_rng.random()
     assert all(a != b for a, b in zip(first, again, strict=True))
+
+
+async def test_entity_asks_the_simulator_for_its_connections():
+    """Connections come from the process, for the given direction."""
+    entity = Entity("a")
+    connections = {"b": {"latency": 5.0, "degree": 2}}
+    simulator = _connect(entity, connections=connections)
+
+    assert await entity.get_connections() == connections
+    assert await entity.get_neighbors(direction="in") == ["b"]
+    assert simulator.asked == [("Fed", "a", "out"), ("Fed", "a", "in")]
+
+
+async def test_entity_refuses_an_unknown_direction():
+    """A direction other than out or in raises before asking."""
+    entity = Entity("a")
+    simulator = _connect(entity)
+
+    with pytest.raises(ValueError, match="direction"):
+        await entity.get_connections("both")  # type: ignore[arg-type]
+    assert simulator.asked == []
