@@ -32,6 +32,13 @@ def test_by_samples_reads_the_samples_of_each_contribution():
     assert by_samples(messages).tolist() == [3.0, 1.0]
 
 
+def test_by_samples_reads_the_samples_under_any_key():
+    """Senders may attach the number of samples under another name."""
+    messages = [Message("a", None, {"size": 2}, 0.0, 0.0, 0)]
+
+    assert by_samples(messages, sample_size_key="size").tolist() == [2.0]
+
+
 @pytest.mark.parametrize(
     "staleness", [polynomial_staleness, hinge_staleness], ids=["polynomial", "hinge"]
 )

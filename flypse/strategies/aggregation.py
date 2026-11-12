@@ -30,19 +30,25 @@ MAX_TRIM = 0.5
 """The bound, excluded, of the fraction ``trimmed_mean`` drops at each end."""
 
 
-def by_samples(messages: Sequence[Message]) -> np.ndarray:
+def by_samples(
+    messages: Sequence[Message], sample_size_key: str = "n_samples"
+) -> np.ndarray:
     """Weigh each contribution by the number of samples it was trained on.
 
     It is the weighting of federated averaging, Θ = Σ_c (n_c / n) Θ_c.
 
     Args:
-        messages (Sequence[Message]): The contributions, each with
-            ``n_samples`` in its data.
+        messages (Sequence[Message]): The contributions, each with its number
+            of samples in its data.
+        sample_size_key (str): The key of the number of samples in the data
+            of a contribution. Defaults to ``"n_samples"``.
 
     Returns:
         np.ndarray: The number of samples of each contribution.
     """
-    return np.array([message.data["n_samples"] for message in messages], dtype=float)
+    return np.array(
+        [message.data[sample_size_key] for message in messages], dtype=float
+    )
 
 
 def polynomial_staleness(lags: Sequence[int], a: float = 0.5) -> np.ndarray:
