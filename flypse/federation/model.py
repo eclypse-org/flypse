@@ -102,7 +102,7 @@ class FederatedModel(ABC):
         model: Any,
         dtype: DTypeLike = np.float32,
         version_levels: Sequence[str] = ("global", "local"),
-        max_versions: int | None = None,
+        max_versions: int | Mapping[str, int] | None = None,
     ) -> None:
         """Initialise the federated model.
 
@@ -116,15 +116,18 @@ class FederatedModel(ABC):
                 to ``np.float32``.
             version_levels (Sequence[str]): The version levels, from the
                 coarsest to the finest. Defaults to ``("global", "local")``.
-            max_versions (int | None): The number of records kept in the
-                history, dropping the oldest first. Defaults to None
+            max_versions (int | Mapping[str, int] | None): The number of
+                records kept in the history, dropping the oldest first: in
+                all, or per level as a mapping (e.g., ``{"local": 1}``), where
+                the levels left out keep every record. The level of a record
+                is the finest one with a non-zero counter. Defaults to None
                 (unlimited).
 
         Raises:
             ValueError: If the wrapped model exposes no parameters, the
                 read hook yields a name twice or a non-float entry, the
                 levels are empty or duplicated, or ``max_versions`` is
-                less than 1.
+                less than 1 or names an unknown level.
         """
         self.model = model
         """The wrapped framework model."""
@@ -133,8 +136,13 @@ class FederatedModel(ABC):
         levels = tuple(version_levels)
         if not levels or len(set(levels)) != len(levels):
             raise ValueError("the version_levels must be non-empty and unique")
-        if max_versions is not None and max_versions < 1:
+        limits = dict(max_versions) if isinstance(max_versions, Mapping) else {}
+        total = None if isinstance(max_versions, Mapping) else max_versions
+        if (total is not None and total < 1) or any(n < 1 for n in limits.values()):
             raise ValueError("max_versions must be at least 1")
+        if not set(limits) <= set(levels):
+            raise ValueError(f"max_versions names unknown levels: {limits}")
+        self._limits = limits
         self.version_levels = levels
         """The version levels, from the coarsest to the finest."""
         entries, self._labels = self._read()
@@ -150,9 +158,7 @@ class FederatedModel(ABC):
         """The current version: one counter per level."""
         flat = np.concatenate([value.ravel() for value in entries.values()])
         flat.flags.writeable = False
-        self.versions = deque(
-            [ModelVersion(self.version, time(), flat)], maxlen=max_versions
-        )
+        self.versions = deque([ModelVersion(self.version, time(), flat)], maxlen=total)
         """The version history, oldest first."""
 
     @overload
@@ -364,7 +370,28 @@ class FederatedModel(ABC):
         self.version = version
         record = ModelVersion(version, timestamp, flat)
         self.versions.append(record)
+        level = self._level(version)
+        if level in self._limits:
+            same = [
+                i
+                for i, r in enumerate(self.versions)
+                if self._level(r.version) == level
+            ]
+            if len(same) > self._limits[level]:
+                del self.versions[same[0]]
         return record
+
+    def _level(self, version: tuple[int, ...]) -> str:
+        """Return the level of a version: its finest non-zero counter.
+
+        Args:
+            version (tuple[int, ...]): The version counters.
+
+        Returns:
+            str: The level, the coarsest one for the zero version.
+        """
+        nonzero = [i for i, counter in enumerate(version) if counter]
+        return self.version_levels[nonzero[-1] if nonzero else 0]
 
     def _validate(
         self, parameters: np.ndarray | Mapping[str, np.ndarray]

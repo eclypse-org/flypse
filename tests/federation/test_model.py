@@ -457,3 +457,35 @@ def test_load_version_refuses_a_mask_of_another_size():
     with pytest.raises(ValueError, match="mask of 7 values"):
         model.load_version(received, mask=np.ones(6, dtype=bool))
     assert model.version == (0, 0)
+
+
+def test_max_versions_per_level_drops_the_oldest_of_the_level():
+    """A level with a limit keeps its latest records, the others keep all."""
+    model = make_model({"w": np.zeros(1)}, max_versions={"local": 1})
+    for _ in range(2):
+        model.update_version(np.zeros(1), "global")
+        model.update_version(np.zeros(1), "local")
+        model.update_version(np.zeros(1), "local")
+
+    assert [r.version for r in model.versions] == [(0, 0), (1, 0), (2, 0), (2, 2)]
+
+
+def test_max_versions_per_level_follows_the_finest_non_zero_counter():
+    """A group version is not a global one, nor a local one."""
+    model = make_model(
+        {"w": np.zeros(1)},
+        version_levels=("global", "group", "local"),
+        max_versions={"group": 1, "global": 1},
+    )
+    model.load_version(ModelVersion((2, 6, 0), 0.0, np.zeros(1)))
+    model.update_version(np.zeros(1), "group")
+    model.update_version(np.zeros(1), "local")
+
+    assert [r.version for r in model.versions] == [(0, 0, 0), (2, 7, 0), (2, 7, 1)]
+
+
+@pytest.mark.parametrize("limits", [{"local": 0}, {"round": 2}])
+def test_max_versions_per_level_must_be_valid(limits):
+    """A limit below one, or for an unknown level, raises."""
+    with pytest.raises(ValueError, match="max_versions"):
+        make_model({"w": np.zeros(1)}, max_versions=limits)
