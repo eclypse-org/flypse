@@ -10,8 +10,9 @@ defined by subclasses, implementing the ``step`` method.
 Entities exchange versions of their models, or control messages carrying only
 data, with ``send``, ``bcast`` and ``receive``, and find the entities they are
 connected to with ``get_neighbors``. For its own randomness, an entity draws from
-its ``rng``, seeded from the seed of the process and the identifier of the entity,
-so that entities draw different but reproducible sequences. An entity sharing its
+its ``rng``, or from ``np_rng`` for numpy arrays, seeded from the seed of the
+process and the identifier of the entity, so that entities draw different but
+reproducible sequences. An entity sharing its
 device with others holds a slot of the device for its critical operations, such
 as a local training, with its ``concurrency``.
 
@@ -36,6 +37,7 @@ from typing import (
     cast,
 )
 
+import numpy as np
 from eclypse.remote.service import Service
 
 from flypse.federation.message import Message
@@ -91,6 +93,8 @@ class Entity(Service):
         """Whether the entity holds a portion of the federation data."""
         self.rng = random.Random()
         """The generator of the entity, seeded by the process."""
+        self.np_rng = np.random.default_rng()
+        """The numpy generator of the entity, seeded by the process."""
         self.n_reports = 0
         """The number of reports the entity has made."""
         self.data: DataView | None = None
@@ -128,6 +132,7 @@ class Entity(Service):
             seed (int | None): The seed of the process.
         """
         self.rng.seed(f"{seed}/{self.id}")
+        self.np_rng = np.random.default_rng(list(f"{seed}/{self.id}".encode()))
 
     @property
     def concurrency(self) -> ConcurrencyHandler:

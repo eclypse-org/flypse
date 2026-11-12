@@ -446,7 +446,7 @@ def test_entity_rng_is_seeded_per_entity():
     def draws(entity_id: str) -> list[float]:
         entity = Entity(entity_id)
         entity._seed(7)
-        return [entity.rng.random() for _ in range(3)]
+        return [entity.rng.random(), *entity.np_rng.random(2)]
 
     assert draws("a") == draws("a")
     assert draws("a") != draws("b")
@@ -456,8 +456,9 @@ def test_entity_rng_goes_on_across_redeploys():
     """A redeployed entity does not replay its draws."""
     entity = Entity("a")
     entity._seed(7)
-    first = _deploy(entity).rng.random()
+    first = _deploy(entity).rng.random(), entity.np_rng.random()
 
     entity.on_undeploy()
 
-    assert _deploy(entity).rng.random() != first
+    again = _deploy(entity).rng.random(), entity.np_rng.random()
+    assert all(a != b for a, b in zip(first, again, strict=True))
