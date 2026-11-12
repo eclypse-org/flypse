@@ -411,8 +411,9 @@ def pfedgraph(
     p + cos(v_i, ·) / (2 alpha) on the simplex.
 
     Args:
-        vectors (Sequence[np.ndarray]): The models (or updates) of the
-            clients.
+        vectors (Sequence[np.ndarray]): The updates of the clients: each
+            model minus the one it started the round from. The models
+            themselves share their start, so their cosines are all near 1.
         alpha (float): The pull towards the prior.
         prior (Sequence[float] | None): The prior weights, on the simplex.
             Defaults to None, meaning equal weights.
