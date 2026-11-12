@@ -5,6 +5,11 @@ to a common topology: a star (e.g., a server and its clients), a tree (e.g., a
 server, group aggregators and their clients), or a ring (e.g., peers of a
 decentralised federation). Any other argument is passed to the
 :class:`~flypse.federation.federation.Federation`.
+
+In a star or a tree, each direction of a connection has a ``relation``: what
+the entity at the other end is, ``"parent"`` or ``"child"``. An entity reads
+it with ``get_connections``, so it needs no identifiers of its own to tell
+its parent from its children.
 """
 
 from __future__ import annotations
@@ -33,6 +38,8 @@ def get_star(
 ) -> Federation:
     """Create a federation connecting a centre to each of the leaves.
 
+    The centre is the parent of the leaves.
+
     Args:
         center (Entity): The entity at the centre (e.g., the server).
         leaves (Sequence[Entity]): The entities connected to the centre
@@ -47,7 +54,7 @@ def get_star(
     """
     federation = _federation([center, *leaves], federation_args)
     for leaf in leaves:
-        federation.add_connection(center, leaf)
+        _connect(federation, center.id, leaf.id)
     return federation
 
 
@@ -78,16 +85,18 @@ def get_tree(
                 Server("server"),
                 {
                     "server": [Aggregator("edge_0"), Aggregator("edge_1")],
-                    "edge_0": [
-                        Client("client_0", "edge_0"),
-                        Client("client_1", "edge_0"),
-                    ],
-                    "edge_1": [
-                        Client("client_2", "edge_1"),
-                        Client("client_3", "edge_1"),
-                    ],
+                    "edge_0": [Client("client_0"), Client("client_1")],
+                    "edge_1": [Client("client_2"), Client("client_3")],
                 },
             )
+
+        An aggregator then finds its parent and its children:
+
+        .. code-block:: python
+
+            connections = await self.get_connections()
+            parent = [e for e, c in connections.items() if c["relation"] == "parent"]
+            children = [e for e, c in connections.items() if c["relation"] == "child"]
     """
     federation = _federation(
         [root, *(child for kids in children.values() for child in kids)],
@@ -96,7 +105,7 @@ def get_tree(
     reached = [root.id]
     for parent in reached:  # grows while walking, level by level
         for child in children.get(parent, ()):
-            federation.add_connection(parent, child)
+            _connect(federation, parent, child.id)
             reached.append(child.id)
     unreachable = sorted(set(children) - set(reached))
     if unreachable:
@@ -124,6 +133,19 @@ def get_ring(entities: Sequence[Entity], **federation_args: Any) -> Federation:
     for entity, following in zip(entities, [*entities[1:], entities[0]], strict=True):
         federation.add_connection(entity, following)
     return federation
+
+
+def _connect(federation: Federation, parent: str, child: str):
+    """Connect a parent to a child, labelling each direction with its relation.
+
+    Args:
+        federation (Federation): The federation of the two entities.
+        parent (str): The identifier of the parent.
+        child (str): The identifier of the child.
+    """
+    federation.add_connection(parent, child)
+    federation.edges[parent, child]["relation"] = "child"
+    federation.edges[child, parent]["relation"] = "parent"
 
 
 def _federation(entities: Sequence[Entity], args: dict[str, Any]) -> Federation:

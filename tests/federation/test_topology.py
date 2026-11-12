@@ -55,6 +55,22 @@ def test_tree_connects_each_entity_to_its_children():
     assert _neighbors(federation, "c3") == {"g2"}
 
 
+def test_star_and_tree_label_parents_and_children():
+    """Each direction says what the other end is; requirements stay the same."""
+    star = get_star(Entity("s"), [Entity("a")])
+    tree = get_tree(Entity("r"), {"r": [Entity("g")], "g": [Entity("c")]})
+
+    for federation, parent, child in (
+        (star, "s", "a"),
+        (tree, "r", "g"),
+        (tree, "g", "c"),
+    ):
+        down = federation.edges[parent, child]
+        up = federation.edges[child, parent]
+        assert (down.pop("relation"), up.pop("relation")) == ("child", "parent")
+        assert down == up
+
+
 def test_tree_rejects_parents_outside_the_tree():
     """Children of an unknown parent cannot be connected."""
     with pytest.raises(ValueError, match="not in the tree"):

@@ -52,7 +52,7 @@ argument goes to the :class:`~flypse.federation.federation.Federation`, such as
 
          federation = get_star(
              Server("server"),
-             [Client(f"client_{i}", "server") for i in range(5)],
+             [Client(f"client_{i}") for i in range(5)],
              federation_id="ClientServer",
          )
 
@@ -70,8 +70,8 @@ argument goes to the :class:`~flypse.federation.federation.Federation`, such as
              Server("server"),
              {
                  "server": [Aggregator("edge_0"), Aggregator("edge_1")],
-                 "edge_0": [Client("client_0", "edge_0"), Client("client_1", "edge_0")],
-                 "edge_1": [Client("client_2", "edge_1"), Client("client_3", "edge_1")],
+                 "edge_0": [Client("client_0"), Client("client_1")],
+                 "edge_1": [Client("client_2"), Client("client_3")],
              },
          )
 
@@ -108,8 +108,8 @@ their identifiers or the entities themselves:
    federation = Federation(federation_id="Custom")
 
    federation.add_entity(Server("server"))
-   federation.add_entity(Client("client_0", "server"))
-   federation.add_entity(Client("client_1", "server"))
+   federation.add_entity(Client("client_0"))
+   federation.add_entity(Client("client_1"))
 
    federation.add_connection("server", "client_0")
    federation.add_connection("server", "client_1")
@@ -130,6 +130,35 @@ send messages to. A connection works in both directions by default.
    to ``target`` but not the other way round: ``target`` does not have ``source``
    among its neighbours, and cannot reply.
 
+Parents and children
+--------------------
+
+In a star or a tree, every connection works in both directions, so the neighbours
+of an aggregator include its parent and its children alike. The builders tell them
+apart: each direction of a connection has a ``relation``, what the entity at the
+other end is, ``"parent"`` or ``"child"``. The centre of a star is the parent of the
+leaves.
+
+:meth:`~flypse.federation.entity.Entity.get_connections` returns the connections of
+an entity, with their attributes, as the process has them when it is called:
+
+.. code-block:: python
+
+   async def step(self):
+       connections = await self.get_connections()
+       parent = [e for e, c in connections.items() if c["relation"] == "parent"]
+       children = [e for e, c in connections.items() if c["relation"] == "child"]
+
+The root has no parent and a client no children, so one entity class can work at any
+level of a tree, and its code needs no identifiers of the others. A federation built
+by hand gets the same labels by setting them on each direction:
+
+.. code-block:: python
+
+   federation.add_connection("server", "client_0")
+   federation.edges["server", "client_0"]["relation"] = "child"
+   federation.edges["client_0", "server"]["relation"] = "parent"
+
 Requirements
 ------------
 
@@ -140,7 +169,7 @@ what an entity or a connection requires, out of the
 
 .. code-block:: python
 
-   federation.add_entity(Client("client_2", "server"), cpu=2, ram=4.0)
+   federation.add_entity(Client("client_2"), cpu=2, ram=4.0)
    federation.add_connection("server", "client_2", latency=50.0, bandwidth=10.0)
 
 The :doc:`placement strategy <system>` then only uses devices and paths that
