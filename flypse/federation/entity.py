@@ -29,6 +29,7 @@ import json
 import random
 from datetime import datetime
 from hashlib import blake2b
+from time import time
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -174,7 +175,9 @@ class Entity(Service):
             RouteNotFoundError: If a recipient is not a neighbour, or cannot be
                 reached. The entity logs it and starts its next step.
         """
-        await self.mpi.send(recipients, {"record": record, "data": data})
+        await self.mpi.send(
+            recipients, {"record": record, "data": data, "sent_at": time()}
+        )
 
     async def bcast(self, record: ModelVersion | None = None, **data: Any):
         """Send a message to all the neighbour entities.
@@ -192,7 +195,7 @@ class Entity(Service):
                 it and starts its next step, and other neighbours may have
                 received the message.
         """
-        await self.mpi.bcast({"record": record, "data": data})
+        await self.mpi.bcast({"record": record, "data": data, "sent_at": time()})
 
     async def receive(
         self,
@@ -233,8 +236,7 @@ class Entity(Service):
                 "device: leave the concurrency block first."
             )
         message = await self.mpi.recv(timeout=timeout, source=source)
-        body = message.data
-        return Message(message.source, body["record"], body["data"])
+        return Message(message.source, **message.data)
 
     def report(self, **values: Any):
         """Push values to the process, which writes them in the report.

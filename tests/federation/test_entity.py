@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from datetime import datetime
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import (
+    ANY,
+    Mock,
+)
 
 import numpy as np
 import pytest
@@ -101,8 +104,9 @@ class Evaluating(Entity):
 
 
 def _arrived(sender: str, record=None, **data) -> SimpleNamespace:
-    """Return a message as the MPI interface delivers it."""
-    return SimpleNamespace(source=sender, data={"record": record, "data": data})
+    """Return a message as the MPI interface delivers it, stamped by the device."""
+    body = {"record": record, "data": data, "sent_at": 1.0}
+    return SimpleNamespace(source=sender, data={**body, "received_at": 2.0, "size": 9})
 
 
 def _record(version=(0, 0), value=0.0) -> ModelVersion:
@@ -350,9 +354,21 @@ async def test_entity_send_and_bcast_wrap_the_record_and_data():
     await entity.bcast(record)
 
     assert mpi.sent == [
-        ("send", "b", {"record": record, "data": {"n_samples": 3}}),
-        ("bcast", None, {"record": record, "data": {}}),
+        ("send", "b", {"record": record, "data": {"n_samples": 3}, "sent_at": ANY}),
+        ("bcast", None, {"record": record, "data": {}, "sent_at": ANY}),
     ]
+
+
+async def test_entity_stamps_what_it_sends(monkeypatch):
+    """A message carries when it was sent."""
+    mpi = FakeMPI()
+    entity = _with_mpi(mpi)
+    monkeypatch.setattr("flypse.federation.entity.time", lambda: 5.0)
+
+    await entity.send("b")
+    await entity.bcast()
+
+    assert [body["sent_at"] for _, _, body in mpi.sent] == [5.0, 5.0]
 
 
 async def test_entity_receive_returns_a_message():
@@ -360,7 +376,7 @@ async def test_entity_receive_returns_a_message():
     record = ModelVersion((1, 0), 2.0, np.zeros(2))
     entity = _with_mpi(FakeMPI(inbox=[_arrived("b", record, loss=0.5)]))
 
-    assert await entity.receive() == Message("b", record, {"loss": 0.5})
+    assert await entity.receive() == Message("b", record, {"loss": 0.5}, 1.0, 2.0, 9)
 
 
 async def test_entity_receives_from_a_given_sender():
@@ -420,8 +436,8 @@ async def test_entity_control_messages_carry_only_data():
     await entity.bcast(round=3)
 
     assert mpi.sent == [
-        ("send", "b", {"record": None, "data": {"stop": True}}),
-        ("bcast", None, {"record": None, "data": {"round": 3}}),
+        ("send", "b", {"record": None, "data": {"stop": True}, "sent_at": ANY}),
+        ("bcast", None, {"record": None, "data": {"round": 3}, "sent_at": ANY}),
     ]
 
 
