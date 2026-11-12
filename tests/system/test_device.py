@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import (
+    TYPE_CHECKING,
+    cast,
+)
 
 import numpy as np
 from eclypse.remote.communication.mpi import EclypseMPI
@@ -12,6 +16,9 @@ from eclypse.remote.node import RemoteNode
 from flypse.data import UniformDataset
 from flypse.system import Device
 
+if TYPE_CHECKING:
+    from eclypse.remote.service import Service
+
 
 def _hosting(device: Device, interface: str) -> list[dict]:
     """Host an entity ``a`` on the device, keeping what reaches its interface."""
@@ -20,9 +27,8 @@ def _hosting(device: Device, interface: str) -> list[dict]:
     async def handle(route, **body):  # noqa: ARG001
         delivered.append(body)
 
-    device._services = {
-        "a": SimpleNamespace(**{interface: SimpleNamespace(_handle_request=handle)})
-    }
+    service = SimpleNamespace(**{interface: SimpleNamespace(_handle_request=handle)})
+    device._services = {"a": cast("Service", service)}
     return delivered
 
 
