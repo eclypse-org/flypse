@@ -434,3 +434,26 @@ def test_unflatten_refuses_a_vector_of_another_size():
     """A vector not covering every coordinate raises."""
     with pytest.raises(ValueError, match="expected 7 values"):
         make_labelled().unflatten(np.zeros(6))
+
+
+def test_load_version_with_a_mask_keeps_the_other_coordinates():
+    """A partial load writes the selected coordinates and adopts the version."""
+    model = make_labelled()
+    received = ModelVersion((3, 0), 9.0, np.full(7, 5.0, dtype=np.float32))
+
+    record = model.load_version(received, mask=~model.mask("personal"))
+
+    assert model.get_parameters().tolist() == [5.0] * 4 + [2.0, 2.0] + [5.0]
+    assert model.version == (3, 0)
+    assert record.parameters.tolist() == model.get_parameters().tolist()
+    assert record.timestamp == 9.0
+
+
+def test_load_version_refuses_a_mask_of_another_size():
+    """A mask not covering every coordinate raises, writing nothing."""
+    model = make_labelled()
+    received = ModelVersion((3, 0), 9.0, np.zeros(7, dtype=np.float32))
+
+    with pytest.raises(ValueError, match="mask of 7 values"):
+        model.load_version(received, mask=np.ones(6, dtype=bool))
+    assert model.version == (0, 0)
