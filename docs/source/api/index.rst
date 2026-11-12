@@ -11,4 +11,5 @@ API reference
     federation
     system
     process
+    strategies
     seed
