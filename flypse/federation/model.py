@@ -342,16 +342,18 @@ class FederatedModel(ABC):
             flat = np.where(mask, flat, self.get_parameters())
         return self._commit(flat, self._as_version(record.version), record.timestamp)
 
-    def base(self, record: ModelVersion, level: str) -> ModelVersion:
-        """Return the version of the history a record was generated from.
+    def base(self, version: Sequence[int] | ModelVersion, level: str) -> ModelVersion:
+        """Return the version of the history a version was generated from.
 
-        The base at a level keeps the counters of the record down to that
+        The base at a level keeps the counters of the version down to that
         level, resetting the finer ones: e.g., a client update ``(2, 3)``
         was generated from the global version ``(2, 0)``, the reference of
         its pseudogradient.
 
         Args:
-            record (ModelVersion): The record, e.g. a received one.
+            version (Sequence[int] | ModelVersion): The version, or a record
+                (e.g., a received one). A payload that is not a model, such
+                as an encoded update sent as data, comes with its version.
             level (str): The level of the base.
 
         Returns:
@@ -368,18 +370,19 @@ class FederatedModel(ABC):
                 delta = message.record.parameters - base.parameters
         """
         index = self._index(level)
-        version = self._as_version(record.version)
+        version = self._as_version(version)
         return self._record(version[: index + 1] + (0,) * (len(version) - index - 1))
 
-    def lag(self, record: ModelVersion, level: str) -> int:
-        """Return how many versions at a level a record is behind the model.
+    def lag(self, version: Sequence[int] | ModelVersion, level: str) -> int:
+        """Return how many versions at a level a version is behind the model.
 
-        At the coarsest level it is the staleness of the record (e.g., of a
+        At the coarsest level it is the staleness of the version (e.g., of a
         client update reaching the server); at a finer level the coarser
         counters must agree.
 
         Args:
-            record (ModelVersion): The record, e.g. a received one.
+            version (Sequence[int] | ModelVersion): The version, or a record
+                (e.g., a received one).
             level (str): The level to count the versions at.
 
         Returns:
@@ -390,7 +393,7 @@ class FederatedModel(ABC):
                 differ.
         """
         index = self._index(level)
-        version = self._as_version(record.version)
+        version = self._as_version(version)
         if version[:index] != self.version[:index]:
             raise ValueError(
                 f"{version} and {self.version} differ above the level {level!r}"
@@ -577,11 +580,12 @@ class FederatedModel(ABC):
                 return record
         raise ValueError(f"unknown version {version}")
 
-    def _as_version(self, version: Sequence[int]) -> tuple[int, ...]:
+    def _as_version(self, version: Sequence[int] | ModelVersion) -> tuple[int, ...]:
         """Validate a version against the levels.
 
         Args:
-            version (Sequence[int]): The version counters.
+            version (Sequence[int] | ModelVersion): The version counters, or
+                a record.
 
         Returns:
             tuple[int, ...]: The version as a tuple.
@@ -590,7 +594,9 @@ class FederatedModel(ABC):
             ValueError: If the number of counters does not match the
                 levels.
         """
-        version = tuple(version)
+        version = tuple(
+            version.version if isinstance(version, ModelVersion) else version
+        )
         expected = len(self.version_levels)
         if len(version) != expected:
             raise ValueError(

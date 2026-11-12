@@ -523,6 +523,14 @@ def test_lag_counts_the_versions_behind_the_model():
     assert model.lag(ModelVersion((2, 4, 1), 0.0, np.zeros(1)), "group") == 2
 
 
+def test_version_arithmetic_takes_bare_versions():
+    """A payload sent as data comes with its version, not with a record."""
+    model = _hierarchy()
+
+    assert model.base([2, 6, 4], "group").parameters.tolist() == [3.0]
+    assert model.lag((0, 0, 5), "global") == 2
+
+
 def test_lag_below_a_differing_level_raises():
     """Group counters of different global versions do not compare."""
     with pytest.raises(ValueError, match="differ above"):
