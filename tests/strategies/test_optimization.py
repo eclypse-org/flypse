@@ -7,8 +7,10 @@ import pytest
 
 from flypse.strategies.optimization import (
     SGD,
+    Adagrad,
     Adam,
     Yogi,
+    fedexp,
     interpolate,
 )
 
@@ -111,3 +113,34 @@ def test_adam_keeps_its_moments_between_steps():
     assert adam.v is not None
     assert adam.m.tolist() == [0.5 * 1.0 + 0.5 * 2.0]
     assert adam.v.tolist() == [0.5 * (0.5 * 1.0 + 0.5 * 4.0) + 0.5 * 4.0]
+
+
+def test_nesterov_looks_ahead_along_the_momentum():
+    """θ ← θ + η (Δ + β v), with v ← β v + Δ."""
+    sgd = SGD(lr=1.0, momentum=0.5, nesterov=True)
+
+    assert sgd.step(np.zeros(1), np.ones(1)).tolist() == [1.5]
+    assert sgd.step(np.zeros(1), np.ones(1)).tolist() == [1.75]
+
+
+def test_adagrad_accumulates_the_squared_updates():
+    """v ← v + Δ², starting from τ²."""
+    adagrad = Adagrad(lr=0.1, tau=1.0)
+
+    adagrad.step(np.zeros(1), np.array([2.0]))
+    adagrad.step(np.zeros(1), np.array([2.0]))
+
+    assert adagrad.v is not None
+    assert adagrad.v.tolist() == [1.0 + 4.0 + 4.0]
+
+
+def test_fedexp_extrapolates_only_when_the_updates_disagree():
+    """η = 1 when the updates agree, larger when their mean is short."""
+    agreeing = [np.array([1.0, 0.0]), np.array([1.0, 0.0])]
+    disagreeing = [np.array([1.0, 0.2]), np.array([-1.0, 0.2])]
+
+    assert fedexp(np.zeros(2), agreeing).tolist() == [1.0, 0.0]
+    eta = 2.08 / (2 * 2 * (0.04 + 1e-3))
+    assert fedexp(np.zeros(2), disagreeing) == pytest.approx([0.0, eta * 0.2])
+    with pytest.raises(ValueError, match="epsilon"):
+        fedexp(np.zeros(2), agreeing, epsilon=0.0)

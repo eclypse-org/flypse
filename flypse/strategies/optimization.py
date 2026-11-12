@@ -26,7 +26,12 @@ step on the others only, with the same mask at every step:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import numpy as np
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def interpolate(own: np.ndarray, other: np.ndarray, alpha: float) -> np.ndarray:
@@ -56,15 +61,18 @@ class SGD:
 
     With η = 1 and β = 0 the step adopts the result: averaging the
     pseudogradients gives federated averaging. β > 0 is FedAvgM; η < 1 slows
-    the server down, as in FedBuff.
+    the server down, as in FedBuff. With Nesterov momentum the step is
+    θ ← θ + η (Δ + β v): the outer step of DiLoCo.
     """
 
-    def __init__(self, lr: float = 1.0, momentum: float = 0.0):
+    def __init__(self, lr: float = 1.0, momentum: float = 0.0, nesterov: bool = False):
         """Initialise the optimiser.
 
         Args:
             lr (float): The learning rate η. Defaults to 1.0.
             momentum (float): The momentum β, in [0, 1). Defaults to 0.0.
+            nesterov (bool): Whether to use Nesterov momentum. Defaults to
+                False.
 
         Raises:
             ValueError: If ``lr`` is not positive, or ``momentum`` is not in
@@ -76,6 +84,7 @@ class SGD:
             )
         self.lr = lr
         self.momentum = momentum
+        self.nesterov = nesterov
         self.velocity: np.ndarray | None = None
         """The momentum v, None before the first step."""
 
@@ -92,6 +101,8 @@ class SGD:
         if self.velocity is None:
             self.velocity = np.zeros(np.shape(update))
         self.velocity = self.momentum * self.velocity + update
+        if self.nesterov:
+            return own + self.lr * (update + self.momentum * self.velocity)
         return own + self.lr * self.velocity
 
 
@@ -186,3 +197,53 @@ class Yogi(Adam):
             np.ndarray: The second moment after the update.
         """
         return v - (1 - self.beta2) * squared * np.sign(v - squared)
+
+
+class Adagrad(Adam):
+    """Step along the update, scaled by its moments (FedAdagrad).
+
+    As :class:`Adam`, with the second moment of Adagrad: v ← v + Δ², which
+    only grows, so the steps shrink over time. ``beta2`` is not used.
+    """
+
+    def _second_moment(self, v: np.ndarray, squared: np.ndarray) -> np.ndarray:
+        """Return the new second moment.
+
+        Args:
+            v (np.ndarray): The second moment.
+            squared (np.ndarray): The square of the update.
+
+        Returns:
+            np.ndarray: The second moment after the update.
+        """
+        return v + squared
+
+
+def fedexp(
+    own: np.ndarray, updates: Sequence[np.ndarray], epsilon: float = 1e-3
+) -> np.ndarray:
+    """Step along the mean update, extrapolating when the updates disagree (FedExP).
+
+    The step is η = max(1, Σ_i ‖Δ_i‖² / (2 M (‖Δ̄‖² + ε))), with Δ̄ the plain
+    mean of the M updates: when they point in different directions their mean
+    is short, and the step grows (Jhunjhunwala et al., 2023). The paper
+    evaluates the average of the last two models, as the steps oscillate.
+
+    Args:
+        own (np.ndarray): The entity's own parameters.
+        updates (Sequence[np.ndarray]): The update of each contribution.
+        epsilon (float): The term ε keeping the step finite. Defaults to
+            1e-3.
+
+    Returns:
+        np.ndarray: The new parameters.
+
+    Raises:
+        ValueError: If ``epsilon`` is not positive.
+    """
+    if epsilon <= 0:
+        raise ValueError(f"epsilon must be positive, got {epsilon}")
+    stacked = np.vstack(updates).astype(float)
+    mean = stacked.mean(axis=0)
+    spread = np.sum(stacked**2) / (2 * len(stacked) * (np.sum(mean**2) + epsilon))
+    return own + max(1.0, float(spread)) * mean
