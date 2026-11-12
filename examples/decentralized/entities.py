@@ -8,10 +8,6 @@ time.
 
 from __future__ import annotations
 
-from collections import (
-    defaultdict,
-    deque,
-)
 from typing import TYPE_CHECKING
 
 from flypse.data import FractionSplitter
@@ -38,8 +34,9 @@ class Peer(Entity):
 
     On every step it trains locally, sends its model to its neighbours, and
     averages the models they send for the same round. A neighbour can be a
-    round ahead of another, so messages wait in a queue per sender until their
-    turn comes, keeping the average of a round made of that round only.
+    round ahead of another, so the peer receives from one neighbour at a time,
+    leaving the messages of the others queued until their turn comes: the
+    average of a round is made of that round only.
     """
 
     def __init__(
@@ -65,7 +62,6 @@ class Peer(Entity):
         self._epochs = epochs
         self._lr = lr
         self._eval_every = eval_every
-        self._inbox: dict[str, deque[Message]] = defaultdict(deque)
         self.model = FedAvgModel(LinearModel([0.0] * n_features, 0.0))
 
     def on_deploy(self):
@@ -97,20 +93,6 @@ class Peer(Entity):
         """
         return {"loss": mean_squared_error(self.model.snapshot(record), data)}
 
-    async def _receive_from(self, sender: str) -> Message:
-        """Receive the next message of a sender, keeping the others aside.
-
-        Args:
-            sender (str): The identifier of the sender.
-
-        Returns:
-            Message: The oldest message of the sender not yet received.
-        """
-        while not self._inbox[sender]:
-            message = await self.receive()
-            self._inbox[message.sender].append(message)
-        return self._inbox[sender].popleft()
-
     async def step(self):
         """Train locally and average with the neighbours."""
         self.model.model = local_train(
@@ -124,7 +106,7 @@ class Peer(Entity):
 
         neighbours = sorted(await self.get_neighbors())
         await self.send(neighbours, record, n_samples=n_samples)
-        messages = [await self._receive_from(peer) for peer in neighbours]
+        messages = [await self.receive(source=peer) for peer in neighbours]
         # its own model, as a message reaching it at once
         stamp = record.timestamp
         messages.append(

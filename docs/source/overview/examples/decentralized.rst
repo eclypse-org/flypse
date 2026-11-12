@@ -7,7 +7,7 @@ own data and average their model with those of their two neighbours.
 Use it when you want to understand:
 
 - how a federation works with no central entity,
-- how to keep what arrives early aside, one queue per sender,
+- how to receive from a given neighbour, leaving the others queued,
 - how a consensus forms through repeated local averaging.
 
 The full code lives in the
@@ -49,8 +49,9 @@ in ``on_deploy``, and keep 20% of their data aside as a test part.
 Two details make the protocol work:
 
 - One neighbour can be a round ahead of the other, so its next message may arrive
-  first. ``receive`` returns messages as they come, so a peer keeps them in a queue
-  per sender, and takes one message per neighbour at every round.
+  first. A peer receives from one neighbour at a time, with
+  ``receive(source=...)``: the messages of the other stay queued until their turn,
+  and every round takes one message per neighbour.
 - A peer reads ``message.record`` and never loads it: ``load_version`` would adopt
   the counters of a neighbour, while the ``"global"`` version of a peer counts its
   own rounds.
