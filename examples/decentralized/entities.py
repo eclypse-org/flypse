@@ -125,7 +125,11 @@ class Peer(Entity):
         neighbours = sorted(await self.get_neighbors())
         await self.send(neighbours, record, n_samples=n_samples)
         messages = [await self._receive_from(peer) for peer in neighbours]
-        messages.append(Message(self.id, record, {"n_samples": n_samples}))
+        # its own model, as a message reaching it at once
+        stamp = record.timestamp
+        messages.append(
+            Message(self.id, record, {"n_samples": n_samples}, stamp, stamp, 0)
+        )
 
         # a peer does not load what it receives: its version is its own round
         record = self.model.update_version(weighted_average(messages), "global")
