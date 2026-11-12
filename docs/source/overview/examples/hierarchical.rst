@@ -8,6 +8,7 @@ averages the groups every few rounds.
 Use it when you want to understand:
 
 - how to build a tree with :func:`~flypse.federation.topology.get_tree`,
+- how an entity finds its parent and its children,
 - how three version levels record where a model comes from,
 - why a version alone does not identify a model.
 
@@ -54,7 +55,11 @@ the result to the root and loads the global model it gets back. Then it sends th
 latest model to its clients.
 
 It sends to its clients explicitly rather than with ``bcast``, as its neighbours
-include the root. A plain ``receive`` is enough, with no queue per sender, because
+include the root. No entity is given the identifiers of the others: ``related`` asks
+the process for the connections of an entity with
+:meth:`~flypse.federation.entity.Entity.get_connections`, and keeps those with a
+given relation, ``"parent"`` or ``"child"``, as ``get_tree`` labels them (see
+:ref:`parents-and-children`). A plain ``receive`` is enough, with no queue per sender, because
 the parties strictly alternate: while a group waits for the root, its clients are
 waiting for the group.
 

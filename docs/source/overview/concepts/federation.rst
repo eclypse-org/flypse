@@ -130,6 +130,8 @@ send messages to. A connection works in both directions by default.
    to ``target`` but not the other way round: ``target`` does not have ``source``
    among its neighbours, and cannot reply.
 
+.. _parents-and-children:
+
 Parents and children
 --------------------
 

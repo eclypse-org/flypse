@@ -4,6 +4,9 @@ The clients train locally and exchange their models with their group
 aggregator. The group aggregators average the models of their clients at every
 round, and exchange their own with the root every few rounds, so that a version
 of the model tells where it comes from. The root averages the groups.
+
+No entity is given the identifiers of the others: each asks the process for
+its parent and its children, the relations of its connections in the tree.
 """
 
 from __future__ import annotations
@@ -49,7 +52,6 @@ class Client(Entity):
     def __init__(
         self,
         entity_id: str,
-        aggregator_id: str,
         *,
         n_features: int,
         epochs: int,
@@ -60,7 +62,6 @@ class Client(Entity):
 
         Args:
             entity_id (str): The identifier of the client.
-            aggregator_id (str): The identifier of its group aggregator.
             n_features (int): The number of features of the model.
             epochs (int): The number of local passes over the data.
             lr (float): The learning rate.
@@ -68,7 +69,6 @@ class Client(Entity):
                 evaluations.
         """
         super().__init__(entity_id, store_step=True)
-        self._aggregator_id = aggregator_id
         self._n_features = n_features
         self._epochs = epochs
         self._lr = lr
@@ -124,8 +124,9 @@ class Client(Entity):
         record = self.model.update_version(self.model.get_parameters(), "local")
         loss = mean_squared_error(self.model.model, self.data)
 
+        [aggregator] = await related(self, "parent")
         await self.send(
-            self._aggregator_id,
+            aggregator,
             record,
             n_samples=len(self.data),
             loss=loss,
@@ -149,8 +150,6 @@ class GroupAggregator(Entity):
     def __init__(
         self,
         entity_id: str,
-        root_id: str,
-        client_ids: Sequence[str],
         *,
         n_features: int,
         global_every: int,
@@ -159,14 +158,10 @@ class GroupAggregator(Entity):
 
         Args:
             entity_id (str): The identifier of the aggregator.
-            root_id (str): The identifier of the root.
-            client_ids (Sequence[str]): The identifiers of its clients.
             n_features (int): The number of features of the model.
             global_every (int): The number of group rounds per global round.
         """
         super().__init__(entity_id, with_data=False)
-        self._root_id = root_id
-        self._client_ids = list(client_ids)
         self._global_every = global_every
         self._rounds = 0
         self.model = FedAvgModel(
@@ -175,21 +170,21 @@ class GroupAggregator(Entity):
 
     async def step(self):
         """Aggregate the clients, and synchronise with the root when it is time."""
-        messages = [await self.receive() for _ in self._client_ids]
+        clients = await related(self, "child")
+        messages = [await self.receive() for _ in clients]
         record = self.model.update_version(weighted_average(messages), "group")
 
         self._rounds += 1
         if self._rounds % self._global_every == 0:
             n_samples = sum(m.data["n_samples"] for m in messages)
             loss = sum(m.data["loss"] * m.data["n_samples"] for m in messages)
-            await self.send(
-                self._root_id, record, n_samples=n_samples, loss=loss / n_samples
-            )
+            [root] = await related(self, "parent")
+            await self.send(root, record, n_samples=n_samples, loss=loss / n_samples)
             message = await self.receive()
             record = self.model.load_version(message.record)
 
         # not a bcast: the neighbours of the aggregator include the root
-        await self.send(self._client_ids, record)
+        await self.send(clients, record)
 
 
 class Root(Entity):
@@ -234,6 +229,22 @@ class Root(Entity):
         return global_loss
 
 
+async def related(entity: Entity, relation: str) -> list[str]:
+    """Return the entities at the other end of the connections with a relation.
+
+    The process holds the federation, so the entity asks it at every call.
+
+    Args:
+        entity (Entity): The entity.
+        relation (str): ``"parent"`` or ``"child"``.
+
+    Returns:
+        list[str]: The identifiers of the entities, sorted.
+    """
+    connections = await entity.get_connections()
+    return sorted(e for e, c in connections.items() if c["relation"] == relation)
+
+
 def weighted_average(messages: list[Message]) -> np.ndarray:
     """Average the models of the messages, weighted by their number of samples.
 
@@ -276,21 +287,14 @@ def build_federation(
     """
     children = {
         root_id: [
-            GroupAggregator(
-                group_id,
-                root_id,
-                client_ids,
-                n_features=n_features,
-                global_every=global_every,
-            )
-            for group_id, client_ids in groups.items()
+            GroupAggregator(group_id, n_features=n_features, global_every=global_every)
+            for group_id in groups
         ],
     }
     for group_id, client_ids in groups.items():
         children[group_id] = [
             Client(
                 client_id,
-                group_id,
                 n_features=n_features,
                 epochs=epochs,
                 lr=lr,
