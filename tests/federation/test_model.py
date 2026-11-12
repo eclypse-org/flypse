@@ -366,3 +366,71 @@ def test_records_own_a_flat_vector():
         assert record.parameters.shape == (5,)
         assert record.parameters.base is None
         assert not record.parameters.flags.writeable
+
+
+class LabelledModel(VectorModel):
+    """A model labelling its entries by the prefix of their names."""
+
+    def _read_parameters(self):
+        for name, value in self.model.items():
+            if name.startswith("bn."):
+                yield name, value, "statistics"
+            elif name.startswith("head."):
+                yield name, value, ["head", "personal"]
+            else:
+                yield name, value
+
+
+def make_labelled() -> LabelledModel:
+    """Build a labelled model: a body, a head and BatchNorm statistics."""
+    return LabelledModel(
+        {
+            "body.w": np.ones((2, 2)),
+            "head.w": np.full(2, 2.0),
+            "bn.mean": np.zeros(1),
+        }
+    )
+
+
+def test_mask_selects_the_coordinates_of_a_label():
+    """A label selects the coordinates of the entries carrying it."""
+    model = make_labelled()
+
+    assert model.mask("statistics").tolist() == [False] * 6 + [True]
+    assert model.mask("personal").tolist() == [False] * 4 + [True] * 2 + [False]
+
+
+def test_mask_selects_any_of_the_labels():
+    """Several labels select the entries carrying at least one of them."""
+    model = make_labelled()
+
+    assert model.mask("head", "statistics").tolist() == [False] * 4 + [True] * 3
+
+
+def test_mask_refuses_a_label_no_entry_carries():
+    """A mistyped label raises instead of selecting nothing."""
+    with pytest.raises(ValueError, match="statistic"):
+        make_labelled().mask("statistic")
+
+
+def test_unlabelled_entries_carry_no_label():
+    """A model whose hook yields pairs has no labels to select."""
+    with pytest.raises(ValueError, match="carries"):
+        make_model().mask("statistics")
+
+
+def test_unflatten_shapes_any_vector_as_the_parameters():
+    """A vector over the coordinates is split by name, of its own dtype."""
+    model = make_labelled()
+
+    pieces = model.unflatten(model.mask("head"))
+
+    assert pieces["head.w"].tolist() == [True, True]
+    assert pieces["body.w"].shape == (2, 2)
+    assert pieces["body.w"].dtype == bool
+
+
+def test_unflatten_refuses_a_vector_of_another_size():
+    """A vector not covering every coordinate raises."""
+    with pytest.raises(ValueError, match="expected 7 values"):
+        make_labelled().unflatten(np.zeros(6))

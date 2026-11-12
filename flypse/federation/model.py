@@ -13,6 +13,12 @@ integer counters are never yielded, while yielding BatchNorm statistics or
 not is the only difference between FedAvg and FedBN. Non-parametric models
 (e.g., tree ensembles) cannot conform and fail at initialisation.
 
+The hook may also label its entries (e.g., ``"statistics"`` for BatchNorm
+statistics, ``"head"`` for the layers a client keeps to itself), and ``mask``
+selects the coordinates of the flat vector carrying a label: e.g., to average
+the statistics without a server optimiser stepping on them, or to share only
+the body of the model.
+
 Versions are hierarchical: a version carries one counter per level (by
 default ``("global", "local")``; e.g., ``("global", "group", "local")`` for
 three tiers). ``update_version`` is used by the entity that generates a new
@@ -43,6 +49,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Iterable,
         Iterator,
         Sequence,
     )
@@ -130,7 +137,7 @@ class FederatedModel(ABC):
             raise ValueError("max_versions must be at least 1")
         self.version_levels = levels
         """The version levels, from the coarsest to the finest."""
-        entries = self._read()
+        entries, self._labels = self._read()
         if not entries:
             raise ValueError(
                 f"{type(model).__name__} exposes no parameters to exchange"
@@ -198,6 +205,55 @@ class FederatedModel(ABC):
         if flattened:
             return flat.copy()
         return {name: piece.copy() for name, piece in self._unflatten(flat).items()}
+
+    def unflatten(self, flat: np.ndarray) -> dict[str, np.ndarray]:
+        """Split a flat vector into arrays shaped as the parameters.
+
+        The vector can be any one over the coordinates of the parameters
+        (e.g., a gradient correction, or a ``mask``), of any dtype.
+
+        Args:
+            flat (np.ndarray): The flat vector.
+
+        Returns:
+            dict[str, np.ndarray]: Views of the vector, keyed by name.
+
+        Raises:
+            ValueError: If the vector does not have one value per coordinate.
+        """
+        if np.shape(flat) != (self._total,):
+            raise ValueError(f"expected {self._total} values, got {np.shape(flat)}")
+        return self._unflatten(flat)
+
+    def mask(self, *labels: str) -> np.ndarray:
+        """Select the coordinates of the entries carrying any of the labels.
+
+        Args:
+            *labels (str): The labels, as yielded by ``_read_parameters``.
+
+        Returns:
+            np.ndarray: A boolean flat vector, True on the selected
+            coordinates.
+
+        Raises:
+            ValueError: If no entry carries one of the labels.
+
+        Example:
+            .. code-block:: python
+
+                statistics = self.model.mask("statistics")
+                new = np.where(statistics, average, optimiser.step(own, delta))
+        """
+        carried = set().union(*self._labels.values())
+        unknown = [label for label in labels if label not in carried]
+        if unknown:
+            raise ValueError(f"no entry carries the labels {unknown}")
+        return np.concatenate(
+            [
+                np.full(int(np.prod(shape)), not self._labels[name].isdisjoint(labels))
+                for name, shape in self._scheme.items()
+            ]
+        )
 
     def update_version(
         self,
@@ -354,7 +410,7 @@ class FederatedModel(ABC):
             ValueError: If the read hook yields different entries or
                 shapes than at initialisation.
         """
-        entries = self._read()
+        entries, _ = self._read()
         if {name: value.shape for name, value in entries.items()} != self._scheme:
             raise ValueError(
                 "the read hook must yield the same entries and shapes as at "
@@ -362,25 +418,30 @@ class FederatedModel(ABC):
             )
         return entries
 
-    def _read(self) -> dict[str, np.ndarray]:
-        """Collect the entries yielded by the read hook.
+    def _read(self) -> tuple[dict[str, np.ndarray], dict[str, frozenset[str]]]:
+        """Collect the entries yielded by the read hook, with their labels.
 
         Returns:
-            dict[str, np.ndarray]: The yielded entries, cast to ``dtype``.
+            tuple[dict[str, np.ndarray], dict[str, frozenset[str]]]: The
+            yielded entries, cast to ``dtype``, and their labels, keyed by
+            name.
 
         Raises:
             ValueError: If a name is yielded twice, or an entry is not
                 floating point.
         """
         entries: dict[str, np.ndarray] = {}
-        for name, value in self._read_parameters():
+        labels: dict[str, frozenset[str]] = {}
+        for name, value, *label in self._read_parameters():
             array = np.asarray(value)
             if name in entries:
                 raise ValueError(f"parameter {name!r} is yielded twice")
             if not np.issubdtype(array.dtype, np.floating):
                 raise ValueError(f"parameter {name!r} is not floating point")
             entries[name] = array.astype(self.dtype, copy=False)
-        return entries
+            carried = label[0] if label else ()
+            labels[name] = frozenset([carried] if isinstance(carried, str) else carried)
+        return entries, labels
 
     def _record(self, version: Sequence[int]) -> ModelVersion:
         """Return the latest record with the given version.
@@ -424,7 +485,9 @@ class FederatedModel(ABC):
         return version
 
     @abstractmethod
-    def _read_parameters(self) -> Iterator[tuple[str, np.ndarray]]:
+    def _read_parameters(
+        self,
+    ) -> Iterator[tuple[str, np.ndarray] | tuple[str, np.ndarray, str | Iterable[str]]]:
         """Yield the parameters to exchange, as (name, array) pairs.
 
         Only the yielded entries are exchanged, and they must be the same,
@@ -434,9 +497,21 @@ class FederatedModel(ABC):
         to the subclass. The hook is first called by ``__init__``, so any
         attribute it uses must be set before calling ``super().__init__``.
 
+        An entry may carry a label, or several, as a third element: the
+        labels are fixed at initialisation too, and ``mask`` selects by them.
+
         Yields:
-            tuple[str, np.ndarray]: The name and the current value of a
-            parameter.
+            tuple[str, np.ndarray] | tuple[str, np.ndarray, str | Iterable[str]]:
+            The name and the current value of a parameter, and optionally
+            its labels.
+
+        Example:
+            .. code-block:: python
+
+                def _read_parameters(self):
+                    for name, value in self.model.items():
+                        label = "statistics" if name.startswith("bn.") else ()
+                        yield name, value, label
         """
 
     @abstractmethod
