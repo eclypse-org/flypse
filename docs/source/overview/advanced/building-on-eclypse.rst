@@ -167,9 +167,9 @@ with ``remote=True`` runs on the device, and receives the live entity:
 
 .. seealso::
 
-   - :doc:`ECLYPSE infrastructure builders <eclypse:source/overview/concepts/builders>`
-   - :doc:`ECLYPSE placement strategies <eclypse:source/overview/concepts/placement-strategy>`
-   - :doc:`ECLYPSE assets <eclypse:source/overview/concepts/assets>`
-   - :doc:`ECLYPSE update policies <eclypse:source/overview/concepts/update-policy>`
-   - :doc:`ECLYPSE reporting <eclypse:source/overview/advanced/reporting>`
-   - :doc:`ECLYPSE simulation configuration <eclypse:source/overview/concepts/simulation-configuration>`
+   - `ECLYPSE infrastructure builders <https://eclypse.readthedocs.io/en/latest/overview/concepts/builders/>`_
+   - `ECLYPSE placement strategies <https://eclypse.readthedocs.io/en/latest/overview/concepts/placement-strategy/>`_
+   - `ECLYPSE assets <https://eclypse.readthedocs.io/en/latest/overview/concepts/assets/>`_
+   - `ECLYPSE update policies <https://eclypse.readthedocs.io/en/latest/overview/concepts/update-policy/>`_
+   - `ECLYPSE reporting <https://eclypse.readthedocs.io/en/latest/overview/advanced/reporting/>`_
+   - `ECLYPSE simulation configuration <https://eclypse.readthedocs.io/en/latest/overview/concepts/simulation-configuration/>`_
