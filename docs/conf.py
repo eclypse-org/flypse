@@ -64,7 +64,7 @@ autodoc_default_options = {
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "numpy": ("https://numpy.org/doc/stable", None),
-    "eclypse": ("https://eclypse.readthedocs.io/en/latest", None),
+    # "eclypse": ("https://eclypse.readthedocs.io/en/latest", None),
 }
 
 # -- Options for HTML output -------------------------------------------------
