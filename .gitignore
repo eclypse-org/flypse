@@ -166,3 +166,6 @@ docs/source/api/reference/*
 .claude/settings.local.json
 .claude/plans/
 .claude/memory/
+
+# Codegraph (local)
+.codegraph/
