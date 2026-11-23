@@ -3,7 +3,7 @@
 In FLYPSE, a [Federation][flypse.federation.federation.Federation] is a graph whose
 nodes are [entities](entities.md) and whose edges are the connections between
 them. It describes who takes part in the learning process and who can talk to whom,
-not where they run nor the data they hold.
+neither where they run nor the data they hold.
 
 On this page, `Server`, `Client`, `Aggregator` and `Peer` stand for your own
 subclasses of [Entity][flypse.federation.entity.Entity].
@@ -65,7 +65,7 @@ argument goes to the [Federation][flypse.federation.federation.Federation], such
     )
     ```
 
-    The keys are the *identifiers* of the parents, the values are the entities.
+    The keys are the *identifiers* of the parents; the values are the entities.
     A parent not reachable from the root raises `ValueError`.
 
 === "Ring"
@@ -124,7 +124,7 @@ other end is, `"parent"` or `"child"`. The centre of a star is the parent of the
 leaves.
 
 [get_connections][flypse.federation.entity.Entity.get_connections] returns the connections of
-an entity, with their attributes, as the process has them when it is called:
+an entity, with their attributes, as the process knows them at the time of the call:
 
 ```python
 async def step(self):
@@ -146,9 +146,8 @@ federation.edges["client_0", "server"]["relation"] = "parent"
 ## Requirements
 
 Entities and connections require nothing by default, so a federation fits any
-infrastructure. Keyword arguments of `add_entity` and `add_connection` set
-what an entity or a connection requires, out of the
-[resources of the system](system.md#system-resources):
+infrastructure. Keyword arguments of `add_entity` and `add_connection` set what an entity or
+a connection requires, out of the [resources of the system](system.md#system-resources):
 
 ```python
 federation.add_entity(Client("client_2"), cpu=2, ram=4.0)

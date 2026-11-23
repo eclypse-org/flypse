@@ -36,4 +36,6 @@ produces, and to the system it runs on.
 
 !!! tip
 
-    If you have not yet installed FLYPSE, refer to the [Install FLYPSE](../install.md) page.
+    If you have not yet installed FLYPSE, refer to the [Installation](../install.md) page.
+    To go further after your first run, continue with [Concepts](../concepts/index.md),
+    [Strategies](../strategies/index.md) and [Examples](../examples/index.md).

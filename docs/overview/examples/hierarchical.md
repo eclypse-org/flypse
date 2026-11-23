@@ -23,9 +23,10 @@ uv run python -m examples.hierarchical.main
 
 ## Model and data
 
-The model and the data are the ones of the [federated averaging example](fedavg.md): a linear model trained with stochastic gradient descent, and a synthetic
-regression source sorted by its input feature. The example keeps its own copy of
-both, so that it reads on its own.
+The model and the data are the ones of the [federated averaging example](fedavg.md): a
+linear model trained with stochastic gradient descent, and a synthetic regression source
+sorted by its input feature. The example keeps its own copy of both, so that it reads on
+its own.
 
 ??? example "Model code"
 
@@ -57,9 +58,10 @@ include the root. No entity is given the identifiers of the others: `related` as
 the process for the connections of an entity with
 [get_connections][flypse.federation.entity.Entity.get_connections], and keeps those with a
 given relation, `"parent"` or `"child"`, as `get_tree` labels them (see
-[Parents and children](../concepts/federation.md#parents-and-children)). A plain `receive` is enough, with no queue per sender, because
-the parties strictly alternate: while a group waits for the root, its clients are
-waiting for the group.
+[Parents and children](../concepts/federation.md#parents-and-children)).
+
+A plain `receive` is enough, with no `source`, because the entities strictly alternate:
+while a group waits for the root, its clients are waiting for the group.
 
 ??? example "Entities code"
 
@@ -113,5 +115,5 @@ each tier.
 Related concepts:
 
 - [Federation](../concepts/federation.md)
-- [Models and versions](../concepts/models.md)
+- [Versions](../concepts/versions.md)
 - [Evaluation](../advanced/evaluation.md)

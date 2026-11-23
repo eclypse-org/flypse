@@ -1,9 +1,8 @@
 # Evaluation
 
-An entity decides what to evaluate, and when, in its own `step`. There is no
-global test set: every evaluation runs on the data of an entity, with a version of
-a model it holds, and its results go straight to the
-[reports](reporting.md).
+An entity decides what to evaluate, and when, in its own `step`. There is no global test
+set: every evaluation runs on the data of an entity, with a version of a model it holds, and
+its results go straight to the [reports](reporting.md).
 
 ## Implement `evaluate`
 
@@ -70,8 +69,8 @@ process.reported[0]
 
 ## Compare across entities
 
-Each record stands on its own, so a round can be compared across the entities by
-grouping on `round` and `split`:
+Each record stands on its own, so a round can be compared across the entities by grouping on
+`round` and `split`. Three fields of a record identify what was evaluated:
 
 - `round` is the coarsest counter of the version, unless `run_evaluation` is
   given another one, for a protocol that does not bump that level,

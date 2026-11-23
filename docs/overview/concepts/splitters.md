@@ -49,10 +49,9 @@ class Client(Entity):
         self.data = self.splits["train"]
 ```
 
-Passing `self.rng` as the seed makes each entity split differently, but
-reproducibly. Storing the parts in `self.splits` makes them available to the
-[evaluation](../advanced/evaluation.md) of the entity
-by name.
+Passing `self.rng` as the seed makes each entity split differently, but reproducibly.
+Storing the parts in `self.splits` makes them available to the
+[evaluation](../advanced/evaluation.md) of the entity by name.
 
 !!! note
 
@@ -75,8 +74,8 @@ splitter = FractionSplitter({"train": 0.8, "test": 0.2}, stratify=label, seed=se
 ### Keep the order
 
 With `order`, a function returning the sorting key of an item, the items are not
-shuffled: the first parts get the earliest items. For time series, no part then
-precedes the earlier ones:
+shuffled: the first parts get the earliest items. For time series, no part then holds items
+earlier than those of the parts before it:
 
 ```python
 def timestamp(item):

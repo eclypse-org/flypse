@@ -19,7 +19,7 @@ the seed of the process. These components use it:
 - [FractionSplitter][flypse.data.splitter.FractionSplitter],
 - the `"singleton"` and `"mirror"` infrastructures,
 - the federation, unless it was given its own `seed`,
-- the `rng` of the entities.
+- the `rng` and `np_rng` of the entities.
 
 !!! info "Important"
 

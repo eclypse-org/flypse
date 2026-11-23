@@ -1,9 +1,9 @@
-# Models and versions
+# Models
 
 FLYPSE is model-agnostic: how a model computes and trains is left to its
 framework. A [FederatedModel][flypse.federation.model.FederatedModel] exposes the
-parameters of any model as numpy arrays, so combining them is plain numpy, and
-records every version it goes through.
+parameters of any model as numpy arrays, so combining them is plain numpy. It also records
+every [version](versions.md) the model goes through.
 
 ## Wrap a model
 
@@ -54,8 +54,9 @@ which stays available as `model` for local training and inference.
 The entries yielded by the hook are read once and fixed: their names, order and
 shapes must stay the same. Only floating-point entries are accepted, so integer
 counters must be skipped, and a model with no parameters to expose fails at
-initialisation. Choosing what to yield is a decision of the algorithm: yielding
-BatchNorm statistics or not is the only difference between FedAvg and FedBN.
+initialisation. Choosing what to yield is a decision of the algorithm: FedBN is FedAvg
+that does not yield the entries of the batch normalisation layers, neither their learnt
+scale and shift nor their statistics.
 
 !!! info "Important"
 
@@ -66,7 +67,7 @@ BatchNorm statistics or not is the only difference between FedAvg and FedBN.
 
 [get_parameters][flypse.federation.model.FederatedModel.get_parameters] reads a fresh copy
 of the parameters, as one flat vector or as arrays keyed by name. Local training
-is always visible, so a pseudogradient is a subtraction:
+is always visible, so the update of a local training is a subtraction:
 
 ```python
 before = model.get_parameters()
@@ -86,51 +87,64 @@ There are two ways to write parameters, depending on who generated them:
 Both return the recorded [ModelVersion][flypse.federation.model.ModelVersion], ready to
 be sent.
 
-## Version levels and lineage
+## One vector, many shapes
 
-A version has one counter per level, from the coarsest to the finest,
-`("global", "local")` by default. `update_version` increments the counter of
-its level and resets the finer ones, so a version tells where a model comes from.
-A three-tier federation only needs one more level:
-
-```python
-model = MeanModel({"mean": np.zeros(1)}, version_levels=("global", "group", "local"))
-```
-
-| Event | Version |
-| --- | --- |
-| A client loads the model of its group | `(1, 3, 0)` |
-| It trains locally, twice: `update_version(params, "local")` | `(1, 3, 2)` |
-| Its group aggregates: `update_version(params, "group")` | `(1, 4, 0)` |
-| The server aggregates: `update_version(params, "global")` | `(2, 0, 0)` |
-
-## The history
-
-`versions` holds the records of a model, oldest first, and `version` the
-counters of the current one. Each record is a read-only copy, so neither local training nor the
-caller can alter it.
-
-!!! warning
-
-    The history is unbounded by default, and every record holds all the parameters.
-    For long runs or large models, pass `max_versions` to drop the oldest records:
-    `MeanModel({"mean": np.zeros(1)}, max_versions=10)`.
-
-## Reading any version
-
-`get_parameters` also reads a past version, by its counters or by its record:
+A flat vector has one value per coordinate of the parameters, in the order the hook yields
+them. [unflatten][flypse.federation.model.FederatedModel.unflatten] gives any such vector,
+not only parameters, the shapes of the entries:
 
 ```python
-model.get_parameters(version=(1, 3, 0))  # from the history of this model
-model.get_parameters(version=message.record)  # from the record, as it is
+correction = model.unflatten(global_control - local_control)
+correction["mean"]  # a view of the vector, shaped as the entry
 ```
 
-!!! info "Important"
+It is how a term computed on flat vectors, such as a control variate, reaches a training
+loop working on the layers of a framework.
 
-    A version is not unique across entities: two clients can both generate
-    `(3, 1)`. Counters look up the history of the model reading them, so to read
-    the record of a peer, pass the record.
+## Labels and masks
+
+The read hook can label an entry with a third element, a name or several. The labels say
+what an entry is for:
+
+```python
+class TwoPartModel(FederatedModel):
+    def _read_parameters(self):
+        yield "body", self.model["body"], "body"
+        yield "head", self.model["head"], "personal"
+        yield "running_mean", self.model["running_mean"], "statistics"
+
+    def _write_parameter(self, name, value):
+        self.model[name] = value
+```
+
+[mask][flypse.federation.model.FederatedModel.mask] turns labels into a boolean vector, True
+on the coordinates carrying any of them:
+
+```python
+model.mask("statistics")
+model.mask("personal", "statistics")
+~model.mask("personal")  # everything else
+```
+
+A mask selects the coordinates a strategy works on, such as the ones a server optimiser
+[steps on](../strategies/optimization.md#leave-coordinates-out), or the ones a weak device
+[trains](../strategies/assignment.md#a-part-of-the-model). A label that no entry carries
+raises `ValueError`.
+
+## Load a part of a model
+
+With a mask, `load_version` writes the selected coordinates only, and the others keep
+their value. A client with a personal head keeps it through every round:
+
+```python
+shared = ~self.model.mask("personal")
+self.model.load_version(message.record, mask=shared)
+```
+
+The version is adopted all the same: the model it names is the shared part.
 
 !!! note "See also"
 
+    - [Versions](versions.md)
     - [Messaging](messaging.md)
+    - [Strategies](../strategies/index.md)

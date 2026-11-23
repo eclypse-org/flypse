@@ -2,7 +2,7 @@
 
 <div class="grid cards" markdown>
 
--   :octicons-desktop-download-16: **[Install FLYPSE](install.md)**
+-   :octicons-desktop-download-16: **[Installation](install.md)**
 
     ---
 
@@ -21,6 +21,13 @@
     Learn the building blocks behind federations, entities, models, data
     and the system they run on.
 
+-   :octicons-git-merge-16: **[Strategies](strategies/index.md)**
+
+    ---
+
+    Decide whom to engage, and how contributions are screened, weighed, combined and
+    turned into a new model.
+
 -   :octicons-terminal-16: **[Advanced topics](advanced/index.md)**
 
     ---
@@ -34,7 +41,7 @@
 
     Explore runnable federations you can inspect and adapt.
 
--   :octicons-history-16: **[Changelog](https://github.com/eclypse-org/flypse/blob/main/CHANGELOG.md)**
+-   :octicons-history-16: **[Changelog](../changelog.md)**
 
     ---
 

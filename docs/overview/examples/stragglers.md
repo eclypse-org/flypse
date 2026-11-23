@@ -21,9 +21,10 @@ uv run python -m examples.stragglers.main
 
 ## Model and data
 
-The model and the data are the ones of the [federated averaging example](fedavg.md): a linear model trained with stochastic gradient descent, and a synthetic
-regression source sorted by its input feature. The example keeps its own copy of
-both, so that it reads on its own.
+The model and the data are the ones of the [federated averaging example](fedavg.md): a
+linear model trained with stochastic gradient descent, and a synthetic regression source
+sorted by its input feature. The example keeps its own copy of both, so that it reads on
+its own.
 
 ??? example "Model code"
 
@@ -43,9 +44,9 @@ both, so that it reads on its own.
 as in the federated averaging example. `DeadlineServer` closes a round when every
 client has answered, or when the deadline expires.
 
-A model generated for a previous round is late, so it does not take part in the
-average. Everyone who wrote gets the latest model back, on time or not: every client
-always has one request pending, so the clients never need to know about the deadline.
+A model generated for a previous round is late, so it does not take part in the average.
+Every client that sent a model gets the latest one back, on time or not: it always has one
+request pending, and never needs to know about the deadline.
 
 ??? example "Entities code"
 
@@ -62,9 +63,9 @@ from a client to the server at the first given step, and resets it at the second
 seconds later.
 
 Only the direction towards the server slows down, as a mirror link has one edge per
-direction. If the replies were slow too, the server would stall on its own `send`,
-and the deadline would not protect it. For the same reason, the example degrades a
-link and does not fail a device, which would
+direction. If the replies were slow too, the server would stall on its own `send`, and the
+deadline would not protect it. For the same reason, the example degrades a link and does not
+fail a device, which would
 [reset the whole federation](../concepts/system.md#placement-reset).
 
 The infrastructure is built with [get_mirror][flypse.system.infrastructure.get_mirror],
@@ -78,8 +79,8 @@ as `SystemConfig("mirror")` takes no policies.
 
 ## What to inspect
 
-The server reports each round, and the example counts them second by second.
-The numbers change a little at every run:
+The server reports each round, and the example counts them second by second. The number of
+rounds depends on your machine, and how it changes does not:
 
 ```text
 second  rounds  mean participants  late models

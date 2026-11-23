@@ -27,10 +27,9 @@ libraries, which become plain numbers and lists. Anything else raises a
 
 ## Read the records
 
-Once the process has finished,
-[reported][flypse.process.FederatedProcess.reported] holds one record per report,
-oldest first. A record has the values of the report, and who reported them, from
-where and when:
+Once the process has finished, [reported][flypse.process.FederatedProcess.reported] holds
+one record per report, oldest first. A record has the values of the report, and who reported
+them, from where and when:
 
 ```python
 for record in process.reported:
@@ -42,8 +41,8 @@ for record in process.reported:
     `entity_id`, `node_id`, `timestamp` and `n_report` are reserved: a value
     with one of these names is overwritten silently.
 
-`entity_id` and `n_report`, the progressive number of the report for that
-entity, identify a record. A report is complete as soon as it is made: nothing an
+`entity_id` and `n_report`, the sequence number of the report within that entity,
+identify a record. A report is complete as soon as it is made: nothing an
 entity reported is lost when the process stops, or when the entity is undeployed.
 
 ## Metrics

@@ -6,8 +6,8 @@ A federation on the Cloud–Edge continuum is heterogeneous in two independent w
 - *system* heterogeneity: the entities run on different devices, over different
   links, which change over time.
 
-FLYPSE takes the first from the [federated datasets](../concepts/data.md), and
-the second from the resources of the system and the update policies changing them.
+The first comes from the [federated datasets](../concepts/data.md), the second from the
+resources of the system and the update policies that change them.
 
 ## Statistical heterogeneity
 
@@ -23,15 +23,24 @@ See [Federated data](../concepts/data.md) for how to choose one.
 
 ## System heterogeneity
 
-Each device and link can have its own [resources](../concepts/system.md#system-resources), set before
-the run. Latency, bandwidth and processing time delay the messages, which really take
-[that long](../concepts/messaging.md#message-cost) to arrive:
+Each device and link can have its own [resources](../concepts/system.md#system-resources),
+set before the run. Latency, bandwidth and processing time delay the messages, which really
+take [that long](../concepts/messaging.md#message-cost) to arrive:
 
 ```python
 from flypse.system import get_mirror
 
 infrastructure = get_mirror(federation, seed=0)
 infrastructure.edges["client_0", "server"]["latency"] = 100.0
+```
+
+Computation takes as long as it does on your machine, unless the entity calls
+[compute](../concepts/devices.md#emulate-the-speed-of-a-device), which adds the time of its
+device. Give the devices different cores, and the same work takes longer on the slow ones:
+
+```python
+for client_id, cores in {"client_0": 1, "client_1": 4, "client_2": 16}.items():
+    infrastructure.nodes[client_id]["cpu"] = cores
 ```
 
 ## Slow down a link
@@ -109,7 +118,7 @@ infrastructure.nodes["client_0"]["availability"] = 0.0
 
 To model entities that fall behind or drop out of a round while the federation
 carries on, degrade their links instead, and give the server a
-[timeout](../concepts/messaging.md#messaging-timeouts). Leave those links without
+[timeout](../concepts/messaging.md#timeouts). Leave those links without
 [requirements](../concepts/federation.md): one that stops meeting a requirement
 resets the placement too.
 

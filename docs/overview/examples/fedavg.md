@@ -101,6 +101,6 @@ your own.
 Related concepts:
 
 - [Entities](../concepts/entities.md)
-- [Models and versions](../concepts/models.md)
+- [Models](../concepts/models.md)
 - [Federated data](../concepts/data.md)
 - [Evaluation](../advanced/evaluation.md)

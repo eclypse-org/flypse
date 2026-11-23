@@ -26,18 +26,21 @@ process.run(seconds=10)
 A process emulates a single federation, and registers it by itself. Calling
 `register` with any other federation raises `ValueError`.
 
+!!! note
+
+    A script runs a single process: creating a second one after the first has run raises
+    `RuntimeError`. To compare settings, run the script once for each of them.
+
 ## What happens at runtime
 
-1. Creating the process seeds the `rng` of the entities, splits the data across
-   the entities holding it, builds the system, and starts one Ray actor per device,
-   each with a copy of the dataset.
-1. `run` fires the first step, which places the entities and deploys them. Each
-   entity binds its data and starts looping on its `step`.
-1. Every `step_every_ms`, the process takes a step: it applies the update policies,
-   checks the placement, and collects the metrics. Entities keep running in between,
-   at their own pace.
-1. When the process stops, the entities are stopped and undeployed, and the reports
-   are written to disk.
+1. Creating the process splits the data across the entities holding it, seeds the
+   generators of the entities, builds the system, and starts one Ray actor per device, each
+   with a copy of the dataset. 2. `run` fires the first step, which places the entities and
+   deploys them. Each entity binds its data and starts looping on its `step`. 3. Every
+   `step_every_ms`, the process takes a step: it applies the update policies, checks the
+   placement, and collects the metrics. Entities keep running in between, at their own pace.
+   4. When the process stops, the entities are stopped and undeployed, and the reports are
+   written to disk.
 
 !!! note
 

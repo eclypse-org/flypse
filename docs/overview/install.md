@@ -5,8 +5,8 @@ It requires Python `>=3.11,<3.15`.
 
 !!! note
 
-    Do not use the global environment to install FLYPSE.
-    It is recommended to create a [virtual environment](https://docs.python.org/3/library/venv.html) first.
+    Do not use the global environment to install FLYPSE. It is recommended to create a
+    [virtual environment](https://docs.python.org/3/library/venv.html) first.
 
 ## Using pip
 

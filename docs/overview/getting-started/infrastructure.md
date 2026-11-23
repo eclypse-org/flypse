@@ -6,11 +6,10 @@ federation, and the placement strategy mapping the entities onto it. An infrastr
 is a graph of devices and the links between them. Each device holds the federation
 data, from which the entities deployed on it bind their own portion.
 
-There are two built-in systems, and a mirror you can adjust:
+Two systems are built in, and you can adjust them to the conditions you want to study:
 
 - `"singleton"`, a single device hosting every entity,
-- `"mirror"`, the default, a copy of the topology of the federation,
-- a mirror you adjust yourself, with the conditions you want to study.
+- `"mirror"`, the default, a copy of the topology of the federation.
 
 ## Check the logic on one device
 
@@ -66,8 +65,8 @@ process = FederatedProcess(
 ```
 
 An infrastructure you build comes with its placement strategy:
-[get_mirror_strategy][flypse.system.placement.get_mirror_strategy] places each entity on the device
-named after it.
+[get_mirror_strategy][flypse.system.placement.get_mirror_strategy] places each entity on the
+device named after it.
 
 The server waits for every client, so one slow link holds the whole federation back:
 a round now takes at least 100 ms, whatever the speed of your machine.

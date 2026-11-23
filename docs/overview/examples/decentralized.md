@@ -21,9 +21,10 @@ uv run python -m examples.decentralized.main
 
 ## Model and data
 
-The model and the data are the ones of the [federated averaging example](fedavg.md): a linear model trained with stochastic gradient descent, and a synthetic
-regression source sorted by its input feature. The example keeps its own copy of
-both, so that it reads on its own.
+The model and the data are the ones of the [federated averaging example](fedavg.md): a
+linear model trained with stochastic gradient descent, and a synthetic regression source
+sorted by its input feature. The example keeps its own copy of both, so that it reads on
+its own.
 
 ??? example "Model code"
 
@@ -39,17 +40,16 @@ both, so that it reads on its own.
 
 ## Entities
 
-`Peer` is both a learner and an aggregator. At every step it trains, sends its model
+`Peer` both trains and aggregates. At every step it trains, sends its model
 to its neighbours, collects theirs and averages everything, its own model included,
 weighted by the number of samples. Peers draw their initial model from their `rng`
 in `on_deploy`, and keep 20% of their data aside as a test part.
 
 Two details make the protocol work:
 
-- One neighbour can be a round ahead of the other, so its next message may arrive
-  first. A peer receives from one neighbour at a time, with
-  `receive(source=...)`: the messages of the other stay queued until their turn,
-  and every round takes one message per neighbour.
+- One neighbour can be a round ahead of the other, so its next message may arrive first. A
+  peer receives from one neighbour at a time, with `receive(source=...)`: the messages of
+  the other stay queued until their turn, and every round takes one message per neighbour.
 - A peer reads `message.record` and never loads it: `load_version` would adopt
   the counters of a neighbour, while the `"global"` version of a peer counts its
   own rounds.

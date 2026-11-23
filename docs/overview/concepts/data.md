@@ -96,7 +96,8 @@ from flypse.data import QuantitySkewDataset
 data = QuantitySkewDataset(source, alpha=0.5, min_size=10, seed=0)
 ```
 
-With these values, 1000 items across 5 entities are split into blocks of 146, 154, 11, 639 and 50.
+With these values, 1000 items across 5 entities are split into blocks of 146, 154, 11, 639
+and 50.
 
 ## Write your own split
 

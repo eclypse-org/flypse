@@ -5,8 +5,8 @@ This page shows how to read what the entities reported during a run.
 We will:
 
 1. report values from an entity,
-1. read them as records once the process has finished,
-1. turn the records into a table.
+2. read them as records once the process has finished,
+3. turn the records into a table.
 
 The following example uses:
 
@@ -16,8 +16,8 @@ The following example uses:
 ## Report from an entity
 
 An entity can report any value JSON can represent, at any moment of its `step`, with
-[report][flypse.federation.entity.Entity.report]. Its values go straight to the
-process, without waiting for it:
+[report][flypse.federation.entity.Entity.report]. The values go straight to the process, and
+the entity does not wait for an answer:
 
 ```python
 class Server(Entity):
@@ -42,11 +42,11 @@ print(process.reported[0])
 ```
 
 ```text
-{'round': 1, 'estimate': 24.75, 'node_id': 'server', 'entity_id': 'server', 'timestamp': '2026-11-05T23:27:10.992829', 'n_report': 1}
+{'round': 1, 'estimate': 24.75, 'node_id': 'server', 'entity_id': 'server', 'timestamp': '2026-11-24T00:13:14.154203', 'n_report': 1}
 ```
 
-`entity_id` and `n_report`, the progressive number of the report for that
-entity, identify a record.
+`entity_id` and `n_report`, the sequence number of the report within that entity,
+identify a record.
 
 ## Turn them into a table
 
@@ -61,9 +61,9 @@ print(frame[["round", "estimate"]].tail(2))
 ```
 
 ```text
-     round   estimate
-568    569  49.499989
-569    570  49.499989
+     round  estimate
+241    242      49.5
+242    243      49.5
 ```
 
 !!! note "See also"

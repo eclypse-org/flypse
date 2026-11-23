@@ -28,12 +28,19 @@ system they run on.
     Exchange models and control messages, and understand what a message
     costs.
 
--   **[Models and versions](models.md)**
+-   **[Models](models.md)**
 
     ---
 
-    Expose the parameters of any model as numpy arrays, and track their
-    lineage.
+    Expose the parameters of any model as numpy arrays, and label the parts
+    that are treated differently.
+
+-   **[Versions](versions.md)**
+
+    ---
+
+    Track where a model comes from, how stale it is, and read any version of
+    its history.
 
 -   **[Federated data](data.md)**
 
@@ -54,6 +61,13 @@ system they run on.
 
     Choose the devices that host the federation, and how the entities are
     placed on them.
+
+-   **[Devices](devices.md)**
+
+    ---
+
+    Read the resources of a device, emulate its speed, and share it among
+    entities.
 
 -   **[Federated process](process.md)**
 

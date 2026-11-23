@@ -51,8 +51,8 @@ There are two ways to choose the system:
 
 ## Adjust a built-in system
 
-`SystemConfig("mirror")` takes no options. To adjust a built-in system, build it
-with [get_mirror][flypse.system.infrastructure.get_mirror] or
+`SystemConfig("mirror")` has no options for the infrastructure. To adjust a built-in system,
+build it with [get_mirror][flypse.system.infrastructure.get_mirror] or
 [get_singleton][flypse.system.infrastructure.get_singleton], and pass it with its strategy:
 
 ```python
@@ -99,35 +99,36 @@ for client_id in ("client_0", "client_1", "client_2"):
 system = SystemConfig(infrastructure, get_mirror_strategy(federation))
 ```
 
-For an infrastructure built from scratch, see [Building on ECLYPSE](../advanced/building-on-eclypse.md).
+For an infrastructure built from scratch, see
+[Building on ECLYPSE](../advanced/building-on-eclypse.md).
 
 ## Devices and links { #system-resources }
 
-A [Device][flypse.system.device.Device] is an emulated machine, running in a process
-of its own and holding the dataset of the federation. Every node of the
-infrastructure becomes a device, and each entity deployed on it binds its own
-portion of the data. You never create one yourself.
+Every node of the infrastructure becomes a [device](devices.md), an emulated machine hosting
+the entities placed on it.
 
 Devices and links offer resources, which entities and connections can
 [require](federation.md). Each resource acts on a run in its own way:
 
 | Resource | Of a | Effect on the run |
 | --- | --- | --- |
-| `cpu`, `ram`, `storage`, `gpu` | device | Decide where entities can be placed. They do not slow a `step` down. |
+| `cpu` | device | Decides where entities can be placed, and how long [compute](devices.md#emulate-the-speed-of-a-device) takes. |
+| `ram`, `storage`, `gpu` | device | Decide where entities can be placed. They do not slow a `step` down. |
 | `availability` | device | At zero, the device drops out of the paths, which [resets the placement](#placement-reset). |
 | `processing_time` | device | Delays the messages crossing the device, in milliseconds. |
 | `latency` | link | Delays the messages crossing the link, in milliseconds. |
 | `bandwidth` | link | Sets how long a message takes to cross the link, given its size, in megabits per second. |
 
-These delays make up the [cost of a message](messaging.md#message-cost). Nothing throttles
-the computation of an entity: emulated devices run as fast as your machine.
+The delays make up the [cost of a message](messaging.md#message-cost). The computation of an
+entity runs as fast as your machine, and
+[compute](devices.md#emulate-the-speed-of-a-device) adds the time of a slower device.
 
 ## Exclusive placement
 
 The built-in systems place the entities by themselves: on the only device of a
 singleton, or on the device named after them in a mirror.
 
-On an infrastructure with more devices than entities, where any device will do,
+On an infrastructure with at least as many devices as entities, where any device will do,
 [ExclusiveStrategy][flypse.system.placement.ExclusiveStrategy] places each entity on a distinct
 device satisfying its requirements, as a maximum matching between entities and
 devices, so an assignment is found whenever one exists:
@@ -158,5 +159,6 @@ ran in between.
 
 !!! note "See also"
 
+    - [Devices](devices.md)
     - [Heterogeneity](../advanced/heterogeneity.md)
     - [Building on ECLYPSE](../advanced/building-on-eclypse.md)

@@ -18,14 +18,15 @@ The classes of FLYPSE extend those of ECLYPSE, so what ECLYPSE offers works on t
 | Requirements and resources | Assets |
 
 The keyword arguments of a process are those of
-[SimulationConfig](https://eclypse.readthedocs.io/en/latest/reference/eclypse/simulation/config/). There are two exceptions:
-`remote` is set by the process, so passing it raises `TypeError`, and
-`default_strategy` has no effect, as the strategy comes from the system.
+[SimulationConfig](https://eclypse.readthedocs.io/en/latest/reference/eclypse/simulation/config/).
+There are two exceptions: `remote` is set by the process, so passing it raises `TypeError`,
+and `default_strategy` has no effect, as the strategy comes from the system.
 
 ## Build an infrastructure
 
-Any [Infrastructure](https://eclypse.readthedocs.io/en/latest/reference/eclypse/graph/infrastructure/) can host a federation,
-together with a placement strategy:
+Any
+[Infrastructure](https://eclypse.readthedocs.io/en/latest/reference/eclypse/graph/infrastructure/)
+can host a federation, together with a placement strategy:
 
 === "From a builder"
 
@@ -145,9 +146,13 @@ results = frame[frame["callback_id"] == "n_versions"]
 
 !!! note "See also"
 
-    - [ECLYPSE infrastructure builders](https://eclypse.readthedocs.io/en/latest/overview/concepts/builders/)
-    - [ECLYPSE placement strategies](https://eclypse.readthedocs.io/en/latest/overview/concepts/placement-strategy/)
-    - [ECLYPSE assets](https://eclypse.readthedocs.io/en/latest/overview/concepts/assets/)
-    - [ECLYPSE update policies](https://eclypse.readthedocs.io/en/latest/overview/concepts/update-policy/)
-    - [ECLYPSE reporting](https://eclypse.readthedocs.io/en/latest/overview/advanced/reporting/)
-    - [ECLYPSE simulation configuration](https://eclypse.readthedocs.io/en/latest/overview/concepts/simulation-configuration/)
+    -
+      [ECLYPSE infrastructure builders](https://eclypse.readthedocs.io/en/latest/overview/concepts/builders/)
+      -
+      [ECLYPSE placement strategies](https://eclypse.readthedocs.io/en/latest/overview/concepts/placement-strategy/)
+    - [ECLYPSE assets](https://eclypse.readthedocs.io/en/latest/overview/concepts/assets/) -
+    [ECLYPSE update policies](https://eclypse.readthedocs.io/en/latest/overview/concepts/update-policy/)
+    -
+    [ECLYPSE reporting](https://eclypse.readthedocs.io/en/latest/overview/advanced/reporting/)
+    -
+    [ECLYPSE simulation configuration](https://eclypse.readthedocs.io/en/latest/overview/concepts/simulation-configuration/)
