@@ -5,9 +5,9 @@ This page shows the shortest path to a first federated run.
 We will:
 
 1. wrap a model so that its parameters can be exchanged,
-1. implement a client and a server,
-1. build the federation and split the data across it,
-1. run the process and read what the server reported.
+2. implement a client and a server,
+3. build the federation and split the data across it,
+4. run the process and read what the server reported.
 
 The federation estimates the mean of a dataset split across three clients. Each
 client moves the global estimate towards the mean of its own data, and the
@@ -20,6 +20,8 @@ The following example uses:
 - [Entity][flypse.federation.entity.Entity], to implement the behaviour of the
   client and the server,
 - [get_star][flypse.federation.topology.get_star], to connect them,
+- [weighting][flypse.strategies.weighting] and
+  [aggregation][flypse.strategies.aggregation], to average the estimates,
 - [UniformDataset][flypse.data.uniform.UniformDataset], to split the data,
 - [FederatedProcess][flypse.process.FederatedProcess], to emulate the federation.
 
@@ -57,6 +59,7 @@ entity.
 
 ```python
 from flypse.federation import Entity
+from flypse.strategies import aggregation, weighting
 
 
 class Client(Entity):
@@ -87,11 +90,8 @@ class Server(Entity):
 
     async def step(self):
         messages = [await self.receive() for _ in await self.get_neighbors()]
-        n_total = sum(m.data["n_samples"] for m in messages)
-        average = (
-            sum(m.record.parameters * m.data["n_samples"] for m in messages)
-            / n_total
-        )
+        weights = weighting.normalise(weighting.by_samples(messages))
+        average = aggregation.mean([m.record.parameters for m in messages], weights)
         record = self.model.update_version(average, "global")
         self.report(round=record.version[0], estimate=average[0])
         await self.bcast(record)
@@ -99,6 +99,10 @@ class Server(Entity):
 
 `update_version` records a new version of a model, which `send` and `bcast`
 deliver to other entities, and `load_version` adopts a received one.
+[by_samples][flypse.strategies.weighting.by_samples] and
+[mean][flypse.strategies.aggregation.mean] are two of the
+[strategies](../strategies/index.md): plain functions an entity calls to decide how much
+each contribution counts, and how they combine.
 
 The synchronisation of the federation emerges from the entities themselves: each
 client waits for the global estimate after sending its own, and the server waits
@@ -144,7 +148,7 @@ print(process.reported[-1])
 ```
 
 ```text
-{'round': 511, 'estimate': 49.4999885559082, 'node_id': 'server', 'entity_id': 'server', 'timestamp': '2026-11-05T23:27:15.781024', 'n_report': 511}
+{'round': 243, 'estimate': 49.5, 'node_id': 'server', 'entity_id': 'server', 'timestamp': '2026-11-24T00:13:19.090493', 'n_report': 243}
 ```
 
 The clients hold the items from 0 to 99, so the estimate of the server converges
@@ -159,4 +163,5 @@ to their mean, 49.5. The number of rounds depends on the speed of your machine.
 !!! note "See also"
 
     - [Inspect the results](inspect-results.md)
+    - [Strategies](../strategies/index.md)
     - [Choose where the federation runs](infrastructure.md)

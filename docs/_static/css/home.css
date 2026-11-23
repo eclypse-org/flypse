@@ -200,6 +200,17 @@
 .fl-home .report-example { min-width:0; border:1px solid #ffffff1c; border-radius:9px; background:#151515f5; align-self:center; }
 .fl-home .report-example p { margin:0; padding:0 22px 22px; color:#999; font-size:12px; line-height:1.8; }
 .fl-home .mode-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:28px; }
+.fl-home .round { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); margin:34px 0 0; padding:0; list-style:none; }
+.fl-home .round .out,.fl-home .round-key .out { --stop:var(--iris); }
+.fl-home .round .in,.fl-home .round-key .in { --stop:var(--azure); }
+.fl-home .round li { position:relative; padding:26px 14px 0 0; border-top:2px solid var(--stop); }
+.fl-home .round li:before { content:""; position:absolute; top:-7px; left:0; width:12px; height:12px; border-radius:50%; background:var(--stop); box-shadow:0 0 14px color-mix(in srgb,var(--stop) 55%,transparent); }
+.fl-home .round a { display:block; }
+.fl-home .round strong { display:block; color:#eee; font-size:15px; font-weight:600; }
+.fl-home .round span { display:block; margin-top:6px; color:#aaa; font-size:12.5px; line-height:1.7; }
+.fl-home .round a:hover strong { color:var(--stop); text-decoration:underline; }
+.fl-home .round-key { display:flex; flex-wrap:wrap; gap:8px 28px; margin:26px 0 0; color:#999; font-size:12px; }
+.fl-home .round-key span:before { content:""; display:inline-block; width:8px; height:8px; margin-right:9px; border-radius:50%; background:var(--stop); }
 .fl-home .doc-paths { display:flex; flex-wrap:wrap; gap:24px; justify-content:space-between; padding:26px 0 42px; border-top:1px solid #ffffff18; font-size:13px; color:var(--iris); }
 .fl-home .footer { display:flex; justify-content:space-between; gap:24px; border-top:1px solid #ffffff18; padding-block:28px; font-size:11px; line-height:1.8; }
 .fl-home .muted { color:#999; margin-left:8px; }
@@ -240,6 +251,10 @@
   .fl-home .intro { max-width:620px; }
   .fl-home pre { font-size:12px; }
   .fl-home .cards,.fl-home .mode-grid,.fl-home .results { grid-template-columns:1fr; }
+  .fl-home .round { grid-template-columns:1fr; }
+  .fl-home .round li { padding:0 0 22px 26px; border-top:0; border-left:2px solid var(--stop); }
+  .fl-home .round li:last-child { padding-bottom:0; }
+  .fl-home .round li:before { top:4px; left:-7px; }
   .fl-home .section { padding:34px 0 40px; }
   .fl-home .footer { flex-direction:column; }
   .fl-home .eyebrow { font-size:10px; }
