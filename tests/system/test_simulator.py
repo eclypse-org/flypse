@@ -34,6 +34,7 @@ async def simulator(tmp_path) -> FederatedSimulator:
     simulator._event_loop = asyncio.get_running_loop()
     simulator._reporter = SimulationReporter(tmp_path, {"json": JSONReporter})
     simulator._finished = Event()
+    simulator._monitor_count = 0
     await simulator._reporter.start(simulator._event_loop)
     return simulator
 
@@ -41,7 +42,8 @@ async def simulator(tmp_path) -> FederatedSimulator:
 def _sent(simulator: FederatedSimulator, **n_reports: int):
     """Set the entities the simulator got back, with the reports they sent."""
     entities = {
-        entity_id: SimpleNamespace(n_reports=n) for entity_id, n in n_reports.items()
+        entity_id: SimpleNamespace(n_reports=n, monitor_count=0)
+        for entity_id, n in n_reports.items()
     }
     placement = SimpleNamespace(
         deployed=False, application=SimpleNamespace(services=entities)
