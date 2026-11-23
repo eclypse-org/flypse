@@ -1,15 +1,15 @@
 """Module for the weighting strategies.
 
-Weighting decides how much each contribution counts. A weight is a product of
-factors, normalised to sum to 1 by :func:`normalise`: e.g., the number of
-samples n_i (federated averaging), the staleness (FedBuff), the trust
-(FLTrust), the fairness (q-FFL). In decentralised learning, the mixing row of a
-peer (e.g., Metropolis-Hastings) is the same decision. It is the relevance role
-of p_i, whose participation role is :mod:`~flypse.strategies.selection`.
+Weighting decides how much each contribution counts. A weight is a product of factors,
+normalised to sum to 1 by [normalise][flypse.strategies.weighting.normalise]: e.g., the
+number of samples n_i (federated averaging), the staleness (FedBuff), the trust
+(FLTrust), the fairness (q-FFL). In decentralised learning, the mixing row of a peer
+(e.g., Metropolis-Hastings) is the same decision. It is the relevance role of p_i, whose
+participation role is [selection][flypse.strategies.selection].
 
-A factor reads the contributions, received
-:class:`~flypse.federation.message.Message` objects, or facts about them, such
-as their staleness from :meth:`~flypse.federation.model.FederatedModel.lag`.
+A factor reads the contributions, received [Message][flypse.federation.message.Message]
+objects, or facts about them, such as their staleness from
+[lag][flypse.federation.model.FederatedModel.lag].
 
 Some weights depend on the recipient: a personalised model per contribution
 (FedAMP, pFedGraph) comes from a matrix whose row i weighs the contributions
@@ -45,7 +45,7 @@ def by_samples(
 ) -> np.ndarray:
     """Weigh each contribution by the number of samples it was trained on.
 
-    It is the weighting of federated averaging, Θ = Σ_c (n_c / n) Θ_c.
+    It is the weighting of federated averaging, ``Θ = Σ_c (n_c / n) Θ_c``.
 
     Args:
         messages (Sequence[Message]): The contributions, each with its number
@@ -62,11 +62,11 @@ def by_samples(
 
 
 def polynomial_staleness(lags: Sequence[int], a: float = 0.5) -> np.ndarray:
-    """Weigh each contribution by its staleness, as s(τ) = (1 + τ)^-a.
+    """Weigh each contribution by its staleness, as ``s(τ) = (1 + τ)^-a``.
 
     Args:
         lags (Sequence[int]): The staleness τ of each contribution, e.g. from
-            :meth:`~flypse.federation.model.FederatedModel.lag`.
+            [lag][flypse.federation.model.FederatedModel.lag].
         a (float): How fast the weight decays. Defaults to 0.5.
 
     Returns:
@@ -84,7 +84,7 @@ def polynomial_staleness(lags: Sequence[int], a: float = 0.5) -> np.ndarray:
 def hinge_staleness(lags: Sequence[int], a: float = 10.0, b: int = 4) -> np.ndarray:
     """Weigh each contribution by its staleness, as 1 up to ``b``, then decaying.
 
-    s(τ) = 1 if τ ≤ b, else 1 / (a (τ - b) + 1).
+    ``s(τ) = 1`` if ``τ ≤ b``, else ``1 / (a (τ - b) + 1)``.
 
     Args:
         lags (Sequence[int]): The staleness τ of each contribution.
@@ -109,7 +109,7 @@ def normalise(*factors: np.ndarray) -> np.ndarray:
 
     Args:
         *factors (np.ndarray): One factor per contribution each, e.g.
-            :func:`by_samples` and a staleness.
+            [by_samples][flypse.strategies.weighting.by_samples] and a staleness.
 
     Returns:
         np.ndarray: The weights, non-negative and summing to 1.
@@ -118,10 +118,10 @@ def normalise(*factors: np.ndarray) -> np.ndarray:
         ValueError: If no factor is given, a weight is negative, or all are 0.
 
     Example:
-        .. code-block:: python
-
-            lags = [self.model.lag(m.record, "global") for m in messages]
-            weights = normalise(by_samples(messages), polynomial_staleness(lags))
+        ```python
+        lags = [self.model.lag(m.record, "global") for m in messages]
+        weights = normalise(by_samples(messages), polynomial_staleness(lags))
+        ```
     """
     if not factors:
         raise ValueError("no weight factors to normalise")
@@ -134,19 +134,20 @@ def normalise(*factors: np.ndarray) -> np.ndarray:
 def inverse_probability(probabilities: Sequence[float]) -> np.ndarray:
     """Weigh each contribution by the inverse of its probability to be selected.
 
-    Multiplied by the relevance p_i (e.g., the share of samples of its sender
-    over all the candidates), it is p_i / π_i. Normalised by
-    :func:`normalise`, the mean is the ratio estimator: consistent, with a lower
-    variance; not normalised, ``np.sum(weights[:, None] * vectors, axis=0)`` is
-    the unbiased Horvitz-Thompson estimator of the mean over all candidates.
+    Multiplied by the relevance p_i (e.g., the share of samples of its sender over all
+    the candidates), it is ``p_i / π_i``. Normalised by
+    [normalise][flypse.strategies.weighting.normalise], the mean is the ratio estimator:
+    consistent, usually with a lower variance; not normalised,
+    ``np.sum(weights[:, None] * vectors, axis=0)`` is the unbiased Horvitz-Thompson
+    estimator of the mean over all candidates.
 
     Args:
-        probabilities (Sequence[float]): The probability π_i of each
-            contribution's sender to be selected, as returned by
-            :mod:`~flypse.strategies.selection`.
+        probabilities (Sequence[float]): The probability π_i of each contribution's
+            sender to be selected, as returned by
+            [selection][flypse.strategies.selection].
 
     Returns:
-        np.ndarray: The factors 1 / π_i.
+        np.ndarray: The factors ``1 / π_i``.
 
     Raises:
         ValueError: If a probability is not in (0, 1].
@@ -162,9 +163,9 @@ def metropolis_hastings(
 ) -> tuple[float, dict[str, float]]:
     """Return the Metropolis-Hastings mixing row of a peer.
 
-    w_ij = 1 / (1 + max(d_i, d_j)) for each neighbour j, w_ii = 1 - Σ_j w_ij:
-    doubly stochastic on an undirected graph, so the peers average to the
-    average of their models.
+    ``w_ij = 1 / (1 + max(d_i, d_j))`` for each neighbour j, and
+    ``w_ii = 1 - Σ_j w_ij``: doubly stochastic on an undirected graph, so the peers
+    average to the average of their models.
 
     Args:
         connections (Mapping[str, Mapping[str, Any]]): The connections of the
@@ -183,11 +184,11 @@ def metropolis_hastings(
 def uniform_mixing(
     connections: Mapping[str, Mapping[str, Any]],
 ) -> tuple[float, dict[str, float]]:
-    """Return the uniform mixing row of a peer: 1 / (d_i + 1) for each model.
+    """Return the uniform mixing row of a peer: ``1 / (d_i + 1)`` for each model.
 
-    Unless every peer has the same degree, the rows are stochastic but their
-    columns are not: the peers then reach a consensus weighted by their
-    degrees, not the plain average (see :func:`metropolis_hastings`).
+    Unless every peer has the same degree, the rows are stochastic but their columns are
+    not: the peers then reach a consensus weighted by ``d_i + 1``, not the plain average
+    (see [metropolis_hastings][flypse.strategies.weighting.metropolis_hastings]).
 
     Args:
         connections (Mapping[str, Mapping[str, Any]]): The connections of the
@@ -209,11 +210,11 @@ def min_norm(
 ) -> np.ndarray:
     """Weigh the contributions to the combination of minimum norm (FedMGDA+).
 
-    The weights λ minimise ‖Σ_i λ_i v_i‖² on the simplex, within ε of the prior
-    for each contribution (Hu et al., 2022): the common descent direction of
-    the contributions, the one that hurts none of them. FedMGDA+ normalises
-    the updates to unit norm first, and averages those with the weights.
-    ε = 1 is plain MGDA; ε = 0 keeps the prior.
+    The weights λ minimise ``‖Σ_i λ_i v_i‖²`` on the simplex, within ε of the prior for
+    each contribution (Hu et al., 2022). With ε = 1 it is plain MGDA, a common descent
+    direction that hurts no contribution; a smaller ε trades that for staying near the
+    prior; ε = 0 keeps it. FedMGDA+ normalises the updates to unit norm first, and
+    averages those with the weights.
 
     Args:
         vectors (Sequence[np.ndarray]): The vectors of the contributions,
@@ -254,11 +255,11 @@ def min_norm(
 class FedADP:
     """Weigh each contribution by its angle with the aggregate (FedADP).
 
-    The angle θ_i between a contribution and the aggregate is smoothed over the
-    rounds its sender took part in, θ̃_i ← ((t - 1) θ̃_i + θ_i) / t, and mapped
-    by the Gompertz function f(θ) = alpha (1 - exp(-exp(-alpha (θ - 1)))): the factor
-    exp(f(θ̃_i)) favours the contributions that agree with the others (Wu and
-    Wang, 2021). FedADP multiplies it by :func:`by_samples`.
+    The angle θ_i between a contribution and the aggregate is smoothed over the rounds
+    its sender took part in, ``θ̃_i ← ((t - 1) θ̃_i + θ_i) / t``, and mapped by the
+    Gompertz function ``f(θ) = alpha (1 - exp(-exp(-alpha (θ - 1))))``: the factor
+    ``exp(f(θ̃_i))`` favours the contributions that agree with the others (Wu and Wang,
+    2021). FedADP multiplies it by [by_samples][flypse.strategies.weighting.by_samples].
     """
 
     def __init__(self, alpha: float = 5.0):
@@ -274,6 +275,7 @@ class FedADP:
         if alpha <= 0:
             raise ValueError(f"alpha must be positive, got {alpha}")
         self.alpha = alpha
+        """The steepness of the Gompertz function."""
         self.angles: dict[str, float] = {}
         """The smoothed angle of each sender, in radians."""
         self.rounds: dict[str, int] = {}
@@ -294,7 +296,7 @@ class FedADP:
                 the updates weighted by their samples.
 
         Returns:
-            np.ndarray: The factors exp(f(θ̃_i)).
+            np.ndarray: The factors ``exp(f(θ̃_i))``.
         """
         factors = []
         for sender, vector in zip(senders, vectors, strict=True):
@@ -311,13 +313,12 @@ class FedADP:
 class FoolsGold:
     """Weigh down the contributions whose history is similar to another's.
 
-    Sybils pushing the same poisoned update look alike over the rounds, while
-    honest clients diverge (Fung et al., 2020). The weight of a sender falls
-    with the largest cosine similarity between its summed updates and another
-    sender's, pardoning the similarity to a sender that is itself less
-    similar to the others; then it is rescaled by a logit, κ (ln(w / (1 - w)) +
-    0.5), clipped to [0, 1]. Under IID data honest clients look alike too, and
-    lose weight.
+    Sybils pushing the same poisoned update look alike over the rounds, while honest
+    clients diverge (Fung et al., 2020). The weight of a sender falls with the largest
+    cosine similarity between its summed updates and another sender's, scaled down when
+    that other sender resembles someone even more; then it is rescaled by the largest
+    weight and by a logit, ``κ (ln(w / (1 - w)) + 0.5)``, clipped to [0, 1]. Under IID
+    data honest clients look alike too, and lose weight.
     """
 
     def __init__(self, kappa: float = 1.0):
@@ -332,6 +333,7 @@ class FoolsGold:
         if kappa <= 0:
             raise ValueError(f"kappa must be positive, got {kappa}")
         self.kappa = kappa
+        """The confidence κ of the logit."""
         self.history: dict[str, np.ndarray] = {}
         """The sum of the updates of each sender."""
 
@@ -346,8 +348,7 @@ class FoolsGold:
             vectors (Sequence[np.ndarray]): The updates of the contributions.
 
         Returns:
-            np.ndarray: The factors, in [0, 1]; all 0 if every history is the
-            same.
+            np.ndarray: The factors, in [0, 1].
         """
         for sender, vector in zip(senders, vectors, strict=True):
             self.history[sender] = self.history.get(sender, 0) + np.asarray(vector)
@@ -371,9 +372,9 @@ class FoolsGold:
 def fedamp(vectors: Sequence[np.ndarray], alpha: float, sigma: float) -> np.ndarray:
     """Weigh the models for each recipient by their closeness to its own (FedAMP).
 
-    w_ij = alpha exp(-‖v_i - v_j‖² / sigma) / sigma for j ≠ i, and w_ii = 1 - Σ_j w_ij:
-    each client gets a personalised model mostly made of the models close to
-    its own (Huang et al., 2021).
+    ``w_ij = alpha exp(-‖v_i - v_j‖² / sigma) / sigma`` for ``j ≠ i``, and
+    ``w_ii = 1 - Σ_j w_ij``: each client gets a personalised model mostly made of the
+    models close to its own (Huang et al., 2021).
 
     Args:
         vectors (Sequence[np.ndarray]): The models of the clients.
@@ -403,10 +404,11 @@ def heurfedamp(
 ) -> np.ndarray:
     """Weigh the models for each recipient by a softmax of their angles (HeurFedAMP).
 
-    w_ii = self_weight, and the rest, 1 - self_weight, is split among the
-    others in proportion to exp(sigma cos(v_i, v_j)): the heuristic variant of
-    :func:`fedamp` (Huang et al., 2021), comparing angles instead of distances,
-    with no weight that can turn negative. A single model weighs only itself.
+    ``w_ii = self_weight``, and the rest, ``1 - self_weight``, is split among the others
+    in proportion to ``exp(sigma cos(v_i, v_j))``: the heuristic variant of
+    [fedamp][flypse.strategies.weighting.fedamp] (Huang et al., 2021), comparing angles
+    instead of distances, with no weight that can turn negative. A single model weighs
+    only itself.
 
     Args:
         vectors (Sequence[np.ndarray]): The models of the clients, or their
@@ -447,10 +449,10 @@ def pfedgraph(
 ) -> np.ndarray:
     """Weigh the models for each recipient by a learnt collaboration graph (pFedGraph).
 
-    Row i minimises alpha ‖w_i - p‖² - Σ_j w_ij cos(v_i, v_j) on the simplex (Ye et
+    Row i minimises ``alpha ‖w_i - p‖² - Σ_j w_ij cos(v_i, v_j)`` on the simplex (Ye et
     al., 2023): close to the prior p (e.g., the shares of samples), with more
     weight on the models similar to v_i. Its solution is the projection of
-    p + cos(v_i, ·) / (2 alpha) on the simplex. The reference code also rounds
+    ``p + cos(v_i, ·) / (2 alpha)`` on the simplex. The reference code also rounds
     every cosine above 0.9 up to 1, a step the objective does not have: it is
     left out.
 
@@ -484,7 +486,7 @@ def pfedgraph(
 def _project(y: np.ndarray, low: np.ndarray, high: np.ndarray) -> np.ndarray:
     """Project a vector on the simplex, within bounds for each coordinate.
 
-    The projection is clip(y - τ, low, high) for the τ making it sum to 1,
+    The projection is ``clip(y - τ, low, high)`` for the τ making it sum to 1,
     found by bisection.
 
     Args:

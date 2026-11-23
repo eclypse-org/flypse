@@ -1,16 +1,17 @@
 """Module for the aggregation strategies.
 
 Aggregation combines the contributions an entity uses into one vector, with an
-aggregation rule: e.g., the weighted mean, the coordinate-wise median, the
-trimmed mean. The vector of a contribution is the model it carries (e.g.,
-``message.record.parameters``) or its difference from the model it was
-generated from (see :meth:`~flypse.federation.model.FederatedModel.base`).
+aggregation rule: e.g., the weighted mean, the coordinate-wise median, the trimmed mean.
+The vector of a contribution is the model it carries (e.g.,
+``message.record.parameters``) or its difference from the model it was generated from
+(see [base][flypse.federation.model.FederatedModel.base]).
 
-It is apart from :mod:`~flypse.strategies.weighting` because the same weights
-can feed different rules, and most robust rules (:func:`median`,
-:func:`trimmed_mean`, :func:`meamed`) ignore weights on purpose: weighting
-would let one contribution outweigh the others, which is what they guard
-against.
+It is apart from [weighting][flypse.strategies.weighting] because the same weights can
+feed different rules, and most robust rules
+([median][flypse.strategies.aggregation.median],
+[trimmed_mean][flypse.strategies.aggregation.trimmed_mean],
+[meamed][flypse.strategies.aggregation.meamed]) ignore weights on purpose: weighting
+would let one contribution outweigh the others, which is what they guard against.
 
 Float sums depend on their order: sort the contributions (e.g., by sender) for
 a result that does not follow their arrival.
@@ -37,7 +38,7 @@ def mean(
     Args:
         vectors (Sequence[np.ndarray]): The vectors of the contributions.
         weights (np.ndarray | None): The weight of each vector, e.g. from
-            :func:`~flypse.strategies.weighting.normalise`. Defaults to None,
+            [normalise][flypse.strategies.weighting.normalise]. Defaults to None,
             meaning equal weights.
 
     Returns:
@@ -61,9 +62,9 @@ def median(vectors: Sequence[np.ndarray]) -> np.ndarray:
 def trimmed_mean(vectors: Sequence[np.ndarray], beta: float) -> np.ndarray:
     """Average each coordinate without its most extreme values.
 
-    For each coordinate, the ⌊βn⌋ smallest and the ⌊βn⌋ largest of the n values
-    are dropped. With fewer than 1/β vectors nothing is dropped, and it is the
-    mean.
+    For each coordinate, the ``⌊βn⌋`` smallest and the ``⌊βn⌋`` largest of the n
+    values are dropped. With fewer than ``1 / β`` vectors nothing is dropped, and
+    it is the mean.
 
     Args:
         vectors (Sequence[np.ndarray]): The vectors of the contributions.
@@ -85,8 +86,8 @@ def trimmed_mean(vectors: Sequence[np.ndarray], beta: float) -> np.ndarray:
 def meamed(vectors: Sequence[np.ndarray], f: int) -> np.ndarray:
     """Average, for each coordinate, the n - f values closest to the median.
 
-    It is the mean around the median of Xie et al. (2018), and the last step of
-    Bulyan, with 2f for f (see :func:`~flypse.strategies.screening.bulyan`).
+    It is the mean around the median of Xie et al. (2018), and the last step of Bulyan,
+    with 2f for f (see [bulyan][flypse.strategies.screening.bulyan]).
 
     Args:
         vectors (Sequence[np.ndarray]): The vectors of the contributions.
@@ -117,8 +118,8 @@ def geometric_median(
 
     The smoothed Weiszfeld algorithm of robust federated aggregation (Pillutla
     et al., 2022) starts from the weighted mean and repeats
-    z ← Σ β_i v_i / Σ β_i, with β_i = w_i / max(nu, ‖z - v_i‖), until z moves by
-    less than nu. Unlike the other robust rules it honours the weights.
+    ``z ← Σ β_i v_i / Σ β_i``, with ``β_i = w_i / max(nu, ‖z - v_i‖)``, until z moves
+    by less than nu. Unlike the other robust rules it honours the weights.
 
     Args:
         vectors (Sequence[np.ndarray]): The vectors of the contributions.
@@ -156,8 +157,8 @@ def centered_clipping(
 ) -> np.ndarray:
     """Move from a reference by the mean of the clipped differences (CC).
 
-    z ← z + (1/n) Σ_i (v_i - z) min(1, τ / ‖v_i - z‖), starting from the
-    reference: no contribution moves the result by more than τ / n
+    ``z ← z + (1 / n) Σ_i (v_i - z) min(1, τ / ‖v_i - z‖)``, starting from the
+    reference: no contribution moves the result by more than ``τ / n`` at each step
     (Karimireddy et al., 2021). The reference is the previous aggregate, kept
     by the entity: clipping around anything else (e.g., a random vector) loses
     the guarantee.

@@ -33,13 +33,13 @@ class DirichletDataset(FederatedDataset):
     result of ``source[index]``.
 
     Example:
-        .. code-block:: python
+        ```python
+        def label(item):
+            return item[1]
 
-            def label(item):
-                return item[1]
 
-
-            data = DirichletDataset(source, class_fn=label, alpha=0.5, seed=0)
+        data = DirichletDataset(source, class_fn=label, alpha=0.5, seed=0)
+        ```
     """
 
     def __init__(

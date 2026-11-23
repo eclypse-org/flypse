@@ -1,9 +1,9 @@
 """Module for the DataView class.
 
-A :class:`DataView` is the portion of a data source assigned to a single
-entity. It is returned by :meth:`~flypse.data.dataset.FederatedDataset.bind`
-and delegates indexing to the source: the ``i``-th item of the view is the
-item of the source at the ``i``-th index of the entity's split.
+A [DataView][flypse.data.view.DataView] is the portion of a data source assigned to a
+single entity. It is returned by [bind][flypse.data.dataset.FederatedDataset.bind] and
+delegates indexing to the source: the ``i``-th item of the view is the item of the
+source at the ``i``-th index of the entity's split.
 """
 
 from __future__ import annotations
@@ -48,15 +48,15 @@ class DataView:
     def __getitem__(self, index: int | slice) -> Any:
         """Return the item of the entity's portion at the given index.
 
-        A slice returns a :class:`DataView` of the same source over the sliced
-        indices, so nothing is copied.
+        A slice returns a [DataView][flypse.data.view.DataView] of the same source over
+        the sliced indices, so nothing is copied.
 
         Args:
             index (int | slice): The index or slice within the entity's portion.
 
         Returns:
             Any: The item of the source at the corresponding position, or a
-                :class:`DataView` when ``index`` is a slice.
+                [DataView][flypse.data.view.DataView] when ``index`` is a slice.
         """
         if isinstance(index, slice):
             return DataView(self.source, self._indices[index])

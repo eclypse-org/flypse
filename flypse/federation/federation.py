@@ -5,7 +5,7 @@ the connections among them: entities are added with ``add_entity`` and their
 connections with ``add_connection``.
 
 The federation knows the entities and how they interact, not where they run nor
-the data they will find there (that is the system side, see ``flypse.system``).
+the data they will find there (that is the system side, see [flypse.system][]).
 """
 
 from __future__ import annotations
@@ -90,7 +90,7 @@ class Federation(Application):
 
         Raises:
             TypeError: If the entity is not an
-                :class:`~flypse.federation.entity.Entity`.
+                [Entity][flypse.federation.entity.Entity].
             ValueError: If an entity with the same identifier is already in
                 the federation.
         """

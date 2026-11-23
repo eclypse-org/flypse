@@ -1,6 +1,6 @@
 """Run a basic federated averaging experiment on a synthetic regression task.
 
-Run from the repository root with::
+Run from the repository root with:
 
     uv run python -m examples.fedavg.main
 

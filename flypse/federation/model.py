@@ -1,17 +1,16 @@
 """Module for the FederatedModel class.
 
-FLYPSE is model-agnostic: how a model computes and trains is left to its
-framework. A :class:`FederatedModel` exposes the parameters of a framework
-model as numpy arrays, so that combining them (e.g., averages,
-pseudogradients, robust aggregation) and measuring them (e.g., norms,
-distances) is plain numpy math, while local training stays on the wrapped
-model.
+FLYPSE is model-agnostic: how a model computes and trains is left to its framework. A
+[FederatedModel][flypse.federation.model.FederatedModel] exposes the parameters of a
+framework model as numpy arrays, so that combining them (e.g., averages,
+pseudogradients, robust aggregation) and measuring them (e.g., norms, distances) is
+plain numpy math, while local training stays on the wrapped model.
 
-The entries the model exchanges, with their names and shapes, are selected
-by the ``_read_parameters`` hook and fixed at initialisation. For instance,
-integer counters are never yielded, while yielding BatchNorm statistics or
-not is the only difference between FedAvg and FedBN. Non-parametric models
-(e.g., tree ensembles) cannot conform and fail at initialisation.
+The entries the model exchanges, with their names and shapes, are selected by the
+``_read_parameters`` hook and fixed at initialisation. For instance, integer counters
+are never yielded, while FedBN is FedAvg that does not yield the entries of the batch
+normalisation layers. Non-parametric models (e.g., tree ensembles) cannot conform and
+fail at initialisation.
 
 The hook may also label its entries (e.g., ``"statistics"`` for BatchNorm
 statistics, ``"head"`` for the layers a client keeps to itself), and ``mask``
@@ -84,17 +83,17 @@ class FederatedModel(ABC):
     version history, oldest first.
 
     Example:
-        .. code-block:: python
+        ```python
+        class MeanModel(FederatedModel):
+            def _read_parameters(self):
+                yield "mean", self.model["mean"]
 
-            class MeanModel(FederatedModel):
-                def _read_parameters(self):
-                    yield "mean", self.model["mean"]
-
-                def _write_parameter(self, name, value):
-                    self.model[name] = value
+            def _write_parameter(self, name, value):
+                self.model[name] = value
 
 
-            model = MeanModel({"mean": np.zeros(1)})
+        model = MeanModel({"mean": np.zeros(1)})
+        ```
     """
 
     def __init__(
@@ -245,10 +244,10 @@ class FederatedModel(ABC):
             ValueError: If no entry carries one of the labels.
 
         Example:
-            .. code-block:: python
-
-                statistics = self.model.mask("statistics")
-                new = np.where(statistics, average, optimiser.step(own, delta))
+            ```python
+            statistics = self.model.mask("statistics")
+            new = np.where(statistics, average, optimiser.step(own, delta))
+            ```
         """
         carried = set().union(*self._labels.values())
         unknown = [label for label in labels if label not in carried]
@@ -290,9 +289,9 @@ class FederatedModel(ABC):
                 match the ones of the model.
 
         Example:
-            .. code-block:: python
-
-                await self.bcast(self.model.update_version(average, "global"))
+            ```python
+            await self.bcast(self.model.update_version(average, "global"))
+            ```
         """
         index = self._index(level)
         flat = self._validate(parameters)
@@ -330,10 +329,10 @@ class FederatedModel(ABC):
                 parameters or the mask do not match the ones of the model.
 
         Example:
-            .. code-block:: python
-
-                shared = ~self.model.mask("personal")
-                self.model.load_version(message.record, mask=shared)
+            ```python
+            shared = ~self.model.mask("personal")
+            self.model.load_version(message.record, mask=shared)
+            ```
         """
         flat = self._validate(record.parameters)
         if mask is not None:
@@ -364,10 +363,10 @@ class FederatedModel(ABC):
                 history (e.g., dropped by ``max_versions``).
 
         Example:
-            .. code-block:: python
-
-                base = self.model.base(message.record, "global")
-                delta = message.record.parameters - base.parameters
+            ```python
+            base = self.model.base(message.record, "global")
+            delta = message.record.parameters - base.parameters
+            ```
         """
         index = self._index(level)
         version = self._as_version(version)
@@ -626,12 +625,12 @@ class FederatedModel(ABC):
             its labels.
 
         Example:
-            .. code-block:: python
-
-                def _read_parameters(self):
-                    for name, value in self.model.items():
-                        label = "statistics" if name.startswith("bn.") else ()
-                        yield name, value, label
+            ```python
+            def _read_parameters(self):
+                for name, value in self.model.items():
+                    label = "statistics" if name.startswith("bn.") else ()
+                    yield name, value, label
+            ```
         """
 
     @abstractmethod

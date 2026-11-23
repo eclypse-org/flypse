@@ -10,14 +10,15 @@ partition of the contributions.
 A filter returns the positions of the contributions it keeps, in increasing
 order, so that their vectors, senders and weights stay aligned:
 
-.. code-block:: python
+```python
+kept = krum(deltas, f=1, m=len(deltas) - 1)
+update = aggregation.mean([deltas[i] for i in kept])
+```
 
-    kept = krum(deltas, f=1, m=len(deltas) - 1)
-    update = aggregation.mean([deltas[i] for i in kept])
-
-A grouping returns groups of positions, each combined on its own: the clusters
-of :func:`cosine_bipartition`, the buckets of :func:`bucketing`, or the
-overlapping neighbourhoods of :func:`nnm`.
+A grouping returns groups of positions, each combined on its own: the clusters of
+[cosine_bipartition][flypse.strategies.screening.cosine_bipartition], the buckets of
+[bucketing][flypse.strategies.screening.bucketing], or the overlapping neighbourhoods of
+[nnm][flypse.strategies.screening.nnm].
 """
 
 from __future__ import annotations
@@ -34,9 +35,9 @@ if TYPE_CHECKING:
 def krum(vectors: Sequence[np.ndarray], f: int, m: int = 1) -> list[int]:
     """Keep the m vectors closest to their neighbours.
 
-    The score of a vector is the sum of its squared distances to its n - f - 2
+    The score of a vector is the sum of its squared distances to its ``n - f - 2``
     nearest other vectors; the m vectors with the lowest scores are kept. Krum
-    keeps one; Multi-Krum keeps m and averages them.
+    keeps one; Multi-Krum keeps m and averages them (Blanchard et al., 2017).
 
     Args:
         vectors (Sequence[np.ndarray]): The vectors of the contributions.
@@ -60,11 +61,12 @@ def krum(vectors: Sequence[np.ndarray], f: int, m: int = 1) -> list[int]:
 
 
 def bulyan(vectors: Sequence[np.ndarray], f: int) -> list[int]:
-    """Keep θ = n - 2f vectors, chosen one at a time by Krum (El Mhamdi et al., 2018).
+    """Keep ``θ = n - 2f`` vectors, chosen one at a time by Krum.
 
     Each choice scores the vectors not chosen yet, among themselves, and keeps
-    the best. Bulyan then averages, coordinate by coordinate, the θ - 2f values
-    closest to the median: ``aggregation.meamed([vectors[i] for i in kept], 2 * f)``.
+    the best (El Mhamdi et al., 2018). Bulyan then averages, coordinate by
+    coordinate, the ``θ - 2f`` values closest to the median:
+    ``aggregation.meamed([vectors[i] for i in kept], 2 * f)``.
 
     Args:
         vectors (Sequence[np.ndarray]): The vectors of the contributions.
@@ -139,7 +141,7 @@ def dnc(
     dimensions: int = 10_000,
     c: float = 1.0,
 ) -> list[int]:
-    """Keep the vectors far from the main direction of spread (Divide-and-Conquer).
+    """Keep the vectors deviating the least along their spread (Divide-and-Conquer).
 
     At each iteration, on a random subset of the coordinates, the vectors are
     centred on their mean, and each is scored by its squared projection on the
@@ -225,10 +227,10 @@ def bucketing(n: int, size: int, rng: np.random.Generator) -> list[list[int]]:
     The mean of each bucket is then given to a robust rule instead of the
     contributions themselves, which makes the rule robust on non-IID data too:
 
-    .. code-block:: python
-
-        means = [aggregation.mean([deltas[i] for i in b]) for b in buckets]
-        update = aggregation.median(means)
+    ```python
+    means = [aggregation.mean([deltas[i] for i in b]) for b in buckets]
+    update = aggregation.median(means)
+    ```
 
     Args:
         n (int): The number of contributions.

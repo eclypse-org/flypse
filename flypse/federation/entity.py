@@ -59,17 +59,15 @@ class Entity(Service):
     """A federated entity, running on a device and bound to its data.
 
     Example:
-        .. code-block:: python
-
-            class Client(Entity):
-                async def step(self):
-                    train(self.model.model, self.data)
-                    record = self.model.update_version(
-                        self.model.get_parameters(), "local"
-                    )
-                    await self.send("server", record, n_samples=len(self.data))
-                    message = await self.receive()
-                    self.model.load_version(message.record)
+        ```python
+        class Client(Entity):
+            async def step(self):
+                train(self.model.model, self.data)
+                record = self.model.update_version(self.model.get_parameters(), "local")
+                await self.send("server", record, n_samples=len(self.data))
+                message = await self.receive()
+                self.model.load_version(message.record)
+        ```
     """
 
     def __init__(
@@ -150,13 +148,16 @@ class Entity(Service):
         model of a server that cannot get a slot to compute it. Sending is
         allowed.
 
-        Example:
-            .. code-block:: python
+        Returns:
+            ConcurrencyHandler: The handler of the slots, used by the entity.
 
-                message = await self.receive()
-                self.model.load_version(message.record)
-                async with self.concurrency:
-                    train(self.model.model, self.data)
+        Example:
+            ```python
+            message = await self.receive()
+            self.model.load_version(message.record)
+            async with self.concurrency:
+                train(self.model.model, self.data)
+            ```
         """
         return cast("Device", self.node).concurrency.bind(self.id)
 
@@ -200,15 +201,15 @@ class Entity(Service):
             ValueError: If the direction is neither ``"out"`` nor ``"in"``.
 
         Example:
-            .. code-block:: python
-
-                # Metropolis-Hastings weights of a peer
-                connections = await self.get_connections()
-                degree = len(connections)
-                weights = {
-                    peer: 1 / (1 + max(degree, c["degree"]))
-                    for peer, c in connections.items()
-                }
+            ```python
+            # Metropolis-Hastings weights of a peer
+            connections = await self.get_connections()
+            degree = len(connections)
+            weights = {
+                peer: 1 / (1 + max(degree, c["degree"]))
+                for peer, c in connections.items()
+            }
+            ```
         """
         if direction not in ("out", "in"):
             raise ValueError(f"unknown direction {direction!r}")
@@ -245,11 +246,11 @@ class Entity(Service):
             ValueError: If the work is negative, or the device has no cpu.
 
         Example:
-            .. code-block:: python
-
-                async with self.concurrency:
-                    train(self.model.model, self.data)
-                    await self.compute(epochs * len(self.data) * 1e-3)
+            ```python
+            async with self.concurrency:
+                train(self.model.model, self.data)
+                await self.compute(epochs * len(self.data) * 1e-3)
+            ```
         """
         if work < 0:
             raise ValueError(f"the work must be non-negative, got {work}")
@@ -266,7 +267,9 @@ class Entity(Service):
     ):
         """Send a message to one or more entities.
 
-        It waits for the modelled communication cost of the message.
+        It waits for the modelled communication cost of the message. A message that
+        cannot be delivered is lost, and the entity is not told: e.g., its recipient
+        is not a neighbour, or no path of the infrastructure reaches it.
 
         Args:
             recipients (str | list[str]): The identifier of the recipient,
@@ -276,9 +279,11 @@ class Entity(Service):
                 its data.
             **data: The data attached to the message.
 
-        Raises:
-            RouteNotFoundError: If a recipient is not a neighbour, or cannot be
-                reached. The entity logs it and starts its next step.
+        Example:
+            ```python
+            record = self.model.update_version(parameters, "local")
+            await self.send("server", record, n_samples=len(self.data))
+            ```
         """
         await self.mpi.send(
             recipients, {"record": record, "data": data, "sent_at": time()}
@@ -287,18 +292,14 @@ class Entity(Service):
     async def bcast(self, record: ModelVersion | None = None, **data: Any):
         """Send a message to all the neighbour entities.
 
-        It waits for the modelled communication cost of the message.
+        It waits for the modelled communication cost of the message. It is lost for
+        the neighbours it cannot be delivered to, and the entity is not told.
 
         Args:
             record (ModelVersion | None): The version of the model to send.
                 Defaults to None, meaning a control message carrying only
                 its data.
             **data: The data attached to the message.
-
-        Raises:
-            RouteNotFoundError: If a neighbour cannot be reached. The entity logs
-                it and starts its next step, and other neighbours may have
-                received the message.
         """
         await self.mpi.bcast({"record": record, "data": data, "sent_at": time()})
 
@@ -327,13 +328,13 @@ class Entity(Service):
             RuntimeError: If the entity holds a slot of its device.
 
         Example:
-            .. code-block:: python
-
-                try:
-                    message = await self.receive(timeout=2.0)
-                except TimeoutError:
-                    message = None
-                answer = await self.receive(source="server")
+            ```python
+            try:
+                message = await self.receive(timeout=2.0)
+            except TimeoutError:
+                message = None
+            answer = await self.receive(source="server")
+            ```
         """
         if self.id in self.concurrency.holders:
             raise RuntimeError(
@@ -360,9 +361,9 @@ class Entity(Service):
             TypeError: If a value cannot be represented.
 
         Example:
-            .. code-block:: python
-
-                self.report(round=record.version[0], loss=loss)
+            ```python
+            self.report(round=record.version[0], loss=loss)
+            ```
         """
         # eclypse#51: a value the writer cannot serialize would hang the shutdown
         values = json.loads(json.dumps(values, default=_to_plain))
@@ -396,13 +397,11 @@ class Entity(Service):
             keyed by name, or None if the entity does not evaluate.
 
         Example:
-            .. code-block:: python
-
-                def evaluate(self, record, data):
-                    parameters = self.model.get_parameters(
-                        flattened=False, version=record
-                    )
-                    return {"loss": test_loss(parameters, data)}
+            ```python
+            def evaluate(self, record, data):
+                parameters = self.model.get_parameters(flattened=False, version=record)
+                return {"loss": test_loss(parameters, data)}
+            ```
         """
 
     def run_evaluation(

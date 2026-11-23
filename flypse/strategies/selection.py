@@ -6,10 +6,10 @@ random, a gossip peer picks one of its neighbours, Oort prefers clients that
 are both useful and fast. Not being selected means not being contacted: no
 message, and no state on the entity.
 
-A strategy returns the selected entities and the probability of each candidate
-to be selected: an unbiased aggregate weighs a contribution by p_i / π_i, and
-privacy accounting needs the actual scheme. It is the participation role of
-p_i, whose relevance role is :mod:`~flypse.strategies.weighting`.
+A strategy returns the selected entities and the probability of each candidate to be
+selected: an unbiased aggregate weighs a contribution by ``p_i / π_i``, and privacy
+accounting needs the actual scheme. It is the participation role of p_i, whose relevance
+role is [weighting][flypse.strategies.weighting].
 
 The candidates usually are the neighbours of the entity
 (``await self.get_neighbors()``), and the randomness its own ``rng``, seeded by
@@ -43,16 +43,16 @@ def uniform(
 
     Returns:
         tuple[list[str], dict[str, float]]: The selected candidates, and the
-        probability of each candidate to be selected, k / n.
+        probability of each candidate to be selected, ``k / n``.
 
     Raises:
         ValueError: If ``k`` is negative.
 
     Example:
-        .. code-block:: python
-
-            selected, _ = uniform(await self.get_neighbors(), 10, self.rng)
-            await self.send(selected, self.model.versions[-1])
+        ```python
+        selected, _ = uniform(await self.get_neighbors(), 10, self.rng)
+        await self.send(selected, self.model.versions[-1])
+        ```
     """
     if k < 0:
         raise ValueError(f"k must be non-negative, got {k}")
@@ -92,7 +92,7 @@ def poisson(
 def proportional(
     sizes: Mapping[str, float], k: int, rng: random.Random
 ) -> tuple[list[str], dict[str, float]]:
-    """Draw k candidates with replacement, each with probability n_i / n.
+    """Draw k candidates with replacement, each with probability ``n_i / n``.
 
     It is the sampling of the convergence analysis of federated averaging on
     non-IID data (Li et al., 2020): a candidate drawn twice appears twice, and
@@ -108,7 +108,7 @@ def proportional(
     Returns:
         tuple[list[str], dict[str, float]]: The drawn candidates, and the
         probability of each candidate to be drawn at least once,
-        1 - (1 - n_i / n)^k.
+        ``1 - (1 - n_i / n)^k``.
 
     Raises:
         ValueError: If ``k`` is negative, a size is negative, or all are 0.
@@ -128,7 +128,7 @@ def round_robin(
     """Select the candidates k at a time, in turn.
 
     Turn t selects the k candidates after the ones of turn t - 1, wrapping
-    around: every candidate is selected once every ⌈n / k⌉ turns (cyclic
+    around: every candidate is selected at least once every ``⌈n / k⌉`` turns (cyclic
     participation).
 
     Args:
@@ -159,13 +159,13 @@ def clustered(
 ) -> tuple[list[str], dict[str, float]]:
     """Draw one candidate from each of m clusters of equal size (Fraboni et al., 2021).
 
-    The candidates, largest first, fill m clusters, each with a share 1 / m of
-    the total size n: a candidate of size n_i enters the clusters with a total
-    weight m n_i / n, possibly split between consecutive clusters. One
-    candidate is drawn from each cluster, in proportion to its weight there.
-    Every candidate has the same expected number of draws as with
-    :func:`proportional`, with a lower variance: the contributions are
-    averaged the same way, with equal weights, one per draw.
+    The candidates, largest first, fill m clusters, each with a share 1 / m of the total
+    size n: a candidate of size n_i enters the clusters with a total weight
+    ``m n_i / n``, possibly split between consecutive clusters. One candidate is drawn
+    from each cluster, in proportion to its weight there. Every candidate has the same
+    expected number of draws as with
+    [proportional][flypse.strategies.selection.proportional], with a lower variance: the
+    contributions are averaged the same way, with equal weights, one per draw.
 
     Args:
         sizes (Mapping[str, float]): The size n_i of each candidate, e.g. its
@@ -198,7 +198,7 @@ def clustered(
 def _shares(
     sizes: Mapping[str, float], largest_first: bool = False
 ) -> tuple[list[str], np.ndarray]:
-    """Return the candidates and their shares n_i / n of the total size.
+    """Return the candidates and their shares ``n_i / n`` of the total size.
 
     Args:
         sizes (Mapping[str, float]): The size of each candidate.

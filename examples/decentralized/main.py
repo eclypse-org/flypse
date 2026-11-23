@@ -1,6 +1,6 @@
 """Run a decentralised federated averaging experiment.
 
-Run from the repository root with::
+Run from the repository root with:
 
     uv run python -m examples.decentralized.main
 

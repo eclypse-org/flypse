@@ -1,14 +1,14 @@
 """Module for the ViewSplitter and FractionSplitter classes.
 
-A :class:`ViewSplitter` splits the data view of an entity into named parts
-(e.g., train, eval and test), each a :class:`~flypse.data.view.DataView` of
-its parent view: a part refers to the view it was split from, which in turn
-refers to the data of the federation. How the positions of the view are
-assigned to the parts is defined by subclasses, implementing ``split``.
+A [ViewSplitter][flypse.data.splitter.ViewSplitter] splits the data view of an entity
+into named parts (e.g., train, eval and test), each a
+[DataView][flypse.data.view.DataView] of its parent view: a part refers to the view it
+was split from, which in turn refers to the data of the federation. How the positions of
+the view are assigned to the parts is defined by subclasses, implementing ``split``.
 
-:class:`FractionSplitter` is the ready-made splitter: it sizes the parts by
-fractions, optionally stratifying by class or following the order of the
-items (e.g., by time, so that no part precedes the earlier ones).
+[FractionSplitter][flypse.data.splitter.FractionSplitter] is the ready-made splitter: it
+sizes the parts by fractions, optionally stratifying by class or following the order of
+the items (e.g., by time, so that no part precedes the earlier ones).
 """
 
 from __future__ import annotations
@@ -78,10 +78,10 @@ class FractionSplitter(ViewSplitter):
     proportions of the view. A part can be empty when the view is too small.
 
     Example:
-        .. code-block:: python
-
-            splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
-            self.splits = splitter.apply(self.data)
+        ```python
+        splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
+        self.splits = splitter.apply(self.data)
+        ```
     """
 
     def __init__(

@@ -45,11 +45,11 @@ class SystemConfig:
             ``max_concurrency`` is below 1.
 
     Example:
-        .. code-block:: python
-
-            SystemConfig("singleton")
-            SystemConfig(infrastructure, ExclusiveStrategy())
-            SystemConfig("singleton", max_concurrency=2)
+        ```python
+        SystemConfig("singleton")
+        SystemConfig(infrastructure, ExclusiveStrategy())
+        SystemConfig("singleton", max_concurrency=2)
+        ```
     """
 
     infrastructure: Infrastructure | Literal["singleton", "mirror"] = "mirror"
@@ -75,7 +75,12 @@ class SystemConfig:
     """
 
     def __post_init__(self):
-        """Check the limit, and the infrastructure against the strategy."""
+        """Check the limit, and the infrastructure against the strategy.
+
+        Raises:
+            ValueError: If the limit is below 1, the infrastructure is an unknown
+                name, or it is a custom one without a placement strategy.
+        """
         # the same check as each device, before any is built
         ConcurrencyHandler(self.max_concurrency)
         if isinstance(self.infrastructure, str):
