@@ -16,13 +16,13 @@ FLYPSE is designed for researchers and developers evaluating federated protocols
 
 ## Key features
 
-- **Write the protocol, not a plugin:** a participant is an [entity](https://flypse.readthedocs.io/en/latest/source/overview/concepts/entities.html) with a `step`, which sends and receives models. There is no round loop, no role and no barrier in the core: rounds, deadlines, buffers and gossip are what the entities do.
-- **Connect any topology:** build [federations](https://flypse.readthedocs.io/en/latest/source/overview/concepts/federation.html) as stars, trees, rings or custom graphs, and let entities ask who their parent, children and neighbours are.
-- **Pay for communication:** each [message](https://flypse.readthedocs.io/en/latest/source/overview/concepts/messaging.html) really takes as long as its size costs over the latency, bandwidth and processing time of every hop of its route.
-- **Model heterogeneity:** split data with [label or quantity skew](https://flypse.readthedocs.io/en/latest/source/overview/concepts/data.html), and change devices and links [while the federation runs](https://flypse.readthedocs.io/en/latest/source/overview/advanced/heterogeneity.html).
-- **Bring any model:** [models](https://flypse.readthedocs.io/en/latest/source/overview/concepts/models.html) of any framework are exchanged as flat numpy vectors, with versions that tell where each one comes from.
-- **Compose strategies:** select, screen, weigh, aggregate and optimise with [functions and small classes](https://flypse.readthedocs.io/en/latest/source/api/reference/flypse.strategies.html) on those vectors, from federated averaging to Byzantine-robust and personalised aggregation.
-- **Inspect results:** entities [report](https://flypse.readthedocs.io/en/latest/source/overview/advanced/reporting.html) and [evaluate](https://flypse.readthedocs.io/en/latest/source/overview/advanced/evaluation.html) whatever they need, and a seed makes the data, the system and the entities [reproducible](https://flypse.readthedocs.io/en/latest/source/overview/advanced/reproducibility.html).
+- **Write the protocol, not a plugin:** a participant is an [entity](https://flypse.readthedocs.io/en/latest/overview/concepts/entities/) with a `step`, which sends and receives models. There is no round loop, no role and no barrier in the core: rounds, deadlines, buffers and gossip are what the entities do.
+- **Connect any topology:** build [federations](https://flypse.readthedocs.io/en/latest/overview/concepts/federation/) as stars, trees, rings or custom graphs, and let entities ask who their parent, children and neighbours are.
+- **Pay for communication:** each [message](https://flypse.readthedocs.io/en/latest/overview/concepts/messaging/) really takes as long as its size costs over the latency, bandwidth and processing time of every hop of its route.
+- **Model heterogeneity:** split data with [label or quantity skew](https://flypse.readthedocs.io/en/latest/overview/concepts/data/), and change devices and links [while the federation runs](https://flypse.readthedocs.io/en/latest/overview/advanced/heterogeneity/).
+- **Bring any model:** [models](https://flypse.readthedocs.io/en/latest/overview/concepts/models/) of any framework are exchanged as flat numpy vectors, with versions that tell where each one comes from.
+- **Compose strategies:** select, screen, weigh, aggregate and optimise with [functions and small classes](https://flypse.readthedocs.io/en/latest/overview/strategies/) on those vectors, from federated averaging to Byzantine-robust and personalised aggregation.
+- **Inspect results:** entities [report](https://flypse.readthedocs.io/en/latest/overview/advanced/reporting/) and [evaluate](https://flypse.readthedocs.io/en/latest/overview/advanced/evaluation/) whatever they need, and a seed makes the data, the system and the entities [reproducible](https://flypse.readthedocs.io/en/latest/overview/advanced/reproducibility/).
 
 ## Federation and infrastructure
 
@@ -31,7 +31,7 @@ FLYPSE keeps two graphs apart, so that either can change without the other:
 - The **federation** says who takes part and who talks to whom. Its nodes are entities, and its edges are their connections.
 - The **infrastructure** says where they run. Its nodes are devices, and its edges are links with a latency and a bandwidth.
 
-A placement maps the first onto the second: one device per entity (`"mirror"`, the default), all on one device (`"singleton"`), or any [infrastructure](https://flypse.readthedocs.io/en/latest/source/overview/getting-started/infrastructure.html) and placement strategy. Entities then run as services on [Ray](https://www.ray.io/) actors, with real code and real messages, and no container or root access.
+A placement maps the first onto the second: one device per entity (`"mirror"`, the default), all on one device (`"singleton"`), or any [infrastructure](https://flypse.readthedocs.io/en/latest/overview/getting-started/infrastructure/) and placement strategy. Entities then run as services on [Ray](https://www.ray.io/) actors, with real code and real messages, and no container or root access.
 
 Delays are modelled, not shaped: FLYPSE waits for the cost of each message, in real time. Messages do not compete for bandwidth, and packet loss and transport protocols are outside the model.
 
@@ -49,7 +49,7 @@ Or add it to a uv project:
 uv add flypse
 ```
 
-We strongly suggest a virtual environment. See the [installation guide](https://flypse.readthedocs.io/en/latest/source/overview/install.html) for environment setup.
+We strongly suggest a virtual environment. See the [installation guide](https://flypse.readthedocs.io/en/latest/overview/install/) for environment setup.
 
 ## Quickstart
 
@@ -148,7 +148,7 @@ process = FederatedProcess(federation, data, system, step_every_ms=100.0, seed=0
 
 The server waits for every client, so one slow uplink holds back the whole federation: the same 5 seconds now fit about 9 rounds.
 
-To adapt this experiment, replace the `step` of the server with one that has a deadline, connect the entities with `get_tree` or `get_ring`, or split the data with `DirichletDataset`. Continue with [your first federation](https://flypse.readthedocs.io/en/latest/source/overview/getting-started/first-federation.html) and [inspecting results](https://flypse.readthedocs.io/en/latest/source/overview/getting-started/inspect-results.html).
+To adapt this experiment, replace the `step` of the server with one that has a deadline, connect the entities with `get_tree` or `get_ring`, or split the data with `DirichletDataset`. Continue with [your first federation](https://flypse.readthedocs.io/en/latest/overview/getting-started/first-federation/) and [inspecting results](https://flypse.readthedocs.io/en/latest/overview/getting-started/inspect-results/).
 
 ## Strategies
 
@@ -166,19 +166,20 @@ Each module of `flypse.strategies` is one decision of a federated round. Strateg
 
 Follow these examples in order, or choose the scenario closest to your experiment:
 
-- [Federated averaging](https://flypse.readthedocs.io/en/latest/source/overview/examples/fedavg.html): a server and its clients, on non-IID data.
-- [Hierarchical federation](https://flypse.readthedocs.io/en/latest/source/overview/examples/hierarchical.html): group aggregators between the clients and the root.
-- [Decentralised federation](https://flypse.readthedocs.io/en/latest/source/overview/examples/decentralized.html): a ring of peers, with no server.
-- [Stragglers](https://flypse.readthedocs.io/en/latest/source/overview/examples/stragglers.html): a server with a deadline, and a link that slows down during the run.
+- [Federated averaging](https://flypse.readthedocs.io/en/latest/overview/examples/fedavg/): a server and its clients, on non-IID data.
+- [Hierarchical federation](https://flypse.readthedocs.io/en/latest/overview/examples/hierarchical/): group aggregators between the clients and the root.
+- [Decentralised federation](https://flypse.readthedocs.io/en/latest/overview/examples/decentralized/): a ring of peers, with no server.
+- [Stragglers](https://flypse.readthedocs.io/en/latest/overview/examples/stragglers/): a server with a deadline, and a link that slows down during the run.
 
 Runnable source is available in [`examples/`](examples/). Run one from the root of the repository, e.g. `python -m examples.fedavg.main`.
 
 ## Documentation
 
-- [Getting started](https://flypse.readthedocs.io/en/latest/source/overview/getting-started/index.html): first federation, infrastructure, and results.
-- [Concepts](https://flypse.readthedocs.io/en/latest/source/overview/concepts/index.html): federations, entities, messages, models, data, systems, and the process.
-- [Building on ECLYPSE](https://flypse.readthedocs.io/en/latest/source/overview/advanced/building-on-eclypse.html): infrastructures, placement and policies from ECLYPSE.
-- [API reference](https://flypse.readthedocs.io/en/latest/source/api/index.html): public modules and interfaces.
+- [Getting started](https://flypse.readthedocs.io/en/latest/overview/getting-started/): first federation, infrastructure, and results.
+- [Concepts](https://flypse.readthedocs.io/en/latest/overview/concepts/): federations, entities, messages, models, data, systems, and the process.
+- [Strategies](https://flypse.readthedocs.io/en/latest/overview/strategies/): the decisions of a round, and how to compose an algorithm.
+- [Building on ECLYPSE](https://flypse.readthedocs.io/en/latest/overview/advanced/building-on-eclypse/): infrastructures, placement and policies from ECLYPSE.
+- [API reference](https://flypse.readthedocs.io/en/latest/reference/flypse/): public modules and interfaces.
 - [Changelog](CHANGELOG.md): release history.
 
 ## Contributing
