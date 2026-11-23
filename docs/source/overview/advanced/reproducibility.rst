@@ -31,9 +31,9 @@ the seed of the process. These components use it:
 Randomness in an entity
 -----------------------
 
-An entity draws from ``self.rng``, seeded from the seed of the process and its
-identifier, so that entities draw different but reproducible sequences. It can
-also drive a splitter:
+An entity draws from ``self.rng``, or from ``self.np_rng`` for numpy arrays, both
+seeded from the seed of the process and its identifier, so that entities draw
+different but reproducible sequences. ``self.rng`` can also drive a splitter:
 
 .. code-block:: python
 
@@ -46,7 +46,7 @@ also drive a splitter:
 
    The global ``random`` of every device is seeded with the same value, so
    entities using it draw correlated sequences. The global random generator of
-   numpy is not seeded at all. Use ``self.rng``, or a generator seeded from it.
+   numpy is not seeded at all. Use ``self.rng``, or ``self.np_rng`` for numpy.
 
 Deterministic aggregation
 -------------------------

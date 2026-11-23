@@ -4,11 +4,13 @@ from __future__ import annotations
 
 from datetime import datetime
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import (
+    ANY,
+    Mock,
+)
 
 import numpy as np
 import pytest
-from eclypse.utils.constants import RND_SEED
 
 from flypse.data import (
     FractionSplitter,
@@ -39,22 +41,36 @@ class FakeMPI:
     async def bcast(self, body):
         self.sent.append(("bcast", None, body))
 
-    async def recv(self, timeout=None):
+    async def recv(self, timeout=None, source=None):
         self.timeout = timeout
-        if not self.inbox:
-            raise TimeoutError
-        return self.inbox.pop(0)
+        for i, message in enumerate(self.inbox):
+            if source is None or message.source == source:
+                return self.inbox.pop(i)
+        raise TimeoutError
 
 
 class FakeSimulator:
     """An in-memory stand-in for the simulator actor."""
 
-    def __init__(self):
+    def __init__(self, connections=None, device=None):
         self.reports: list[tuple] = []
+        self.asked: list[tuple] = []
+        self._connections = connections or {}
+        self._device = device or {}
         self.report = SimpleNamespace(remote=self._receive)
+        self.connections = SimpleNamespace(remote=self._connect)
+        self.device = SimpleNamespace(remote=self._describe)
 
     def _receive(self, *report):
         self.reports.append(report)
+
+    async def _connect(self, *question):
+        self.asked.append(question)
+        return self._connections
+
+    async def _describe(self, *question):
+        self.asked.append(question)
+        return self._device
 
     @property
     def values(self) -> list[dict]:
@@ -71,9 +87,9 @@ def _deploy(entity: Entity, data=None) -> Entity:
     return entity
 
 
-def _connect(entity: Entity) -> FakeSimulator:
+def _connect(entity: Entity, **answers) -> FakeSimulator:
     """Attach the entity to a device reaching a fake simulator."""
-    simulator = FakeSimulator()
+    simulator = FakeSimulator(**answers)
     device = Device.__new__(Device)
     device.build()
     device._node_id = "device"
@@ -97,6 +113,12 @@ class Evaluating(Entity):
         if isinstance(self.results, Exception):
             raise self.results
         return self.results
+
+
+def _arrived(sender: str, record=None, **data) -> SimpleNamespace:
+    """Return a message as the MPI interface delivers it, stamped by the device."""
+    body = {"record": record, "data": data, "sent_at": 1.0}
+    return SimpleNamespace(source=sender, data={**body, "received_at": 2.0, "size": 9})
 
 
 def _record(version=(0, 0), value=0.0) -> ModelVersion:
@@ -344,19 +366,38 @@ async def test_entity_send_and_bcast_wrap_the_record_and_data():
     await entity.bcast(record)
 
     assert mpi.sent == [
-        ("send", "b", {"record": record, "data": {"n_samples": 3}}),
-        ("bcast", None, {"record": record, "data": {}}),
+        ("send", "b", {"record": record, "data": {"n_samples": 3}, "sent_at": ANY}),
+        ("bcast", None, {"record": record, "data": {}, "sent_at": ANY}),
     ]
+
+
+async def test_entity_stamps_what_it_sends(monkeypatch):
+    """A message carries when it was sent."""
+    mpi = FakeMPI()
+    entity = _with_mpi(mpi)
+    monkeypatch.setattr("flypse.federation.entity.time", lambda: 5.0)
+
+    await entity.send("b")
+    await entity.bcast()
+
+    assert [body["sent_at"] for _, _, body in mpi.sent] == [5.0, 5.0]
 
 
 async def test_entity_receive_returns_a_message():
     """A received body becomes a message from its sender."""
     record = ModelVersion((1, 0), 2.0, np.zeros(2))
-    entity = _with_mpi(
-        FakeMPI(inbox=[{"record": record, "data": {"loss": 0.5}, "sender_id": "b"}])
-    )
+    entity = _with_mpi(FakeMPI(inbox=[_arrived("b", record, loss=0.5)]))
 
-    assert await entity.receive() == Message("b", record, {"loss": 0.5})
+    assert await entity.receive() == Message("b", record, {"loss": 0.5}, 1.0, 2.0, 9)
+
+
+async def test_entity_receives_from_a_given_sender():
+    """Receiving from a sender leaves the messages of the others queued."""
+    mpi = FakeMPI(inbox=[_arrived("b", round=1), _arrived("c", round=2)])
+    entity = _with_mpi(mpi)
+
+    assert (await entity.receive(source="c")).sender == "c"
+    assert [message.source for message in mpi.inbox] == ["b"]
 
 
 async def test_entity_receive_forwards_the_timeout():
@@ -380,7 +421,7 @@ def test_entity_concurrency_is_that_of_its_device():
 
 async def test_entity_cannot_receive_while_holding_a_slot():
     """Waiting for a message while holding a slot is refused."""
-    entity = _with_mpi(FakeMPI(inbox=[{"record": None, "data": {}, "sender_id": "b"}]))
+    entity = _with_mpi(FakeMPI(inbox=[_arrived("b")]))
 
     async with entity.concurrency:
         with pytest.raises(RuntimeError, match="holding a slot"):
@@ -407,18 +448,85 @@ async def test_entity_control_messages_carry_only_data():
     await entity.bcast(round=3)
 
     assert mpi.sent == [
-        ("send", "b", {"record": None, "data": {"stop": True}}),
-        ("bcast", None, {"record": None, "data": {"round": 3}}),
+        ("send", "b", {"record": None, "data": {"stop": True}, "sent_at": ANY}),
+        ("bcast", None, {"record": None, "data": {"round": 3}, "sent_at": ANY}),
     ]
 
 
-def test_entity_rng_is_seeded_per_entity_at_deploy(monkeypatch):
+def test_entity_rng_is_seeded_per_entity():
     """Entities draw different, reproducible sequences from the process seed."""
-    monkeypatch.setenv(RND_SEED, "7")
 
     def draws(entity_id: str) -> list[float]:
-        entity = _deploy(Entity(entity_id))
-        return [entity.rng.random() for _ in range(3)]
+        entity = Entity(entity_id)
+        entity._seed(7)
+        return [entity.rng.random(), *entity.np_rng.random(2)]
 
     assert draws("a") == draws("a")
     assert draws("a") != draws("b")
+
+
+def test_entity_rng_goes_on_across_redeploys():
+    """A redeployed entity does not replay its draws."""
+    entity = Entity("a")
+    entity._seed(7)
+    first = _deploy(entity).rng.random(), entity.np_rng.random()
+
+    entity.on_undeploy()
+
+    again = _deploy(entity).rng.random(), entity.np_rng.random()
+    assert all(a != b for a, b in zip(first, again, strict=True))
+
+
+async def test_entity_asks_the_simulator_for_its_connections():
+    """Connections come from the process, for the given direction."""
+    entity = Entity("a")
+    connections = {"b": {"latency": 5.0, "degree": 2}}
+    simulator = _connect(entity, connections=connections)
+
+    assert await entity.get_connections() == connections
+    assert await entity.get_neighbors(direction="in") == ["b"]
+    assert simulator.asked == [("Fed", "a", "out"), ("Fed", "a", "in")]
+
+
+async def test_entity_refuses_an_unknown_direction():
+    """A direction other than out or in raises before asking."""
+    entity = Entity("a")
+    simulator = _connect(entity)
+
+    with pytest.raises(ValueError, match="direction"):
+        await entity.get_connections("both")  # type: ignore[arg-type]
+    assert simulator.asked == []
+
+
+async def test_entity_asks_the_simulator_for_its_device():
+    """The resources come from the process, for the device of the entity."""
+    entity = Entity("a")
+    simulator = _connect(entity, device={"cpu": 4})
+
+    assert await entity.get_device() == {"cpu": 4}
+    assert simulator.asked == [("device",)]
+
+
+async def test_entity_computes_at_the_speed_of_its_device(monkeypatch):
+    """Work takes work / cpu seconds."""
+    entity = Entity("a")
+    _connect(entity, device={"cpu": 4})
+    waited: list[float] = []
+
+    async def sleep(seconds):
+        waited.append(seconds)
+
+    monkeypatch.setattr("flypse.federation.entity.sleep", sleep)
+    await entity.compute(2.0)
+
+    assert waited == [0.5]
+
+
+@pytest.mark.parametrize(("work", "device"), [(-1.0, {"cpu": 4}), (1.0, {})])
+async def test_entity_cannot_compute_without_cpu_or_with_negative_work(work, device):
+    """Negative work, or a device with no cpu, raises."""
+    entity = Entity("a")
+    _connect(entity, device=device)
+
+    with pytest.raises(ValueError, match=r"work|cpu"):
+        await entity.compute(work)

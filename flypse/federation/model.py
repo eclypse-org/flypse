@@ -13,6 +13,12 @@ integer counters are never yielded, while yielding BatchNorm statistics or
 not is the only difference between FedAvg and FedBN. Non-parametric models
 (e.g., tree ensembles) cannot conform and fail at initialisation.
 
+The hook may also label its entries (e.g., ``"statistics"`` for BatchNorm
+statistics, ``"head"`` for the layers a client keeps to itself), and ``mask``
+selects the coordinates of the flat vector carrying a label: e.g., to average
+the statistics without a server optimiser stepping on them, or to share only
+the body of the model.
+
 Versions are hierarchical: a version carries one counter per level (by
 default ``("global", "local")``; e.g., ``("global", "group", "local")`` for
 three tiers). ``update_version`` is used by the entity that generates a new
@@ -43,6 +49,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from collections.abc import (
+        Iterable,
         Iterator,
         Sequence,
     )
@@ -95,7 +102,7 @@ class FederatedModel(ABC):
         model: Any,
         dtype: DTypeLike = np.float32,
         version_levels: Sequence[str] = ("global", "local"),
-        max_versions: int | None = None,
+        max_versions: int | Mapping[str, int] | None = None,
     ) -> None:
         """Initialise the federated model.
 
@@ -109,15 +116,18 @@ class FederatedModel(ABC):
                 to ``np.float32``.
             version_levels (Sequence[str]): The version levels, from the
                 coarsest to the finest. Defaults to ``("global", "local")``.
-            max_versions (int | None): The number of records kept in the
-                history, dropping the oldest first. Defaults to None
+            max_versions (int | Mapping[str, int] | None): The number of
+                records kept in the history, dropping the oldest first: in
+                all, or per level as a mapping (e.g., ``{"local": 1}``), where
+                the levels left out keep every record. The level of a record
+                is the finest one with a non-zero counter. Defaults to None
                 (unlimited).
 
         Raises:
             ValueError: If the wrapped model exposes no parameters, the
                 read hook yields a name twice or a non-float entry, the
                 levels are empty or duplicated, or ``max_versions`` is
-                less than 1.
+                less than 1 or names an unknown level.
         """
         self.model = model
         """The wrapped framework model."""
@@ -126,11 +136,16 @@ class FederatedModel(ABC):
         levels = tuple(version_levels)
         if not levels or len(set(levels)) != len(levels):
             raise ValueError("the version_levels must be non-empty and unique")
-        if max_versions is not None and max_versions < 1:
+        limits = dict(max_versions) if isinstance(max_versions, Mapping) else {}
+        total = None if isinstance(max_versions, Mapping) else max_versions
+        if (total is not None and total < 1) or any(n < 1 for n in limits.values()):
             raise ValueError("max_versions must be at least 1")
+        if not set(limits) <= set(levels):
+            raise ValueError(f"max_versions names unknown levels: {limits}")
+        self._limits = limits
         self.version_levels = levels
         """The version levels, from the coarsest to the finest."""
-        entries = self._read()
+        entries, self._labels = self._read()
         if not entries:
             raise ValueError(
                 f"{type(model).__name__} exposes no parameters to exchange"
@@ -143,9 +158,7 @@ class FederatedModel(ABC):
         """The current version: one counter per level."""
         flat = np.concatenate([value.ravel() for value in entries.values()])
         flat.flags.writeable = False
-        self.versions = deque(
-            [ModelVersion(self.version, time(), flat)], maxlen=max_versions
-        )
+        self.versions = deque([ModelVersion(self.version, time(), flat)], maxlen=total)
         """The version history, oldest first."""
 
     @overload
@@ -199,6 +212,55 @@ class FederatedModel(ABC):
             return flat.copy()
         return {name: piece.copy() for name, piece in self._unflatten(flat).items()}
 
+    def unflatten(self, flat: np.ndarray) -> dict[str, np.ndarray]:
+        """Split a flat vector into arrays shaped as the parameters.
+
+        The vector can be any one over the coordinates of the parameters
+        (e.g., a gradient correction, or a ``mask``), of any dtype.
+
+        Args:
+            flat (np.ndarray): The flat vector.
+
+        Returns:
+            dict[str, np.ndarray]: Views of the vector, keyed by name.
+
+        Raises:
+            ValueError: If the vector does not have one value per coordinate.
+        """
+        if np.shape(flat) != (self._total,):
+            raise ValueError(f"expected {self._total} values, got {np.shape(flat)}")
+        return self._unflatten(flat)
+
+    def mask(self, *labels: str) -> np.ndarray:
+        """Select the coordinates of the entries carrying any of the labels.
+
+        Args:
+            *labels (str): The labels, as yielded by ``_read_parameters``.
+
+        Returns:
+            np.ndarray: A boolean flat vector, True on the selected
+            coordinates.
+
+        Raises:
+            ValueError: If no entry carries one of the labels.
+
+        Example:
+            .. code-block:: python
+
+                statistics = self.model.mask("statistics")
+                new = np.where(statistics, average, optimiser.step(own, delta))
+        """
+        carried = set().union(*self._labels.values())
+        unknown = [label for label in labels if label not in carried]
+        if unknown:
+            raise ValueError(f"no entry carries the labels {unknown}")
+        return np.concatenate(
+            [
+                np.full(int(np.prod(shape)), not self._labels[name].isdisjoint(labels))
+                for name, shape in self._scheme.items()
+            ]
+        )
+
     def update_version(
         self,
         parameters: np.ndarray | Mapping[str, np.ndarray],
@@ -232,10 +294,8 @@ class FederatedModel(ABC):
 
                 await self.bcast(self.model.update_version(average, "global"))
         """
-        if level not in self.version_levels:
-            raise ValueError(f"unknown level {level!r}")
+        index = self._index(level)
         flat = self._validate(parameters)
-        index = self.version_levels.index(level)
         counters = list(self.version)
         counters[index] += 1
         for finer in range(index + 1, len(counters)):
@@ -244,25 +304,101 @@ class FederatedModel(ABC):
             flat, tuple(counters), time() if timestamp is None else timestamp
         )
 
-    def load_version(self, record: ModelVersion) -> ModelVersion:
+    def load_version(
+        self, record: ModelVersion, mask: np.ndarray | None = None
+    ) -> ModelVersion:
         """Load a version generated by another entity.
 
         It is used by the entity receiving a model: the parameters of the
         record are written into the wrapped model, and its version and
-        timestamp are adopted as they are and recorded in the history.
+        timestamp are adopted as they are and recorded in the history. With
+        a mask, only the selected coordinates are written, while the others
+        keep their current value (e.g., a personal head), and the version is
+        adopted all the same.
 
         Args:
             record (ModelVersion): The received version.
+            mask (np.ndarray | None): The coordinates to write, as a boolean
+                flat vector (see ``mask``). Defaults to None, meaning all.
 
         Returns:
-            ModelVersion: The recorded copy of the version.
+            ModelVersion: The recorded copy of the version, with the
+            parameters of the model once loaded.
 
         Raises:
             ValueError: If the version does not match the levels, or the
-                parameters do not match the ones of the model.
+                parameters or the mask do not match the ones of the model.
+
+        Example:
+            .. code-block:: python
+
+                shared = ~self.model.mask("personal")
+                self.model.load_version(message.record, mask=shared)
         """
         flat = self._validate(record.parameters)
+        if mask is not None:
+            if np.shape(mask) != (self._total,):
+                raise ValueError(f"expected a mask of {self._total} values")
+            flat = np.where(mask, flat, self.get_parameters())
         return self._commit(flat, self._as_version(record.version), record.timestamp)
+
+    def base(self, version: Sequence[int] | ModelVersion, level: str) -> ModelVersion:
+        """Return the version of the history a version was generated from.
+
+        The base at a level keeps the counters of the version down to that
+        level, resetting the finer ones: e.g., a client update ``(2, 3)``
+        was generated from the global version ``(2, 0)``, the reference of
+        its pseudogradient.
+
+        Args:
+            version (Sequence[int] | ModelVersion): The version, or a record
+                (e.g., a received one). A payload that is not a model, such
+                as an encoded update sent as data, comes with its version.
+            level (str): The level of the base.
+
+        Returns:
+            ModelVersion: The base, as recorded in the history.
+
+        Raises:
+            ValueError: If the level is unknown, or the base is not in the
+                history (e.g., dropped by ``max_versions``).
+
+        Example:
+            .. code-block:: python
+
+                base = self.model.base(message.record, "global")
+                delta = message.record.parameters - base.parameters
+        """
+        index = self._index(level)
+        version = self._as_version(version)
+        return self._record(version[: index + 1] + (0,) * (len(version) - index - 1))
+
+    def lag(self, version: Sequence[int] | ModelVersion, level: str) -> int:
+        """Return how many versions at a level a version is behind the model.
+
+        At the coarsest level it is the staleness of the version (e.g., of a
+        client update reaching the server); at a finer level the coarser
+        counters must agree.
+
+        Args:
+            version (Sequence[int] | ModelVersion): The version, or a record
+                (e.g., a received one).
+            level (str): The level to count the versions at.
+
+        Returns:
+            int: The difference of the counters at the level.
+
+        Raises:
+            ValueError: If the level is unknown, or the coarser counters
+                differ.
+        """
+        index = self._index(level)
+        version = self._as_version(version)
+        if version[:index] != self.version[:index]:
+            raise ValueError(
+                f"{version} and {self.version} differ above the level {level!r}"
+            )
+        return self.version[index] - version[index]
 
     def _commit(
         self,
@@ -290,7 +426,44 @@ class FederatedModel(ABC):
         self.version = version
         record = ModelVersion(version, timestamp, flat)
         self.versions.append(record)
+        level = self._level(version)
+        if level in self._limits:
+            same = [
+                i
+                for i, r in enumerate(self.versions)
+                if self._level(r.version) == level
+            ]
+            if len(same) > self._limits[level]:
+                del self.versions[same[0]]
         return record
+
+    def _index(self, level: str) -> int:
+        """Return the position of a level among the levels.
+
+        Args:
+            level (str): The level.
+
+        Returns:
+            int: Its position, from the coarsest.
+
+        Raises:
+            ValueError: If the level is unknown.
+        """
+        if level not in self.version_levels:
+            raise ValueError(f"unknown level {level!r}")
+        return self.version_levels.index(level)
+
+    def _level(self, version: tuple[int, ...]) -> str:
+        """Return the level of a version: its finest non-zero counter.
+
+        Args:
+            version (tuple[int, ...]): The version counters.
+
+        Returns:
+            str: The level, the coarsest one for the zero version.
+        """
+        nonzero = [i for i, counter in enumerate(version) if counter]
+        return self.version_levels[nonzero[-1] if nonzero else 0]
 
     def _validate(
         self, parameters: np.ndarray | Mapping[str, np.ndarray]
@@ -354,7 +527,7 @@ class FederatedModel(ABC):
             ValueError: If the read hook yields different entries or
                 shapes than at initialisation.
         """
-        entries = self._read()
+        entries, _ = self._read()
         if {name: value.shape for name, value in entries.items()} != self._scheme:
             raise ValueError(
                 "the read hook must yield the same entries and shapes as at "
@@ -362,25 +535,30 @@ class FederatedModel(ABC):
             )
         return entries
 
-    def _read(self) -> dict[str, np.ndarray]:
-        """Collect the entries yielded by the read hook.
+    def _read(self) -> tuple[dict[str, np.ndarray], dict[str, frozenset[str]]]:
+        """Collect the entries yielded by the read hook, with their labels.
 
         Returns:
-            dict[str, np.ndarray]: The yielded entries, cast to ``dtype``.
+            tuple[dict[str, np.ndarray], dict[str, frozenset[str]]]: The
+            yielded entries, cast to ``dtype``, and their labels, keyed by
+            name.
 
         Raises:
             ValueError: If a name is yielded twice, or an entry is not
                 floating point.
         """
         entries: dict[str, np.ndarray] = {}
-        for name, value in self._read_parameters():
+        labels: dict[str, frozenset[str]] = {}
+        for name, value, *label in self._read_parameters():
             array = np.asarray(value)
             if name in entries:
                 raise ValueError(f"parameter {name!r} is yielded twice")
             if not np.issubdtype(array.dtype, np.floating):
                 raise ValueError(f"parameter {name!r} is not floating point")
             entries[name] = array.astype(self.dtype, copy=False)
-        return entries
+            carried = label[0] if label else ()
+            labels[name] = frozenset([carried] if isinstance(carried, str) else carried)
+        return entries, labels
 
     def _record(self, version: Sequence[int]) -> ModelVersion:
         """Return the latest record with the given version.
@@ -402,11 +580,12 @@ class FederatedModel(ABC):
                 return record
         raise ValueError(f"unknown version {version}")
 
-    def _as_version(self, version: Sequence[int]) -> tuple[int, ...]:
+    def _as_version(self, version: Sequence[int] | ModelVersion) -> tuple[int, ...]:
         """Validate a version against the levels.
 
         Args:
-            version (Sequence[int]): The version counters.
+            version (Sequence[int] | ModelVersion): The version counters, or
+                a record.
 
         Returns:
             tuple[int, ...]: The version as a tuple.
@@ -415,7 +594,9 @@ class FederatedModel(ABC):
             ValueError: If the number of counters does not match the
                 levels.
         """
-        version = tuple(version)
+        version = tuple(
+            version.version if isinstance(version, ModelVersion) else version
+        )
         expected = len(self.version_levels)
         if len(version) != expected:
             raise ValueError(
@@ -424,7 +605,9 @@ class FederatedModel(ABC):
         return version
 
     @abstractmethod
-    def _read_parameters(self) -> Iterator[tuple[str, np.ndarray]]:
+    def _read_parameters(
+        self,
+    ) -> Iterator[tuple[str, np.ndarray] | tuple[str, np.ndarray, str | Iterable[str]]]:
         """Yield the parameters to exchange, as (name, array) pairs.
 
         Only the yielded entries are exchanged, and they must be the same,
@@ -434,9 +617,21 @@ class FederatedModel(ABC):
         to the subclass. The hook is first called by ``__init__``, so any
         attribute it uses must be set before calling ``super().__init__``.
 
+        An entry may carry a label, or several, as a third element: the
+        labels are fixed at initialisation too, and ``mask`` selects by them.
+
         Yields:
-            tuple[str, np.ndarray]: The name and the current value of a
-            parameter.
+            tuple[str, np.ndarray] | tuple[str, np.ndarray, str | Iterable[str]]:
+            The name and the current value of a parameter, and optionally
+            its labels.
+
+        Example:
+            .. code-block:: python
+
+                def _read_parameters(self):
+                    for name, value in self.model.items():
+                        label = "statistics" if name.startswith("bn.") else ()
+                        yield name, value, label
         """
 
     @abstractmethod

@@ -460,6 +460,7 @@ def test_process_shares_its_seed():
     )._split(["a", "b"])
     assert process.infrastructure.seed == 7
     assert federation.rnd.random() == random.Random(7).random()
+    assert federation.entities["a"].rng.random() == random.Random("7/a").random()
 
 
 def test_process_keeps_an_explicit_federation_seed():

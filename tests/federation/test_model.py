@@ -366,3 +366,179 @@ def test_records_own_a_flat_vector():
         assert record.parameters.shape == (5,)
         assert record.parameters.base is None
         assert not record.parameters.flags.writeable
+
+
+class LabelledModel(VectorModel):
+    """A model labelling its entries by the prefix of their names."""
+
+    def _read_parameters(self):
+        for name, value in self.model.items():
+            if name.startswith("bn."):
+                yield name, value, "statistics"
+            elif name.startswith("head."):
+                yield name, value, ["head", "personal"]
+            else:
+                yield name, value
+
+
+def make_labelled() -> LabelledModel:
+    """Build a labelled model: a body, a head and BatchNorm statistics."""
+    return LabelledModel(
+        {
+            "body.w": np.ones((2, 2)),
+            "head.w": np.full(2, 2.0),
+            "bn.mean": np.zeros(1),
+        }
+    )
+
+
+def test_mask_selects_the_coordinates_of_a_label():
+    """A label selects the coordinates of the entries carrying it."""
+    model = make_labelled()
+
+    assert model.mask("statistics").tolist() == [False] * 6 + [True]
+    assert model.mask("personal").tolist() == [False] * 4 + [True] * 2 + [False]
+
+
+def test_mask_selects_any_of_the_labels():
+    """Several labels select the entries carrying at least one of them."""
+    model = make_labelled()
+
+    assert model.mask("head", "statistics").tolist() == [False] * 4 + [True] * 3
+
+
+def test_mask_refuses_a_label_no_entry_carries():
+    """A mistyped label raises instead of selecting nothing."""
+    with pytest.raises(ValueError, match="statistic"):
+        make_labelled().mask("statistic")
+
+
+def test_unlabelled_entries_carry_no_label():
+    """A model whose hook yields pairs has no labels to select."""
+    with pytest.raises(ValueError, match="carries"):
+        make_model().mask("statistics")
+
+
+def test_unflatten_shapes_any_vector_as_the_parameters():
+    """A vector over the coordinates is split by name, of its own dtype."""
+    model = make_labelled()
+
+    pieces = model.unflatten(model.mask("head"))
+
+    assert pieces["head.w"].tolist() == [True, True]
+    assert pieces["body.w"].shape == (2, 2)
+    assert pieces["body.w"].dtype == bool
+
+
+def test_unflatten_refuses_a_vector_of_another_size():
+    """A vector not covering every coordinate raises."""
+    with pytest.raises(ValueError, match="expected 7 values"):
+        make_labelled().unflatten(np.zeros(6))
+
+
+def test_load_version_with_a_mask_keeps_the_other_coordinates():
+    """A partial load writes the selected coordinates and adopts the version."""
+    model = make_labelled()
+    received = ModelVersion((3, 0), 9.0, np.full(7, 5.0, dtype=np.float32))
+
+    record = model.load_version(received, mask=~model.mask("personal"))
+
+    assert model.get_parameters().tolist() == [5.0] * 4 + [2.0, 2.0] + [5.0]
+    assert model.version == (3, 0)
+    assert record.parameters.tolist() == model.get_parameters().tolist()
+    assert record.timestamp == 9.0
+
+
+def test_load_version_refuses_a_mask_of_another_size():
+    """A mask not covering every coordinate raises, writing nothing."""
+    model = make_labelled()
+    received = ModelVersion((3, 0), 9.0, np.zeros(7, dtype=np.float32))
+
+    with pytest.raises(ValueError, match="mask of 7 values"):
+        model.load_version(received, mask=np.ones(6, dtype=bool))
+    assert model.version == (0, 0)
+
+
+def test_max_versions_per_level_drops_the_oldest_of_the_level():
+    """A level with a limit keeps its latest records, the others keep all."""
+    model = make_model({"w": np.zeros(1)}, max_versions={"local": 1})
+    for _ in range(2):
+        model.update_version(np.zeros(1), "global")
+        model.update_version(np.zeros(1), "local")
+        model.update_version(np.zeros(1), "local")
+
+    assert [r.version for r in model.versions] == [(0, 0), (1, 0), (2, 0), (2, 2)]
+
+
+def test_max_versions_per_level_follows_the_finest_non_zero_counter():
+    """A group version is not a global one, nor a local one."""
+    model = make_model(
+        {"w": np.zeros(1)},
+        version_levels=("global", "group", "local"),
+        max_versions={"group": 1, "global": 1},
+    )
+    model.load_version(ModelVersion((2, 6, 0), 0.0, np.zeros(1)))
+    model.update_version(np.zeros(1), "group")
+    model.update_version(np.zeros(1), "local")
+
+    assert [r.version for r in model.versions] == [(0, 0, 0), (2, 7, 0), (2, 7, 1)]
+
+
+@pytest.mark.parametrize("limits", [{"local": 0}, {"round": 2}])
+def test_max_versions_per_level_must_be_valid(limits):
+    """A limit below one, or for an unknown level, raises."""
+    with pytest.raises(ValueError, match="max_versions"):
+        make_model({"w": np.zeros(1)}, max_versions=limits)
+
+
+def _hierarchy() -> VectorModel:
+    """A three-level model that loaded (2, 6, 0) and then went on locally."""
+    model = make_model({"w": np.zeros(1)}, version_levels=("global", "group", "local"))
+    model.update_version(np.full(1, 1.0), "global")
+    model.load_version(ModelVersion((2, 0, 0), 0.0, np.full(1, 2.0)))
+    model.load_version(ModelVersion((2, 6, 0), 0.0, np.full(1, 3.0)))
+    return model
+
+
+def test_base_is_the_version_a_record_was_generated_from():
+    """The base keeps the counters down to the level, from the history."""
+    model = _hierarchy()
+    update = ModelVersion((2, 6, 4), 0.0, np.full(1, 9.0, dtype=np.float32))
+
+    assert model.base(update, "global").version == (2, 0, 0)
+    assert model.base(update, "group").parameters.tolist() == [3.0]
+
+
+def test_base_missing_from_the_history_raises():
+    """A base dropped from the history, or never seen, cannot be read."""
+    with pytest.raises(ValueError, match="unknown version"):
+        _hierarchy().base(ModelVersion((1, 3, 2), 0.0, np.zeros(1)), "group")
+
+
+def test_lag_counts_the_versions_behind_the_model():
+    """At the coarsest level the lag is the staleness."""
+    model = _hierarchy()
+
+    assert model.lag(ModelVersion((0, 0, 5), 0.0, np.zeros(1)), "global") == 2
+    assert model.lag(ModelVersion((2, 4, 1), 0.0, np.zeros(1)), "group") == 2
+
+
+def test_version_arithmetic_takes_bare_versions():
+    """A payload sent as data comes with its version, not with a record."""
+    model = _hierarchy()
+
+    assert model.base([2, 6, 4], "group").parameters.tolist() == [3.0]
+    assert model.lag((0, 0, 5), "global") == 2
+
+
+def test_lag_below_a_differing_level_raises():
+    """Group counters of different global versions do not compare."""
+    with pytest.raises(ValueError, match="differ above"):
+        _hierarchy().lag(ModelVersion((1, 4, 0), 0.0, np.zeros(1)), "group")
+
+
+def test_version_arithmetic_refuses_unknown_levels():
+    """Unknown levels raise, as for updates."""
+    record = ModelVersion((0, 0, 0), 0.0, np.zeros(1))
+    with pytest.raises(ValueError, match="unknown level"):
+        _hierarchy().lag(record, "round")

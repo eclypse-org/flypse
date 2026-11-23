@@ -9,9 +9,12 @@ defined by subclasses, implementing the ``step`` method.
 
 Entities exchange versions of their models, or control messages carrying only
 data, with ``send``, ``bcast`` and ``receive``, and find the entities they are
-connected to with ``get_neighbors``. For its own randomness, an entity draws from
-its ``rng``, seeded from the seed of the process and the identifier of the entity,
-so that entities draw different but reproducible sequences. An entity sharing its
+connected to with ``get_neighbors``, or ``get_connections`` with their attributes.
+An entity learns the resources of its device with ``get_device``, and takes the
+time its device needs for some work with ``compute``. For its own randomness, it
+draws from its ``rng``, or from ``np_rng`` for numpy arrays, seeded from the seed
+of the process and the identifier of the entity, so that entities draw different
+but reproducible sequences. An entity sharing its
 device with others holds a slot of the device for its critical operations, such
 as a local training, with its ``concurrency``.
 
@@ -27,18 +30,21 @@ from __future__ import annotations
 
 import json
 import random
+from asyncio import sleep
 from datetime import datetime
 from hashlib import blake2b
+from time import time
 from typing import (
     TYPE_CHECKING,
     Any,
+    Literal,
     cast,
 )
 
+import numpy as np
 from eclypse.remote.service import Service
 
 from flypse.federation.message import Message
-from flypse.seed import get_seed
 
 if TYPE_CHECKING:
     from flypse.data.view import DataView
@@ -90,7 +96,9 @@ class Entity(Service):
         self.with_data = with_data
         """Whether the entity holds a portion of the federation data."""
         self.rng = random.Random()
-        """The generator of the entity, seeded when it is deployed."""
+        """The generator of the entity, seeded by the process."""
+        self.np_rng = np.random.default_rng()
+        """The numpy generator of the entity, seeded by the process."""
         self.n_reports = 0
         """The number of reports the entity has made."""
         self.data: DataView | None = None
@@ -99,15 +107,10 @@ class Entity(Service):
         """The named parts of the data of the entity, set by the entity."""
 
     def on_deploy(self):
-        """Seed the ``rng`` of the entity and bind its view of the data.
+        """Bind the view of the data of the entity.
 
-        The ``rng`` is seeded from the seed of the process and the identifier
-        of the entity; the view is the one of the dataset held by the hosting
-        device.
+        The view is the one of the dataset held by the hosting device.
         """
-        seed = get_seed()
-        if seed is not None:
-            self.rng.seed(f"{seed}/{self.id}")
         data = cast("Device", self.node).data
         if self.with_data and data is not None:
             self.data = data.bind(self.id)
@@ -121,6 +124,19 @@ class Entity(Service):
         self.data = None
         self.splits = {}
         self.concurrency.release()
+
+    def _seed(self, seed: int | None):
+        """Seed the generators of the entity, once per process.
+
+        They are seeded from the seed of the process and the identifier of the
+        entity, and they go on across redeploys: a reset of the federation does
+        not replay the draws of an entity.
+
+        Args:
+            seed (int | None): The seed of the process.
+        """
+        self.rng.seed(f"{seed}/{self.id}")
+        self.np_rng = np.random.default_rng(list(f"{seed}/{self.id}".encode()))
 
     @property
     def concurrency(self) -> ConcurrencyHandler:
@@ -144,13 +160,103 @@ class Entity(Service):
         """
         return cast("Device", self.node).concurrency.bind(self.id)
 
-    async def get_neighbors(self) -> list[str]:
+    async def get_neighbors(self, direction: Literal["out", "in"] = "out") -> list[str]:
         """Get the entities connected to this entity.
+
+        Connections are symmetric unless added otherwise, so that the entities an
+        entity sends to are usually the ones sending to it.
+
+        Args:
+            direction (Literal["out", "in"]): ``"out"`` for the entities this
+                entity sends to, ``"in"`` for the ones sending to it. Defaults
+                to ``"out"``.
 
         Returns:
             list[str]: The identifiers of the neighbour entities.
         """
-        return await self.mpi.get_neighbors()
+        if direction == "out":
+            return await self.mpi.get_neighbors()
+        return list(await self.get_connections(direction))
+
+    async def get_connections(
+        self, direction: Literal["out", "in"] = "out"
+    ) -> dict[str, dict[str, Any]]:
+        """Get the connections of this entity, as the federation has them now.
+
+        They are asked of the process at every call, so they follow its update
+        policies.
+
+        Args:
+            direction (Literal["out", "in"]): ``"out"`` for the connections to
+                the entities this entity sends to, ``"in"`` for those from the
+                ones sending to it. Defaults to ``"out"``.
+
+        Returns:
+            dict[str, dict[str, Any]]: For each neighbour, the attributes of
+            the connection (e.g., its ``latency`` requirement) and the
+            ``degree`` of the neighbour: the number of entities it sends to.
+
+        Raises:
+            ValueError: If the direction is neither ``"out"`` nor ``"in"``.
+
+        Example:
+            .. code-block:: python
+
+                # Metropolis-Hastings weights of a peer
+                connections = await self.get_connections()
+                degree = len(connections)
+                weights = {
+                    peer: 1 / (1 + max(degree, c["degree"]))
+                    for peer, c in connections.items()
+                }
+        """
+        if direction not in ("out", "in"):
+            raise ValueError(f"unknown direction {direction!r}")
+        simulator = self.node.get_actor(self.node.manager_actor_name)
+        return await simulator.connections.remote(
+            self.application_id, self.id, direction
+        )
+
+    async def get_device(self) -> dict[str, Any]:
+        """Get the resources of the device of this entity, as they are now.
+
+        They are asked of the process at every call, so they follow its update
+        policies (e.g., a degrading cpu).
+
+        Returns:
+            dict[str, Any]: The resources of the device, by name (e.g.,
+            ``cpu``, ``ram``, ``availability``).
+        """
+        simulator = self.node.get_actor(self.node.manager_actor_name)
+        return await simulator.device.remote(self.node.id)
+
+    async def compute(self, work: float):
+        """Take the time the device of this entity needs for some work.
+
+        It waits ``work / cpu`` seconds, with the cpu of the device at the call:
+        the same work takes four times as long on 2 cores as on 8. It emulates
+        the speed of the device, on top of the real time the computation takes
+        on the machine running the process.
+
+        Args:
+            work (float): The work, in seconds of a single core.
+
+        Raises:
+            ValueError: If the work is negative, or the device has no cpu.
+
+        Example:
+            .. code-block:: python
+
+                async with self.concurrency:
+                    train(self.model.model, self.data)
+                    await self.compute(epochs * len(self.data) * 1e-3)
+        """
+        if work < 0:
+            raise ValueError(f"the work must be non-negative, got {work}")
+        cpu = (await self.get_device()).get("cpu", 0)
+        if cpu <= 0:
+            raise ValueError(f"device {self.node.id} has no cpu to compute with")
+        await sleep(work / cpu)
 
     async def send(
         self,
@@ -174,7 +280,9 @@ class Entity(Service):
             RouteNotFoundError: If a recipient is not a neighbour, or cannot be
                 reached. The entity logs it and starts its next step.
         """
-        await self.mpi.send(recipients, {"record": record, "data": data})
+        await self.mpi.send(
+            recipients, {"record": record, "data": data, "sent_at": time()}
+        )
 
     async def bcast(self, record: ModelVersion | None = None, **data: Any):
         """Send a message to all the neighbour entities.
@@ -192,17 +300,24 @@ class Entity(Service):
                 it and starts its next step, and other neighbours may have
                 received the message.
         """
-        await self.mpi.bcast({"record": record, "data": data})
+        await self.mpi.bcast({"record": record, "data": data, "sent_at": time()})
 
-    async def receive(self, timeout: float | None = None) -> Message:
+    async def receive(
+        self,
+        timeout: float | None = None,
+        source: str | None = None,
+    ) -> Message:
         """Receive the next message sent to the entity.
 
         It waits until a message is available, or until the timeout expires.
-        A message arriving after the timeout is kept for the next call.
+        A message arriving after the timeout is kept for the next call, and so
+        are the messages of other senders when receiving from a given one.
 
         Args:
             timeout (float | None): The maximum time to wait, in seconds.
                 Defaults to None, meaning no limit.
+            source (str | None): The entity to receive from. Defaults to None,
+                meaning the oldest message from any entity.
 
         Returns:
             Message: The received message.
@@ -218,14 +333,15 @@ class Entity(Service):
                     message = await self.receive(timeout=2.0)
                 except TimeoutError:
                     message = None
+                answer = await self.receive(source="server")
         """
         if self.id in self.concurrency.holders:
             raise RuntimeError(
                 f"Entity {self.id} cannot receive while holding a slot of its "
                 "device: leave the concurrency block first."
             )
-        body = await self.mpi.recv(timeout=timeout)
-        return Message(body["sender_id"], body["record"], body["data"])
+        message = await self.mpi.recv(timeout=timeout, source=source)
+        return Message(message.source, **message.data)
 
     def report(self, **values: Any):
         """Push values to the process, which writes them in the report.

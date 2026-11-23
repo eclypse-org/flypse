@@ -9,6 +9,10 @@ the process, and it lands in the ``service`` report as a single row, whatever th
 A report needs no event: it is written even if it arrives while the process is
 stopping. The simulator counts them, so that it closes the report only once it
 has received everything the stopped entities sent.
+
+The simulator is also the source of truth about the federation and the
+infrastructure as they are now: the entities ask it about their connections and
+their devices, which the update policies may change.
 """
 
 from __future__ import annotations
@@ -63,6 +67,43 @@ class FederatedSimulator(RemoteSimulator):
         }
         # this runs on the loop of the actor, the reporter on the one of the simulation
         self._event_loop.call_soon_threadsafe(self._enqueue, row)
+
+    def connections(
+        self, application_id: str, entity_id: str, direction: str
+    ) -> dict[str, dict[str, Any]]:
+        """Return the connections of an entity, as the federation has them now.
+
+        Args:
+            application_id (str): The identifier of the federation.
+            entity_id (str): The identifier of the entity.
+            direction (str): ``"out"`` for the connections to the entities it
+                sends to, ``"in"`` for those from the entities sending to it.
+
+        Returns:
+            dict[str, dict[str, Any]]: For each entity at the other end, the
+            attributes of the connection and the ``degree`` of that entity:
+            the number of entities it sends to.
+        """
+        federation = self.placements[application_id].application
+        if direction == "out":
+            ends = [(v, d) for _, v, d in federation.out_edges(entity_id, data=True)]
+        else:
+            ends = [(u, d) for u, _, d in federation.in_edges(entity_id, data=True)]
+        return {
+            other: {**attributes, "degree": federation.out_degree(other)}
+            for other, attributes in ends
+        }
+
+    def device(self, node_id: str) -> dict[str, Any]:
+        """Return the resources of a device, as the infrastructure has them now.
+
+        Args:
+            node_id (str): The identifier of the device.
+
+        Returns:
+            dict[str, Any]: The resources of the device, by name.
+        """
+        return dict(self.infrastructure.nodes[node_id])
 
     def _enqueue(self, row: dict[str, Any]):
         """Queue a row for the JSON reporter.
