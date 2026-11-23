@@ -1,0 +1,148 @@
+[project]
+site_name = "FLYPSE"
+site_description = "Federated learning on the Cloud–Edge continuum"
+site_author = "Valerio De Caro & Jacopo Massa"
+site_dir = "_site"
+# Read the Docs canonical URL; Zensical does not interpolate environment variables
+site_url = "https://flypse.readthedocs.io/en/latest/"
+repo_url = "https://github.com/eclypse-org/flypse"
+repo_name = "eclypse-org/flypse"
+edit_uri = "edit/main/docs/"
+copyright = "Copyright &copy; Valerio De Caro & Jacopo Massa"
+extra_css = ["_static/css/custom.css"]
+# logo masters are kept in the repo but not published
+exclude_docs = """
+*.tiff
+/_build/
+/source/
+/overrides/
+"""
+not_in_nav = "/index.md"
+nav = [
+  { "Overview" = [
+    "overview/index.md",
+    "overview/install.md",
+    { "Getting started" = [
+      "overview/getting-started/index.md",
+      "overview/getting-started/first-federation.md",
+      "overview/getting-started/inspect-results.md",
+      "overview/getting-started/infrastructure.md",
+    ] },
+    { "Concepts" = [
+      "overview/concepts/index.md",
+      "overview/concepts/federation.md",
+      "overview/concepts/entities.md",
+      "overview/concepts/messaging.md",
+      "overview/concepts/models.md",
+      "overview/concepts/data.md",
+      "overview/concepts/splitters.md",
+      "overview/concepts/system.md",
+      "overview/concepts/process.md",
+    ] },
+    { "Advanced topics" = [
+      "overview/advanced/index.md",
+      "overview/advanced/reporting.md",
+      "overview/advanced/evaluation.md",
+      "overview/advanced/reproducibility.md",
+      "overview/advanced/heterogeneity.md",
+      "overview/advanced/building-on-eclypse.md",
+    ] },
+    { "Examples" = [
+      "overview/examples/index.md",
+      "overview/examples/fedavg.md",
+      "overview/examples/hierarchical.md",
+      "overview/examples/decentralized.md",
+      "overview/examples/stragglers.md",
+    ] },
+  ] },
+  # filled by api-autonav
+  { "Reference" = "reference/" },
+  { "Changelog" = "changelog.md" },
+]
+
+[project.theme]
+custom_dir = "docs/overrides"
+logo = "_static/images/logo.png"
+favicon = "_static/favicon/favicon.ico"
+font.text = "Montserrat"
+features = [
+  "content.action.edit",
+  "content.code.copy",
+  "content.code.annotate",
+  "content.code.select",
+  "content.tabs.link",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.instant.progress",
+  # "navigation.instant.preview",
+  "navigation.tracking",
+  "navigation.top",
+  "toc.follow",
+  # render only the visible nav branch; the full API tree would add ~250 KB per page
+  "navigation.prune",
+  "navigation.tabs",
+  "search.highlight",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to light mode"
+
+# Setting markdown_extensions replaces Zensical's defaults, so list all that are used
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+md_in_html = {}
+toc.permalink = true
+# toc.toc_depth = 3
+pymdownx.details = {}
+pymdownx.emoji.emoji_generator = "zensical.extensions.emoji.to_svg"
+pymdownx.emoji.emoji_index = "zensical.extensions.emoji.twemoji"
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+# includes resolve from the repository root (examples/, flypse/)
+pymdownx.snippets.base_path = ["."]
+pymdownx.snippets.check_paths = true
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+pymdownx.tabbed.alternate_style = true
+pymdownx.tabbed.combine_header_slug = true
+
+[project.plugins.api-autonav]
+modules = ["flypse"]
+nav_section_title = "Reference"
+
+[project.plugins.mkdocstrings.handlers.python]
+paths = ["."]
+
+[project.plugins.mkdocstrings.handlers.python.options]
+docstring_style = "google"
+# Sphinx never checked docstring types; mypy covers the annotations
+docstring_options.warn_missing_types = false
+# a Returns section is one item, "type: description", however many lines it takes
+docstring_options.returns_multiple_items = false
+docstring_options.returns_named_value = false
+members_order = "source"
+# private members stay hidden, except the hooks subclasses implement
+filters = ["!^_[^_]", "^_(read_parameters|write_parameter)$"]
+show_if_no_docstring = true
+inherited_members = false
+show_bases = true
+show_source = true
+separate_signature = true
+show_signature_annotations = false

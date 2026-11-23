@@ -1,4 +1,4 @@
-/* Scoped because Sphinx loads this stylesheet on article pages too. */
+/* Scoped to .fl-home; only the landing template (overrides/home.html) loads this file. */
 .fl-home {
   --iris:#a594ff;
   --azure:#3aa4de;
@@ -88,7 +88,7 @@
 .fl-home .hero {
   display:grid;
   grid-template-columns:minmax(0, 1fr) minmax(0, 1.15fr);
-  align-items:start;
+  align-items:stretch;
   gap:52px;
   padding:64px 0;
 }
@@ -158,12 +158,19 @@
 .fl-home .first-run a span { color:var(--iris); margin-left:6px; }
 .fl-home .first-run-logo { display:block; width:100%; height:auto; filter:drop-shadow(0 0 18px #a594ff30); }
 .fl-home .first-run p { grid-column:1 / -1; margin:4px 0 0; padding-top:14px; border-top:1px solid #ffffff12; color:#999; font-size:11px; line-height:1.8; }
+.fl-home .copy { display:flex; flex-direction:column; min-width:0; }
+.fl-home .install-cta { margin-top:auto; padding-top:24px; }
+.fl-home .install-command { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; padding:18px 22px; border:1px solid #a594ff60; border-radius:9px; background:#a594ff10; }
+.fl-home .install-command code { color:var(--iris); font-size:16px; user-select:all; }
+.fl-home .install-command button { flex-shrink:0; padding:8px 10px; border:1px solid #a594ff40; border-radius:5px; background:transparent; color:var(--iris); font:inherit; font-size:11px; cursor:pointer; }
+.fl-home .install-command button:hover { background:#a594ff18; }
+.fl-home .install-command button:focus-visible { outline:2px solid var(--iris); outline-offset:4px; }
 @media(max-width:480px) {
   .fl-home .first-run { grid-template-columns:minmax(0,1fr) 84px; gap:8px; padding:18px; }
   .fl-home .first-run li { font-size:12px; }
 }
-.fl-home .configuration { min-width:0; }
-.fl-home .configuration .cards { grid-template-columns:1fr; gap:12px; margin-top:20px; }
+.fl-home .configuration { display:flex; flex-direction:column; min-width:0; }
+.fl-home .configuration .cards { flex:1; grid-template-columns:1fr; gap:12px; margin-top:20px; }
 .fl-home .configuration .card { padding:20px 24px; }
 .fl-home .configuration h3 { margin:10px 0 8px; }
 .fl-home .configuration .card p { margin-bottom:12px; }
