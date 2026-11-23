@@ -93,6 +93,7 @@ version_provider = "uv"
 tag_format = "$version"
 bump_message = "chore(release): bump version $current_version → $new_version"
 update_changelog_on_bump = true
+major_version_zero = true
 version_files = [
     "pyproject.toml:^version",
     "flypse/__init__.py:__version__",
