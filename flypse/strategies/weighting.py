@@ -400,7 +400,7 @@ def fedamp(vectors: Sequence[np.ndarray], alpha: float, sigma: float) -> np.ndar
 
 def pfedgraph(
     vectors: Sequence[np.ndarray],
-    alpha: float,
+    alpha: float = 0.8,
     prior: Sequence[float] | None = None,
 ) -> np.ndarray:
     """Weigh the models for each recipient by a learnt collaboration graph (pFedGraph).
@@ -408,13 +408,16 @@ def pfedgraph(
     Row i minimises alpha ‖w_i - p‖² - Σ_j w_ij cos(v_i, v_j) on the simplex (Ye et
     al., 2023): close to the prior p (e.g., the shares of samples), with more
     weight on the models similar to v_i. Its solution is the projection of
-    p + cos(v_i, ·) / (2 alpha) on the simplex.
+    p + cos(v_i, ·) / (2 alpha) on the simplex. The reference code also rounds
+    every cosine above 0.9 up to 1, a step the objective does not have: it is
+    left out.
 
     Args:
         vectors (Sequence[np.ndarray]): The updates of the clients: each
             model minus the one it started the round from. The models
             themselves share their start, so their cosines are all near 1.
-        alpha (float): The pull towards the prior.
+        alpha (float): The pull towards the prior. Defaults to 0.8, as in the
+            reference code.
         prior (Sequence[float] | None): The prior weights, on the simplex.
             Defaults to None, meaning equal weights.
 
