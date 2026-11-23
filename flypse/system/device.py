@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Any,
 )
 
 from eclypse.remote.node import RemoteNode
@@ -31,6 +32,7 @@ class Device(RemoteNode):
         self,
         data: FederatedDataset | None = None,
         max_concurrency: int | None = None,
+        **node_config: Any,
     ):
         """Store the federation dataset on the device, and set up its slots.
 
@@ -39,8 +41,10 @@ class Device(RemoteNode):
                 Defaults to None.
             max_concurrency (int | None): The number of entities holding a
                 slot at once. Defaults to None, meaning no limit.
+            **node_config (Any): The other arguments of the node, passed on
+                to the build of the base node.
         """
-        super().build()
+        super().build(**node_config)
         self.data = data
         """The dataset of the federation."""
         self.concurrency = ConcurrencyHandler(max_concurrency)
