@@ -11,6 +11,7 @@ from flypse.strategies.weighting import (
     FoolsGold,
     by_samples,
     fedamp,
+    heurfedamp,
     hinge_staleness,
     inverse_probability,
     metropolis_hastings,
@@ -207,6 +208,33 @@ def test_fedamp_refuses_weights_that_would_be_negative(alpha, sigma):
     """alpha and sigma positive, and no model weighing itself negatively."""
     with pytest.raises(ValueError, match="alpha"):
         fedamp([np.zeros(2), np.zeros(2), np.zeros(2)], alpha, sigma)
+
+
+def test_heurfedamp_keeps_the_self_weight_and_favours_similar_models():
+    """The rest of each row goes mostly to the models pointing the same way."""
+    vectors = [np.array([1.0, 0.0]), np.array([0.9, 0.1]), np.array([-1.0, 0.0])]
+
+    weights = heurfedamp(vectors, sigma=10.0, self_weight=0.3)
+
+    assert weights.sum(axis=1) == pytest.approx(np.ones(3))
+    assert np.diag(weights) == pytest.approx([0.3, 0.3, 0.3])
+    assert weights[0, 1] > 0.69
+    assert heurfedamp(vectors, sigma=0.0, self_weight=0.3)[0] == pytest.approx(
+        [0.3, 0.35, 0.35]
+    )
+    assert np.all(np.isfinite(heurfedamp(vectors, sigma=1e4, self_weight=0.3)))
+    assert heurfedamp([np.ones(2)], sigma=10.0, self_weight=0.3) == pytest.approx(
+        np.ones((1, 1))
+    )
+
+
+@pytest.mark.parametrize(
+    ("sigma", "self_weight"), [(-1.0, 0.3), (1.0, -0.1), (1.0, 1.5)]
+)
+def test_heurfedamp_refuses_invalid_values(sigma, self_weight):
+    """sigma non-negative and self_weight in [0, 1]."""
+    with pytest.raises(ValueError, match="sigma"):
+        heurfedamp([np.zeros(2), np.zeros(2)], sigma, self_weight)
 
 
 def test_pfedgraph_rows_are_on_the_simplex_and_favour_similar_models():

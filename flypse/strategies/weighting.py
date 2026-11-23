@@ -398,6 +398,48 @@ def fedamp(vectors: Sequence[np.ndarray], alpha: float, sigma: float) -> np.ndar
     return weights
 
 
+def heurfedamp(
+    vectors: Sequence[np.ndarray], sigma: float, self_weight: float
+) -> np.ndarray:
+    """Weigh the models for each recipient by a softmax of their angles (HeurFedAMP).
+
+    w_ii = self_weight, and the rest, 1 - self_weight, is split among the
+    others in proportion to exp(sigma cos(v_i, v_j)): the heuristic variant of
+    :func:`fedamp` (Huang et al., 2021), comparing angles instead of distances,
+    with no weight that can turn negative. A single model weighs only itself.
+
+    Args:
+        vectors (Sequence[np.ndarray]): The models of the clients, or their
+            updates (e.g., sigma = 10 and self_weight = 0.3 on updates in the
+            comparisons of pFedGraph).
+        sigma (float): The sharpness of the softmax: 0 splits the rest
+            equally.
+        self_weight (float): The weight of each recipient's own model, in
+            [0, 1].
+
+    Returns:
+        np.ndarray: The weights, row i for recipient i, each row summing to 1.
+
+    Raises:
+        ValueError: If ``sigma`` is negative or ``self_weight`` is not in
+            [0, 1].
+    """
+    if sigma < 0 or not 0 <= self_weight <= 1:
+        raise ValueError(
+            "sigma must be non-negative and self_weight in [0, 1], "
+            f"got {sigma}, {self_weight}"
+        )
+    if len(vectors) == 1:
+        return np.ones((1, 1))
+    logits = sigma * _cosine_similarities(vectors)
+    np.fill_diagonal(logits, -np.inf)
+    # shifted by the largest of each row, so that exp cannot overflow
+    weights = np.exp(logits - logits.max(axis=1, keepdims=True))
+    weights *= (1 - self_weight) / weights.sum(axis=1, keepdims=True)
+    np.fill_diagonal(weights, self_weight)
+    return weights
+
+
 def pfedgraph(
     vectors: Sequence[np.ndarray],
     alpha: float = 0.8,
