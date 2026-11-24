@@ -79,7 +79,7 @@ class FractionSplitter(ViewSplitter):
 
     Example:
         ```python
-        splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
+        splitter = FractionSplitter({"train": 0.8, "test": 0.2})
         self.splits = splitter.apply(self.data)
         ```
     """
@@ -103,8 +103,10 @@ class FractionSplitter(ViewSplitter):
                 sorting key of an item (e.g., its timestamp). Defaults to
                 None, meaning the items are shuffled.
             seed (int | random.Random | None): The seed of the shuffling, or
-                the generator to shuffle with (e.g., the ``rng`` of an
-                entity). Defaults to None, meaning the seed of the process.
+                the generator to shuffle with, which gives other parts at every
+                split: not the ``rng`` of an entity, as an entity deployed again
+                would test on the items it trained on. Defaults to None, meaning
+                the seed of the process.
 
         Raises:
             ValueError: If there are no parts, or the fractions are not

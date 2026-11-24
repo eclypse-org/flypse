@@ -30,14 +30,15 @@ the seed of the process. These components use it:
 
 An entity draws from `self.rng`, or from `self.np_rng` for numpy arrays, both
 seeded from the seed of the process and its identifier, so that entities draw
-different but reproducible sequences. `self.rng` can also drive a splitter:
+different but reproducible sequences:
 
 ```python
-from flypse.data import FractionSplitter
-
 weights = [self.rng.uniform(-0.1, 0.1) for _ in range(n_features)]
-splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
 ```
+
+The sequences go on when the entity is [deployed again](../concepts/system.md#placement-reset).
+What must be the same at every deployment, such as the parts of a
+[splitter](../concepts/splitters.md), follows the seed of the process instead.
 
 !!! warning
 
