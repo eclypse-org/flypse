@@ -20,6 +20,7 @@ from eclypse.simulation._simulator.reporter import SimulationReporter
 from flypse.federation import (
     Entity,
     Federation,
+    get_tree,
 )
 from flypse.system import (
     ENTITY_REPORT,
@@ -142,6 +143,33 @@ def test_connections_follow_the_federation_of_the_process(simulator):
     assert {peer: c["degree"] for peer, c in out.items()} == {"b": 2}
     assert {peer: c["degree"] for peer, c in incoming.items()} == {"b": 2, "c": 2}
     assert "latency" in out["b"]
+
+
+async def test_neighbors_follow_the_federation_of_the_process(simulator):
+    """An entity learns its neighbours, all of them or those of a relation."""
+    federation = get_tree(
+        Entity("r"), {"r": [Entity("g")], "g": [Entity("c"), Entity("d")]}
+    )
+    federation.add_entity(Entity("x"))
+    federation.add_connection("g", "x")
+    simulator._manager = cast(
+        "Any",
+        SimpleNamespace(placements={"Fed": SimpleNamespace(application=federation)}),
+    )
+
+    async def neighbors(entity_id: str, *which: str) -> list[str]:
+        return await simulator.get_neighbors("Fed", entity_id, *which)
+
+    assert await neighbors("g") == ["r", "c", "d", "x"]
+    assert await neighbors("g", "out", "parent") == ["r"]
+    assert await neighbors("g", "out", "child") == ["c", "d"]
+    assert await neighbors("r", "out", "parent") == []
+
+    federation.remove_edge("g", "c")
+    assert await neighbors("g", "out", "child") == ["d"]
+    assert await neighbors("g", "in", "child") == ["c", "d"]
+    assert await neighbors("g", "in", "parent") == ["r"]
+    assert await neighbors("g", "in") == ["r", "c", "d", "x"]
 
 
 def test_device_follows_the_infrastructure_of_the_process(simulator):

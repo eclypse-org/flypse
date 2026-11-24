@@ -55,20 +55,27 @@ def test_tree_connects_each_entity_to_its_children():
     assert _neighbors(federation, "c3") == {"g2"}
 
 
-def test_star_and_tree_label_parents_and_children():
+def test_tree_relates_parents_and_children():
     """Each direction says what the other end is; requirements stay the same."""
-    star = get_star(Entity("s"), [Entity("a")])
-    tree = get_tree(Entity("r"), {"r": [Entity("g")], "g": [Entity("c")]})
+    federation = get_tree(Entity("r"), {"r": [Entity("g")], "g": [Entity("c")]})
 
-    for federation, parent, child in (
-        (star, "s", "a"),
-        (tree, "r", "g"),
-        (tree, "g", "c"),
-    ):
+    for parent, child in (("r", "g"), ("g", "c")):
         down = federation.edges[parent, child]
         up = federation.edges[child, parent]
         assert (down.pop("relation"), up.pop("relation")) == ("child", "parent")
         assert down == up
+
+
+@pytest.mark.parametrize(
+    "federation",
+    [
+        get_star(Entity("s"), [Entity("a")]),
+        get_ring([Entity("a"), Entity("b"), Entity("c")]),
+    ],
+)
+def test_star_and_ring_have_no_relations(federation):
+    """Neither has an ordering to denote."""
+    assert all("relation" not in c for _, _, c in federation.edges(data=True))
 
 
 def test_tree_rejects_parents_outside_the_tree():

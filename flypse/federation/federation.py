@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import (
     TYPE_CHECKING,
+    Literal,
     cast,
 )
 
@@ -25,6 +26,9 @@ if TYPE_CHECKING:
         InitPolicy,
         UpdatePolicies,
     )
+
+OPPOSITE_RELATION = {"parent": "child", "child": "parent"}
+"""The relation in the opposite direction of a connection."""
 
 
 class Federation(Application):
@@ -105,6 +109,7 @@ class Federation(Application):
         source: Entity | str,
         target: Entity | str,
         symmetric: bool = True,
+        relation: Literal["parent", "child"] | None = None,
         **assets,
     ):
         """Add a connection between two entities of the federation.
@@ -114,14 +119,24 @@ class Federation(Application):
             target (Entity | str): The target entity, or its identifier.
             symmetric (bool): Whether the connection works in both
                 directions. Defaults to True.
+            relation (Literal["parent", "child"] | None): What the target is to
+                the source, in a hierarchy: the other direction, if any, has the
+                opposite relation. Defaults to None, meaning that neither comes
+                before the other.
             **assets: The requirements of the connection.
+
+        Raises:
+            ValueError: If an entity is not in the federation, a requirement is
+                not valid, or the relation is unknown.
         """
-        super().add_edge(
-            _entity_id(source),
-            _entity_id(target),
-            symmetric=symmetric,
-            **assets,
-        )
+        if relation is not None and relation not in OPPOSITE_RELATION:
+            raise ValueError(f"unknown relation {relation!r}")
+        source, target = _entity_id(source), _entity_id(target)
+        super().add_edge(source, target, symmetric=symmetric, **assets)
+        if relation is not None:
+            self.edges[source, target]["relation"] = relation
+            if symmetric:
+                self.edges[target, source]["relation"] = OPPOSITE_RELATION[relation]
 
     @property
     def has_entity_implementations(self) -> bool:
