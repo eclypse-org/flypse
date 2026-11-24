@@ -1,6 +1,6 @@
 [project]
 name = "flypse"
-version = "0.1.0"
+version = "0.2.0"
 description = "Federated Learning framework based on ECLYPSE"
 readme = "README.md"
 requires-python = ">=3.11,<3.15"
