@@ -361,8 +361,9 @@ class FoolsGold:
             top[:, None], top[None, :], where=pardoned, out=np.ones_like(similarity)
         )
         weights = np.clip(1 - (similarity * ratio).max(axis=1), 0, 1)
-        if weights.max() == 0:
-            return weights
+        # rounding can leave 1e-16 instead of 0, and rescaling would make it 1
+        if np.isclose(weights.max(), 0):
+            return np.zeros_like(weights)
         weights = np.minimum(weights / weights.max(), 0.99)
         with np.errstate(divide="ignore"):
             logit = self.kappa * (np.log(weights / (1 - weights)) + 0.5)

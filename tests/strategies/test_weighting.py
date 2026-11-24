@@ -183,11 +183,20 @@ def test_foolsgold_weighs_down_sybils_with_the_same_history():
     assert weights.tolist() == [0.0, 0.0, 1.0, 1.0, 1.0]
 
 
-def test_foolsgold_gives_no_weight_when_every_history_is_the_same():
-    """Nothing tells honest clients from sybils."""
-    weights = FoolsGold().weigh(["a", "b"], [np.ones(3), np.ones(3)])
+@pytest.mark.parametrize("n_groups", [1, 2, 3])
+def test_foolsgold_gives_no_weight_when_every_history_has_a_twin(n_groups):
+    """Nothing tells honest clients from sybils, however the similarities round."""
+    senders = [str(i) for i in range(2 * n_groups)]
+    for seed in range(50):
+        updates = np.random.default_rng(seed).normal(size=(n_groups, 100))
 
-    assert weights.tolist() == [0.0, 0.0]
+        weights = FoolsGold().weigh(senders, [*updates, *updates])
+
+        assert weights.tolist() == [0.0] * len(senders)
+
+
+def test_foolsgold_refuses_a_non_positive_kappa():
+    """The confidence must be positive."""
     with pytest.raises(ValueError, match="kappa"):
         FoolsGold(kappa=0.0)
 
