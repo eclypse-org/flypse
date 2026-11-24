@@ -84,21 +84,21 @@ rounds depends on your machine, and how it changes does not:
 
 ```text
 second  rounds  mean participants  late models
-0       79      5.0                0
-1       82      5.0                0
-2       83      5.0                0
+0       51      5.0                0
+1       53      5.0                0
+2       46      5.0                0
 3       5       4.2                0
 4       5       4.0                1
-5       5       4.0                1
-6       66      5.0                1
-7       82      5.0                0
-8       82      5.0                0
-9       78      5.0                0
+5       4       4.0                1
+6       32      4.9                1
+7       49      5.0                0
+8       53      5.0                0
+9       51      5.0                0
 
-mean test loss at round 560: 0.003160
+mean test loss at round 340: 0.002992
 ```
 
-While the uplink is slow, rounds drop from about 80 per second to 5: the server waits
+While the uplink is slow, rounds drop from about 50 per second to 5: the server waits
 for the deadline of 0.2 seconds at every round, then closes it with the other four
 clients. The straggler's model takes a whole second to arrive, one round per second
 reports it as late, and the client gets the latest model back and tries again. When

@@ -42,8 +42,9 @@ its own.
 
 `Peer` both trains and aggregates. At every step it trains, sends its model
 to its neighbours, collects theirs and averages everything, its own model included,
-weighted by the number of samples. Peers draw their initial model from their `rng`
-in `on_deploy`, and keep 20% of their data aside as a test part.
+weighted by the number of samples. In `on_deploy`, peers draw their initial model from their
+`rng`, only the first time, and keep 20% of their data aside as a test part, the same at
+every deployment.
 
 Two details make the protocol work:
 
@@ -77,12 +78,12 @@ how far apart the models are.
 
 ```text
 round   mean test loss   largest distance between peers
-10      0.137220         0.351514
-20      0.029629         0.149306
-30      0.009107         0.063738
-40      0.004956         0.027375
-50      0.004020         0.014334
-60      0.003772         0.008949
+10      0.114046         0.347883
+20      0.022369         0.145257
+30      0.006378         0.060791
+40      0.003578         0.025407
+50      0.003091         0.012001
+60      0.003008         0.006894
 ```
 
 There is no global model here: every peer has its own, and the last column is the

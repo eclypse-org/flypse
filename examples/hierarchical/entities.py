@@ -80,17 +80,21 @@ class Client(Entity):
     def on_deploy(self):
         """Bind the local data, initialise the model and split off a test part.
 
-        The initial model and the split are drawn from the ``rng`` of the
-        entity, seeded from the seed of the process. The entity trains on 80%
-        of its data and keeps the rest to evaluate the model.
+        The initial model is drawn from the ``rng`` of the entity, seeded from the
+        seed of the process, and only once: an entity deployed again goes on with
+        its model. The split follows the seed of the process, so it is the same at
+        every deployment. The entity trains on 80% of its data and keeps the rest to
+        evaluate the model.
         """
         super().on_deploy()
-        self.model.model = LinearModel(
-            [self.rng.uniform(-0.1, 0.1) for _ in range(self._n_features)],
-            self.rng.uniform(-0.1, 0.1),
-        )
+        # a version of all zeros: nothing has been learnt yet
+        if not any(self.model.version):
+            self.model.model = LinearModel(
+                [self.rng.uniform(-0.1, 0.1) for _ in range(self._n_features)],
+                self.rng.uniform(-0.1, 0.1),
+            )
         if self.data is not None:
-            splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
+            splitter = FractionSplitter({"train": 0.8, "test": 0.2})
             self.splits = splitter.apply(self.data)
             self.data = self.splits["train"]
 

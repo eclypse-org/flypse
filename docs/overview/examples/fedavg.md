@@ -55,9 +55,11 @@ samples, and broadcasts the result:
 Θ = Σ_c (n_c / n) Θ_c
 ```
 
-Clients draw their initial model from their `rng` in `on_deploy`, and keep 20%
-of their data aside as a test part. The server sorts the messages before averaging,
-so that the result does not depend on the order they arrived in.
+In `on_deploy`, clients draw their initial model from their `rng`, only the first time, and
+keep 20% of their data aside as a test part, the same at every deployment: a client that is
+[deployed again](../concepts/system.md#placement-reset) goes on with what it has learnt. The
+server sorts the messages before averaging, so that the result does not depend on the order
+they arrived in.
 
 ??? example "Entities code"
 
@@ -83,12 +85,12 @@ example prints the mean loss of the first evaluated rounds, and of the last one:
 
 ```text
 round   evaluations  mean test loss
-10      5            0.006386
-20      5            0.003138
-30      5            0.003159
-40      5            0.003160
-50      5            0.003160
-760     5            0.003160
+10      5            0.006079
+20      5            0.002994
+30      5            0.002992
+40      5            0.002992
+50      5            0.002992
+510     5            0.002992
 ```
 
 The loss settles within a few dozen rounds. The process is seeded, so the values of
