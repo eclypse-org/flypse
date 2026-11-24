@@ -130,7 +130,7 @@ class Server(Entity):
 
 With no server, each peer averages its own model with those of its neighbours. Its weights
 are a row of the mixing matrix of the graph, computed from the
-[connections](../concepts/federation.md#parents-and-children) of the peer:
+[connections](../concepts/federation.md#neighbours-and-direction) of the peer:
 
 ```python
 import numpy as np

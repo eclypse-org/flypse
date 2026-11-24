@@ -135,6 +135,42 @@ def test_add_connection_can_be_directed():
     assert not federation.has_edge("b", "a")
 
 
+def test_add_connection_denotes_the_relation_in_each_direction():
+    """The directions are two edges, with opposite relations."""
+    federation = Federation()
+    for entity_id in "abc":
+        federation.add_entity(Entity(entity_id))
+
+    federation.add_connection("a", "b", relation="parent")
+    federation.add_connection("a", "c")
+
+    assert federation.edges["a", "b"]["relation"] == "parent"
+    assert federation.edges["b", "a"]["relation"] == "child"
+    assert "relation" not in federation.edges["a", "c"]
+
+
+def test_add_connection_denotes_the_relation_of_a_single_direction():
+    """A directed connection has no opposite to denote."""
+    federation = Federation()
+    federation.add_entity(Entity("a"))
+    federation.add_entity(Entity("b"))
+
+    federation.add_connection("a", "b", symmetric=False, relation="parent")
+
+    assert list(federation.edges(data="relation")) == [("a", "b", "parent")]
+
+
+def test_add_connection_rejects_an_unknown_relation():
+    """A mistyped relation adds nothing."""
+    federation = Federation()
+    federation.add_entity(Entity("a"))
+    federation.add_entity(Entity("b"))
+
+    with pytest.raises(ValueError, match="relation"):
+        federation.add_connection("a", "b", relation="boss")  # type: ignore[arg-type]
+    assert not federation.edges
+
+
 def test_add_connection_requires_known_entities():
     """An interaction with an unknown entity is rejected."""
     federation = Federation()

@@ -29,6 +29,8 @@ from eclypse.simulation._simulator import RemoteSimulator
 from eclypse.utils.constants import FLOAT_EPSILON
 from eclypse.utils.defaults import JSON_REPORT_DIR
 
+from flypse.federation.federation import OPPOSITE_RELATION
+
 if TYPE_CHECKING:
     from flypse.federation import Entity
 
@@ -67,6 +69,37 @@ class FederatedSimulator(RemoteSimulator):
         }
         # this runs on the loop of the actor, the reporter on the one of the simulation
         self._event_loop.call_soon_threadsafe(self._enqueue, row)
+
+    async def get_neighbors(
+        self,
+        application_id: str,
+        service_id: str,
+        direction: str = "out",
+        relation: str | None = None,
+    ) -> list[str]:
+        """Return the neighbours of an entity, as the federation has them now.
+
+        Args:
+            application_id (str): The identifier of the federation.
+            service_id (str): The identifier of the entity.
+            direction (str): ``"out"`` for the entities it sends to, ``"in"`` for
+                those sending to it. Defaults to ``"out"``.
+            relation (str | None): What the neighbours are to the entity.
+                Defaults to None, meaning all of them.
+
+        Returns:
+            list[str]: The identifiers of the neighbours.
+        """
+        federation = self.placements[application_id].application
+        ends = federation.adj if direction == "out" else federation.pred
+        # a connection tells what its target is to its source
+        if direction == "in" and relation is not None:
+            relation = OPPOSITE_RELATION[relation]
+        return [
+            neighbor
+            for neighbor, connection in ends[service_id].items()
+            if relation is None or connection.get("relation") == relation
+        ]
 
     def connections(
         self, application_id: str, entity_id: str, direction: str

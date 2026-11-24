@@ -6,10 +6,10 @@ aggregators and their clients), or a ring (e.g., peers of a decentralised federa
 Any other argument is passed to the
 [Federation][flypse.federation.federation.Federation].
 
-In a star or a tree, each direction of a connection has a ``relation``: what
-the entity at the other end is, ``"parent"`` or ``"child"``. An entity reads
-it with ``get_connections``, so it needs no identifiers of its own to tell
-its parent from its children.
+In a tree, each direction of a connection has a ``relation``: what the entity at
+the other end is, ``"parent"`` or ``"child"``. An entity asks for the neighbours of
+a relation with ``get_neighbors``, so it needs no identifiers to tell its parent
+from its children. The entities of a star or a ring have no such ordering.
 """
 
 from __future__ import annotations
@@ -38,8 +38,6 @@ def get_star(
 ) -> Federation:
     """Create a federation connecting a centre to each of the leaves.
 
-    The centre is the parent of the leaves.
-
     Args:
         center (Entity): The entity at the centre (e.g., the server).
         leaves (Sequence[Entity]): The entities connected to the centre
@@ -54,7 +52,7 @@ def get_star(
     """
     federation = _federation([center, *leaves], federation_args)
     for leaf in leaves:
-        _connect(federation, center.id, leaf.id)
+        federation.add_connection(center, leaf)
     return federation
 
 
@@ -64,6 +62,9 @@ def get_tree(
     **federation_args: Any,
 ) -> Federation:
     """Create a federation connecting each entity to its children.
+
+    The direction of a connection going up has the relation ``"parent"``, the one
+    going down ``"child"``.
 
     Args:
         root (Entity): The entity at the root (e.g., the server).
@@ -83,9 +84,9 @@ def get_tree(
         federation = get_tree(
             Server("server"),
             {
-                "server": [Aggregator("edge_0"), Aggregator("edge_1")],
-                "edge_0": [Client("client_0"), Client("client_1")],
-                "edge_1": [Client("client_2"), Client("client_3")],
+                "server": [Aggregator("group_0"), Aggregator("group_1")],
+                "group_0": [Client("client_0"), Client("client_1")],
+                "group_1": [Client("client_2"), Client("client_3")],
             },
         )
         ```
@@ -93,9 +94,8 @@ def get_tree(
         An aggregator then finds its parent and its children:
 
         ```python
-        connections = await self.get_connections()
-        parent = [e for e, c in connections.items() if c["relation"] == "parent"]
-        children = [e for e, c in connections.items() if c["relation"] == "child"]
+        [parent] = await self.get_neighbors(relation="parent")
+        children = await self.get_neighbors(relation="child")
         ```
     """
     federation = _federation(
@@ -105,7 +105,7 @@ def get_tree(
     reached = [root.id]
     for parent in reached:  # grows while walking, level by level
         for child in children.get(parent, ()):
-            _connect(federation, parent, child.id)
+            federation.add_connection(parent, child, relation="child")
             reached.append(child.id)
     unreachable = sorted(set(children) - set(reached))
     if unreachable:
@@ -133,19 +133,6 @@ def get_ring(entities: Sequence[Entity], **federation_args: Any) -> Federation:
     for entity, following in zip(entities, [*entities[1:], entities[0]], strict=True):
         federation.add_connection(entity, following)
     return federation
-
-
-def _connect(federation: Federation, parent: str, child: str):
-    """Connect a parent to a child, labelling each direction with its relation.
-
-    Args:
-        federation (Federation): The federation of the two entities.
-        parent (str): The identifier of the parent.
-        child (str): The identifier of the child.
-    """
-    federation.add_connection(parent, child)
-    federation.edges[parent, child]["relation"] = "child"
-    federation.edges[child, parent]["relation"] = "parent"
 
 
 def _federation(entities: Sequence[Entity], args: dict[str, Any]) -> Federation:

@@ -27,13 +27,9 @@ from flypse.system import Device
 class FakeMPI:
     """An in-memory stand-in for the ECLYPSE MPI interface."""
 
-    def __init__(self, inbox=None, neighbors=None):
+    def __init__(self, inbox=None):
         self.inbox = list(inbox or [])
-        self.neighbors = neighbors or []
         self.sent: list[tuple] = []
-
-    async def get_neighbors(self):
-        return self.neighbors
 
     async def send(self, recipients, body):
         self.sent.append(("send", recipients, body))
@@ -52,17 +48,23 @@ class FakeMPI:
 class FakeSimulator:
     """An in-memory stand-in for the simulator actor."""
 
-    def __init__(self, connections=None, device=None):
+    def __init__(self, neighbors=None, connections=None, device=None):
         self.reports: list[tuple] = []
         self.asked: list[tuple] = []
+        self._neighbors = neighbors or []
         self._connections = connections or {}
         self._device = device or {}
         self.report = SimpleNamespace(remote=self._receive)
+        self.get_neighbors = SimpleNamespace(remote=self._reach)
         self.connections = SimpleNamespace(remote=self._connect)
         self.device = SimpleNamespace(remote=self._describe)
 
     def _receive(self, *report):
         self.reports.append(report)
+
+    async def _reach(self, *question):
+        self.asked.append(question)
+        return self._neighbors
 
     async def _connect(self, *question):
         self.asked.append(question)
@@ -349,11 +351,30 @@ def test_entity_can_reassign_its_data():
     assert [entity.data[i] for i in range(len(entity.data))] == [3, 4]
 
 
-async def test_entity_get_neighbors():
-    """The neighbors are those of the underlying interface."""
-    entity = _with_mpi(FakeMPI(neighbors=["b", "c"]))
+async def test_entity_asks_the_simulator_for_its_neighbors():
+    """Neighbours come from the process, all of them or those of a relation."""
+    entity = Entity("a")
+    simulator = _connect(entity, neighbors=["b", "c"])
 
     assert await entity.get_neighbors() == ["b", "c"]
+    assert await entity.get_neighbors(relation="child") == ["b", "c"]
+    assert await entity.get_neighbors("in", "parent") == ["b", "c"]
+    assert simulator.asked == [
+        ("Fed", "a", "out", None),
+        ("Fed", "a", "out", "child"),
+        ("Fed", "a", "in", "parent"),
+    ]
+
+
+@pytest.mark.parametrize("wrong", [{"direction": "both"}, {"relation": "boss"}])
+async def test_entity_refuses_an_unknown_kind_of_neighbors(wrong):
+    """A mistyped argument raises, rather than finding nobody."""
+    entity = Entity("a")
+    simulator = _connect(entity)
+
+    with pytest.raises(ValueError, match="unknown"):
+        await entity.get_neighbors(**wrong)
+    assert simulator.asked == []
 
 
 async def test_entity_send_and_bcast_wrap_the_record_and_data():
@@ -484,7 +505,7 @@ async def test_entity_asks_the_simulator_for_its_connections():
     simulator = _connect(entity, connections=connections)
 
     assert await entity.get_connections() == connections
-    assert await entity.get_neighbors(direction="in") == ["b"]
+    assert await entity.get_connections("in") == connections
     assert simulator.asked == [("Fed", "a", "out"), ("Fed", "a", "in")]
 
 
