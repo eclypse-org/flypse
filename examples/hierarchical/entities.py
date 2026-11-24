@@ -128,7 +128,7 @@ class Client(Entity):
         record = self.model.update_version(self.model.get_parameters(), "local")
         loss = mean_squared_error(self.model.model, self.data)
 
-        [aggregator] = await related(self, "parent")
+        [aggregator] = await self.get_neighbors(relation="parent")
         await self.send(
             aggregator,
             record,
@@ -174,7 +174,7 @@ class GroupAggregator(Entity):
 
     async def step(self):
         """Aggregate the clients, and synchronise with the root when it is time."""
-        clients = await related(self, "child")
+        clients = await self.get_neighbors(relation="child")
         messages = [await self.receive() for _ in clients]
         record = self.model.update_version(weighted_average(messages), "group")
 
@@ -182,7 +182,7 @@ class GroupAggregator(Entity):
         if self._rounds % self._global_every == 0:
             n_samples = sum(m.data["n_samples"] for m in messages)
             loss = sum(m.data["loss"] * m.data["n_samples"] for m in messages)
-            [root] = await related(self, "parent")
+            [root] = await self.get_neighbors(relation="parent")
             await self.send(root, record, n_samples=n_samples, loss=loss / n_samples)
             message = await self.receive()
             record = self.model.load_version(message.record)
@@ -231,22 +231,6 @@ class Root(Entity):
         )
         self.logger.info(f"Global round loss: {global_loss:.6f}")
         return global_loss
-
-
-async def related(entity: Entity, relation: str) -> list[str]:
-    """Return the entities at the other end of the connections with a relation.
-
-    The process holds the federation, so the entity asks it at every call.
-
-    Args:
-        entity (Entity): The entity.
-        relation (str): ``"parent"`` or ``"child"``.
-
-    Returns:
-        list[str]: The identifiers of the entities, sorted.
-    """
-    connections = await entity.get_connections()
-    return sorted(e for e, c in connections.items() if c["relation"] == relation)
 
 
 def weighted_average(messages: list[Message]) -> np.ndarray:

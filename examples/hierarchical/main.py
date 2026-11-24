@@ -27,8 +27,8 @@ ROOT_ID = "root"
 """The identifier of the root."""
 
 GROUPS = {
-    "edge_0": ["client_0", "client_1"],
-    "edge_1": ["client_2", "client_3"],
+    "group_0": ["client_0", "client_1"],
+    "group_1": ["client_2", "client_3"],
 }
 """The identifiers of the clients of each group aggregator."""
 
