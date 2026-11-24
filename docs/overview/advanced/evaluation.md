@@ -35,7 +35,7 @@ from flypse.data import FractionSplitter
 class Client(Entity):
     def on_deploy(self):
         super().on_deploy()
-        splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
+        splitter = FractionSplitter({"train": 0.8, "test": 0.2})
         self.splits = splitter.apply(self.data)
         self.data = self.splits["train"]
 
@@ -64,7 +64,7 @@ process.reported[0]
 ```
 
 ```text
-{'round': 10, 'version': [10, 0], 'model': '0394059a834f6bb2', 'split': 'test', 'metrics': {'loss': 0.0057279877326380955}, 'node_id': 'client_2', 'entity_id': 'client_2', 'timestamp': '2026-11-05T23:35:35.910228', 'n_report': 1}
+{'round': 10, 'version': [10, 0], 'model': '0755f64012ee5a0f', 'split': 'test', 'metrics': {'loss': 0.0110164559397167}, 'node_id': 'client_0', 'entity_id': 'client_0', 'timestamp': '2026-11-24T10:13:56.078908', 'n_report': 1}
 ```
 
 ## Compare across entities

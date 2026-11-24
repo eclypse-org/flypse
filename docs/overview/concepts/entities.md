@@ -56,7 +56,7 @@ from flypse.data import FractionSplitter
 class Client(Entity):
     def on_deploy(self):
         super().on_deploy()
-        splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
+        splitter = FractionSplitter({"train": 0.8, "test": 0.2})
         self.splits = splitter.apply(self.data)
         self.data = self.splits["train"]
 ```
@@ -64,8 +64,18 @@ class Client(Entity):
 An entity can be deployed more than once: when the placement of a federation is reset, its
 entities are undeployed and deployed again, and they run `on_deploy` again. The attributes
 of the entity, such as its model, are kept, so `on_deploy` should not reset what a new
-deployment must not lose. See [When the placement is reset](system.md#placement-reset) for
-when that happens.
+deployment must not lose. For instance, it draws an initial model only as long as nothing has
+been learnt, which is when the [version](versions.md) of the model is all zeros:
+
+```python
+class Client(Entity):
+    def on_deploy(self):
+        super().on_deploy()
+        if not any(self.model.version):
+            self.model.model = draw_model(self.rng)
+```
+
+See [When the placement is reset](system.md#placement-reset) for when that happens.
 
 ## Local data
 

@@ -44,14 +44,20 @@ from flypse.federation import Entity
 class Client(Entity):
     def on_deploy(self):
         super().on_deploy()
-        splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
+        splitter = FractionSplitter({"train": 0.8, "test": 0.2})
         self.splits = splitter.apply(self.data)
         self.data = self.splits["train"]
 ```
 
-Passing `self.rng` as the seed makes each entity split differently, but reproducibly.
-Storing the parts in `self.splits` makes them available to the
+With no seed, the parts follow the seed of the process, so they are the same at every
+deployment of the entity. Storing them in `self.splits` makes them available to the
 [evaluation](../advanced/evaluation.md) of the entity by name.
+
+!!! warning
+
+    Do not pass `self.rng` as the seed: it goes on across deployments, so after a
+    [placement reset](system.md#placement-reset) the new test part would hold items
+    the entity has already trained on.
 
 !!! note
 
@@ -68,7 +74,7 @@ def label(item):
     return item[1]
 
 
-splitter = FractionSplitter({"train": 0.8, "test": 0.2}, stratify=label, seed=self.rng)
+splitter = FractionSplitter({"train": 0.8, "test": 0.2}, stratify=label)
 ```
 
 ### Keep the order
@@ -92,8 +98,8 @@ splitter = FractionSplitter({"train": 0.7, "test": 0.3}, order=timestamp)
 A part is a view, so it can be split in turn:
 
 ```python
-parts = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng).apply(self.data)
-parts |= FractionSplitter({"train": 0.75, "eval": 0.25}, seed=self.rng).apply(parts["train"])
+parts = FractionSplitter({"train": 0.8, "test": 0.2}).apply(self.data)
+parts |= FractionSplitter({"train": 0.75, "eval": 0.25}).apply(parts["train"])
 ```
 
 Out of 100 items, this gives 60 for training, 20 for evaluation and 20 for test.

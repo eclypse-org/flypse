@@ -157,7 +157,7 @@ def test_fraction_split_falls_back_to_the_process_seed(monkeypatch):
 
 
 def test_fraction_split_accepts_a_generator():
-    """A generator (e.g., the rng of an entity) can drive the shuffling."""
+    """A generator can drive the shuffling."""
     view = _view(list(range(20)))
 
     assert FractionSplitter({"a": 0.5, "b": 0.5}, seed=random.Random(3)).split(
