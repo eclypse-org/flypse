@@ -58,9 +58,9 @@ argument goes to the [Federation][flypse.federation.federation.Federation], such
     federation = get_tree(
         Server("server"),
         {
-            "server": [Aggregator("edge_0"), Aggregator("edge_1")],
-            "edge_0": [Client("client_0"), Client("client_1")],
-            "edge_1": [Client("client_2"), Client("client_3")],
+            "server": [Aggregator("group_0"), Aggregator("group_1")],
+            "group_0": [Client("client_0"), Client("client_1")],
+            "group_1": [Client("client_2"), Client("client_3")],
         },
     )
     ```
@@ -115,33 +115,35 @@ send messages to. A connection works in both directions by default.
     to `target` but not the other way round: `target` does not have `source`
     among its neighbours, and cannot reply.
 
+[get_connections][flypse.federation.entity.Entity.get_connections] returns the connections to
+the neighbours too, with the attributes of each.
+
 ## Parents and children
 
-In a star or a tree, every connection works in both directions, so the neighbours
-of an aggregator include its parent and its children alike. The builders tell them
-apart: each direction of a connection has a `relation`, what the entity at the
-other end is, `"parent"` or `"child"`. The centre of a star is the parent of the
-leaves.
-
-[get_connections][flypse.federation.entity.Entity.get_connections] returns the connections of
-an entity, with their attributes, as the process knows them at the time of the call:
+In a tree, every connection works in both directions, so the neighbours of an aggregator
+include its parent and its children alike. The two directions are distinct, and each has a
+`relation`, what the entity at its other end is to the one it starts from: `"parent"` going
+up, `"child"` going down. An entity asks for the neighbours of a relation, which the process
+gives as they are at the time of the call:
 
 ```python
 async def step(self):
-    connections = await self.get_connections()
-    parent = [e for e, c in connections.items() if c["relation"] == "parent"]
-    children = [e for e, c in connections.items() if c["relation"] == "child"]
+    parents = await self.get_neighbors(relation="parent")
+    children = await self.get_neighbors(relation="child")
 ```
 
 The root has no parent and a client no children, so one entity class can work at any
-level of a tree, and its code needs no identifiers of the others. A federation built
-by hand gets the same labels by setting them on each direction:
+level of a tree, and its code needs no identifiers of the others.
+
+Any federation has a hierarchy if its connections are added with a `relation`, what the target
+is to the source. The opposite direction gets the opposite relation:
 
 ```python
-federation.add_connection("server", "client_0")
-federation.edges["server", "client_0"]["relation"] = "child"
-federation.edges["client_0", "server"]["relation"] = "parent"
+federation.add_connection("client_0", "server", relation="parent")
 ```
+
+Where there is no ordering to tell, as in a star or a ring, connections have no relation, and
+asking for one returns no neighbours.
 
 ## Requirements
 

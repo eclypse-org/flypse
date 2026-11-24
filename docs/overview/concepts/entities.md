@@ -109,7 +109,7 @@ the run:
 
 | Method | Returns |
 | --- | --- |
-| [get_neighbors][flypse.federation.entity.Entity.get_neighbors] | The entities it sends to, or, with `"in"`, those sending to it |
+| [get_neighbors][flypse.federation.entity.Entity.get_neighbors] | The entities it sends to, or only its [parents or children](federation.md#parents-and-children), or, with `"in"`, those sending to it |
 | [get_connections][flypse.federation.entity.Entity.get_connections] | The same, with the attributes of each connection and the degree of the neighbour |
 | [get_device][flypse.federation.entity.Entity.get_device] | The resources of [its device](devices.md) |
 

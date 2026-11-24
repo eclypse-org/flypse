@@ -54,10 +54,9 @@ the result to the root and loads the global model it gets back. Then it sends th
 latest model to its clients.
 
 It sends to its clients explicitly rather than with `bcast`, as its neighbours
-include the root. No entity is given the identifiers of the others: `related` asks
-the process for the connections of an entity with
-[get_connections][flypse.federation.entity.Entity.get_connections], and keeps those with a
-given relation, `"parent"` or `"child"`, as `get_tree` labels them (see
+include the root. No entity is given the identifiers of the others: each asks the process
+for its parent or its children, with the `relation` of
+[get_neighbors][flypse.federation.entity.Entity.get_neighbors] (see
 [Parents and children](../concepts/federation.md#parents-and-children)).
 
 A plain `receive` is enough, with no `source`, because the entities strictly alternate:
