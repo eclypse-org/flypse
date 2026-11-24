@@ -19,10 +19,10 @@ class ConcurrencyHandler:
     """The slots of a device, shared by the entities on it.
 
     Example:
-        .. code-block:: python
-
-            async with self.concurrency:
-                train(self.model.model, self.data)
+        ```python
+        async with self.concurrency:
+            train(self.model.model, self.data)
+        ```
     """
 
     def __init__(self, max_concurrency: int | None = None):

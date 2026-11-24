@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Emulate federated learning on the Cloud–Edge continuum in Python. Implement the entities of a federation, split the data across them, and run them on emulated devices." />
+    <title>FLYPSE | Federated learning on the Cloud–Edge continuum</title>
+    <link rel="icon" href="_static/favicon/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap"
+      rel="stylesheet" />
+    <link rel="stylesheet" href="_static/css/home.css" />
+  </head>
+  <body class="fl-home">
+    <div class="ambient" aria-hidden="true">
+      <div class="ambient-cloud ambient-cloud-far"></div>
+      <div class="ambient-cloud ambient-cloud-near"></div>
+      <canvas class="ambient-network"></canvas>
+      <div class="ambient-light"></div>
+    </div>
+    <a class="skip" href="#main">Skip to content</a>
+    <header class="wrap header">
+      <a class="brand" href="./">
+        <img src="_static/favicon/android-chrome-192x192.png" width="48" height="48" alt="" />
+        <span>FLYPSE<small>DOCUMENTATION</small> </span>
+      </a>
+      <nav aria-label="Main navigation">
+        <a href="overview/getting-started/">Get started</a>
+        <a href="overview/examples/">Examples</a>
+        <a href="reference/flypse/">API reference</a>
+      </nav>
+      <a class="source" href="https://github.com/eclypse-org/flypse">GitHub ↗</a>
+    </header>
+    <main id="main" class="wrap" tabindex="-1">
+      <section class="hero" aria-labelledby="title">
+        <div class="copy">
+          <p class="eyebrow">FLYPSE / DOCUMENTATION</p>
+          <h1 id="title">Emulate federated learning across the Cloud–Edge continuum <span>in Python.</span></h1>
+          <p class="intro">
+            Implement the entities of a federation, split the data across them, and choose the
+            devices they run on. Each device runs in its own process and entities exchange real
+            messages, so the statistics of the data and the limits of the system both shape the
+            learning.
+          </p>
+          <div class="actions">
+            <a class="button primary" href="overview/getting-started/first-federation/"
+              >Run your first federation <span aria-hidden="true">→</span></a
+            >
+            <a class="button" href="overview/install/">Installation</a>
+          </div>
+          <section class="first-run" aria-labelledby="first-run-title">
+            <div>
+              <h2 id="first-run-title">Your first run</h2>
+              <ol>
+                <li>
+                  <a href="overview/install/"
+                    >Install FLYPSE <span aria-hidden="true">→</span></a
+                  >
+                </li>
+                <li>
+                  <a
+                    href="overview/getting-started/first-federation/#build-the-federation-and-its-data"
+                    >Build your federation <span aria-hidden="true">→</span></a
+                  >
+                </li>
+                <li>
+                  <a href="overview/getting-started/inspect-results/"
+                    >Run and inspect the reports <span aria-hidden="true">→</span></a
+                  >
+                </li>
+              </ol>
+            </div>
+            <div class="logo-eclipse">
+              <div class="eclipse-sun" aria-hidden="true"></div>
+              <img
+                class="first-run-logo"
+                src="_static/favicon/android-chrome-512x512.png"
+                alt="FLYPSE"
+                width="512"
+                height="512"
+                fetchpriority="high" />
+            </div>
+            <p>Runs on your machine through Ray: no cluster required.</p>
+          </section>
+          <div class="install-cta">
+            <div class="install-command">
+              <code>pip install flypse</code>
+              <button type="button" aria-label="Copy installation command">
+                <span aria-live="polite">Copy</span>
+              </button>
+            </div>
+          </div>
+        </div>
+        <section class="configuration" aria-labelledby="configure-title">
+          <p class="eyebrow">WHAT YOU CONFIGURE</p>
+          <h2 id="configure-title">Start with three building blocks.</h2>
+          <div class="cards">
+            <a class="card" href="overview/concepts/federation/"
+              ><span class="card-number">01 / FEDERATION</span>
+              <h3>Entities and connections</h3>
+              <p>
+                Implement what each entity does at every step, then connect them as a star, a tree,
+                a ring or any graph of your own.
+              </p>
+              <span class="card-link">Build a federation →</span></a
+            >
+            <a class="card" href="overview/concepts/data/"
+              ><span class="card-number">02 / DATA</span>
+              <h3>Splits across entities</h3>
+              <p>
+                Give each entity its portion of a dataset, uniform or skewed by label or quantity,
+                and split each portion into train and test parts.
+              </p>
+              <span class="card-link">Split the data →</span></a
+            >
+            <a class="card" href="overview/concepts/system/"
+              ><span class="card-number">03 / SYSTEM</span>
+              <h3>Devices and placement</h3>
+              <p>
+                Run on one device or on a copy of the topology of the federation, then shape its
+                links and devices to match the system you want to study.
+              </p>
+              <span class="card-link">Choose where it runs →</span></a
+            >
+          </div>
+        </section>
+      </section>
+
+      <section class="section" aria-labelledby="round-title">
+        <p class="eyebrow">WHAT AN ENTITY DECIDES</p>
+        <h2 id="round-title">A round is six decisions. Change one at a time.</h2>
+        <p class="section-intro">
+          Strategies are plain functions an entity calls inside its own step. Federated averaging,
+          FedAdam or a Byzantine-robust server differ in the one they take for each decision.
+        </p>
+        <ol class="round">
+          <li class="out">
+            <a href="overview/strategies/selection/"
+              ><strong>Selection</strong><span>Whom to engage</span></a
+            >
+          </li>
+          <li class="out">
+            <a href="overview/strategies/assignment/"
+              ><strong>Assignment</strong><span>What to ask of each</span></a
+            >
+          </li>
+          <li class="in">
+            <a href="overview/strategies/screening/"
+              ><strong>Screening</strong><span>Which updates to use</span></a
+            >
+          </li>
+          <li class="in">
+            <a href="overview/strategies/weighting/"
+              ><strong>Weighting</strong><span>How much each counts</span></a
+            >
+          </li>
+          <li class="in">
+            <a href="overview/strategies/aggregation/"
+              ><strong>Aggregation</strong><span>How they combine</span></a
+            >
+          </li>
+          <li class="out">
+            <a href="overview/strategies/optimization/"
+              ><strong>Optimisation</strong><span>How the model changes</span></a
+            >
+          </li>
+        </ol>
+        <p class="round-key">
+          <span class="out">What the entity sends: the model</span>
+          <span class="in">What comes back: the updates</span>
+        </p>
+        <a class="text-link" href="overview/strategies/algorithms/">Compose an algorithm →</a>
+      </section>
+      <section class="section" aria-labelledby="cases-title">
+        <p class="eyebrow">SCENARIO IDEAS</p>
+        <h2 id="cases-title">What would you like to investigate?</h2>
+        <p class="section-intro">
+          Illustrative research questions, not preconfigured benchmarks or measured results. Each
+          requires its own model, data and system assumptions.
+        </p>
+        <div class="cards use-cases">
+          <article class="card">
+            <span class="card-number">LABEL SKEW</span>
+            <h3>Clients see different classes</h3>
+            <p>
+              Split the data with a Dirichlet distribution. How much heterogeneity can an
+              aggregation strategy tolerate before accuracy drops?
+            </p>
+            <dl>
+              <dt>Vary</dt>
+              <dd>The concentration of the split and the number of entities.</dd>
+              <dt>Inspect</dt>
+              <dd>Evaluations per entity and round, on their own test parts.</dd>
+            </dl>
+            <a class="card-link" href="overview/concepts/data/">Model data skew →</a>
+          </article>
+          <article class="card">
+            <span class="card-number">HIERARCHY</span>
+            <h3>Aggregators near the edge</h3>
+            <p>
+              Group clients under edge aggregators. Does aggregating often at the edge make up for
+              rarer global rounds?
+            </p>
+            <dl>
+              <dt>Vary</dt>
+              <dd>The shape of the tree and how often groups report to the server.</dd>
+              <dt>Inspect</dt>
+              <dd>Loss per version of the model, across its version levels.</dd>
+            </dl>
+            <a class="card-link" href="overview/examples/hierarchical/"
+              >Follow the hierarchical example →</a
+            >
+          </article>
+          <article class="card">
+            <span class="card-number">SLOW LINKS</span>
+            <h3>Some clients fall behind</h3>
+            <p>
+              Degrade a link during the run. What does a server with a deadline lose, and what does
+              it save?
+            </p>
+            <dl>
+              <dt>Vary</dt>
+              <dd>Link latency, its timing and the deadline of the server.</dd>
+              <dt>Inspect</dt>
+              <dd>Rounds completed, participants and late models.</dd>
+            </dl>
+            <a class="card-link" href="overview/examples/stragglers/"
+              >Follow the stragglers example →</a
+            >
+          </article>
+        </div>
+        <a class="text-link" href="overview/examples/"
+          >Looking for runnable examples? Browse the example guides →</a
+        >
+      </section>
+      <section class="section results" aria-labelledby="results-title">
+        <div>
+          <p class="eyebrow">AFTER A RUN</p>
+          <h2 id="results-title">Read what the entities reported.<br />Change one assumption.</h2>
+          <p class="section-intro">
+            Entities push the values they need during a run, and each record keeps who reported it,
+            from where and when. Keep the seed explicit when comparing runs.
+          </p>
+          <a class="text-link" href="overview/getting-started/inspect-results/"
+            >Read and query results →</a
+          >
+        </div>
+        <div class="report-example">
+          <pre><code>self.report(round=round_, loss=loss)  # in an entity
+
+process.run(seconds=10)
+records = process.reported
+frame = pandas.DataFrame(records)</code></pre>
+          <p>
+            A record is a plain dictionary, ready for pandas or any other tool. A process can also
+            collect metrics at every step, as frames.
+          </p>
+        </div>
+      </section>
+      <section class="section" aria-labelledby="modes-title">
+        <p class="eyebrow">CHOOSE WHERE IT RUNS</p>
+        <h2 id="modes-title">Check the logic first. Add a real topology when needed.</h2>
+        <div class="mode-grid">
+          <article class="card">
+            <span class="card-number">SINGLETON OR MIRROR</span>
+            <h3>Start from the federation</h3>
+            <p>
+              Run every entity on one device to check its logic, or give each entity its own device
+              on a copy of the topology of the federation. There is no infrastructure to write.
+            </p>
+            <a class="card-link" href="overview/getting-started/infrastructure/"
+              >Use a built-in system →</a
+            >
+          </article>
+          <article class="card">
+            <span class="card-number">YOUR OWN TOPOLOGY</span>
+            <h3>Shape the system</h3>
+            <p>
+              Set the latency of a link, add devices between the entities, and change any of them
+              during the run with a plain Python function.
+            </p>
+            <a class="card-link" href="overview/concepts/system/#adjust-a-built-in-system"
+              >Adjust the system →</a
+            >
+          </article>
+        </div>
+      </section>
+      <nav class="doc-paths" aria-label="Documentation paths">
+        <a href="overview/getting-started/">Getting started →</a
+        ><a href="overview/concepts/">Core concepts →</a
+        ><a href="overview/strategies/">Strategies →</a
+        ><a href="overview/examples/">Runnable examples →</a
+        ><a href="reference/flypse/">API reference →</a>
+      </nav>
+    </main>
+    <footer class="wrap footer">
+      <span>FLYPSE <span class="muted">/ Federated learning on the Cloud–Edge continuum</span></span>
+      <div>
+        <a href="overview/install/">Install</a
+        ><a href="changelog/">Changelog</a
+        ><a href="https://github.com/eclypse-org/flypse">Source code ↗</a>
+      </div>
+    </footer>
+    <script src="_static/js/home.js"></script>
+  </body>
+</html>

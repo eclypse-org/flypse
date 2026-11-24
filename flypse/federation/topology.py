@@ -1,10 +1,10 @@
 """Module for the federation topology builders.
 
-The builders create a federation from its entities, connecting them according
-to a common topology: a star (e.g., a server and its clients), a tree (e.g., a
-server, group aggregators and their clients), or a ring (e.g., peers of a
-decentralised federation). Any other argument is passed to the
-:class:`~flypse.federation.federation.Federation`.
+The builders create a federation from its entities, connecting them according to a
+common topology: a star (e.g., a server and its clients), a tree (e.g., a server, group
+aggregators and their clients), or a ring (e.g., peers of a decentralised federation).
+Any other argument is passed to the
+[Federation][flypse.federation.federation.Federation].
 
 In a star or a tree, each direction of a connection has a ``relation``: what
 the entity at the other end is, ``"parent"`` or ``"child"``. An entity reads
@@ -79,24 +79,24 @@ def get_tree(
             in the tree.
 
     Example:
-        .. code-block:: python
-
-            federation = get_tree(
-                Server("server"),
-                {
-                    "server": [Aggregator("edge_0"), Aggregator("edge_1")],
-                    "edge_0": [Client("client_0"), Client("client_1")],
-                    "edge_1": [Client("client_2"), Client("client_3")],
-                },
-            )
+        ```python
+        federation = get_tree(
+            Server("server"),
+            {
+                "server": [Aggregator("edge_0"), Aggregator("edge_1")],
+                "edge_0": [Client("client_0"), Client("client_1")],
+                "edge_1": [Client("client_2"), Client("client_3")],
+            },
+        )
+        ```
 
         An aggregator then finds its parent and its children:
 
-        .. code-block:: python
-
-            connections = await self.get_connections()
-            parent = [e for e, c in connections.items() if c["relation"] == "parent"]
-            children = [e for e, c in connections.items() if c["relation"] == "child"]
+        ```python
+        connections = await self.get_connections()
+        parent = [e for e, c in connections.items() if c["relation"] == "parent"]
+        children = [e for e, c in connections.items() if c["relation"] == "child"]
+        ```
     """
     federation = _federation(
         [root, *(child for kids in children.values() for child in kids)],

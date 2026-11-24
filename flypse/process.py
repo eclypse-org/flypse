@@ -44,10 +44,10 @@ class FederatedProcess(Simulation):
     """The emulation of a federation over a system of devices.
 
     Example:
-        .. code-block:: python
-
-            process = FederatedProcess(federation, data, step_every_ms=100.0, seed=0)
-            process.run(seconds=10)
+        ```python
+        process = FederatedProcess(federation, data, step_every_ms=100.0, seed=0)
+        process.run(seconds=10)
+        ```
     """
 
     def __init__(
@@ -158,10 +158,10 @@ class FederatedProcess(Simulation):
             list[dict[str, Any]]: One record per report, oldest first.
 
         Example:
-            .. code-block:: python
-
-                for record in process.reported:
-                    print(record["entity_id"], record["round"], record["loss"])
+            ```python
+            for record in process.reported:
+                print(record["entity_id"], record["round"], record["loss"])
+            ```
         """
         self.wait()
         path = self.path / JSON_REPORT_DIR / "service.jsonl"

@@ -101,10 +101,21 @@ class FedAvgModel(FederatedModel):
     """The federated wrapper of a linear model: its weights and its bias."""
 
     def _read_parameters(self) -> Iterator[tuple[str, np.ndarray]]:
+        """Yield the weights and the bias.
+
+        Yields:
+            tuple[str, np.ndarray]: The name and the value of a parameter.
+        """
         yield "weights", np.array(self.model.weights)
         yield "bias", np.array([self.model.bias])
 
     def _write_parameter(self, name: str, value: np.ndarray) -> None:
+        """Write the weights or the bias.
+
+        Args:
+            name (str): The name of the parameter.
+            value (np.ndarray): The new value of the parameter.
+        """
         if name == "weights":
             self.model.weights = [float(w) for w in value]
         else:

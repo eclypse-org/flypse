@@ -1,6 +1,6 @@
 """Run a federated averaging experiment in which a link slows down.
 
-Run from the repository root with::
+Run from the repository root with:
 
     uv run python -m examples.stragglers.main
 
@@ -89,6 +89,11 @@ def slow_uplink(client_id: str, start: int, end: int) -> Callable:
     step = 0
 
     def update(infrastructure) -> None:
+        """Set the latency of the uplink when it is time.
+
+        Args:
+            infrastructure (Infrastructure): The infrastructure of the process.
+        """
         nonlocal step
         if step == start:
             infrastructure.edges[client_id, SERVER_ID]["latency"] = SLOW_LATENCY_MS

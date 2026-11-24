@@ -1,18 +1,17 @@
 """Module for the FederatedDataset class.
 
-A :class:`FederatedDataset` embodies the data of the **whole federation**
-together with the way it is partitioned across entities. It is constructed
-from a ``DataSource`` (anything with ``__len__`` and ``__getitem__``); the
-entities of the split are given at split time, either as their count or as
-the explicit list of their identifiers. How indices are assigned to
-entities is defined by subclasses (e.g.,
-:class:`~flypse.data.uniform.UniformDataset`).
+A [FederatedDataset][flypse.data.dataset.FederatedDataset] embodies the data of the
+**whole federation** together with the way it is partitioned across entities. It is
+constructed from a ``DataSource`` (anything with ``__len__`` and ``__getitem__``); the
+entities of the split are given at split time, either as their count or as the explicit
+list of their identifiers. How indices are assigned to entities is defined by subclasses
+(e.g., [UniformDataset][flypse.data.uniform.UniformDataset]).
 
-The same object can be shared by all the entities of a federation: after
-the dataset is split for the federation roster, each entity **binds** it
-(``bind``) and gets back a :class:`~flypse.data.view.DataView` addressing
-only its own portion. Binding does not mutate the dataset, so several
-entities can bind the same shared object at the same time.
+The same object can be shared by all the entities of a federation: after the dataset is
+split for the federation roster, each entity **binds** it (``bind``) and gets back a
+[DataView][flypse.data.view.DataView] addressing only its own portion. Binding does not
+mutate the dataset, so several entities can bind the same shared object at the same
+time.
 """
 
 from __future__ import annotations

@@ -1,0 +1,121 @@
+# View splitters
+
+A [FederatedDataset][flypse.data.dataset.FederatedDataset] splits the data *across* the
+entities. A [ViewSplitter][flypse.data.splitter.ViewSplitter] splits the data *of* an
+entity into named parts, such as train, evaluation and test. Each part is a
+[DataView][flypse.data.view.DataView] of the view it was split from.
+
+Together, they give two ways of holding data out:
+
+- across entities, by dedicating some entities to evaluation: nothing more than a
+  different behaviour in their `step`,
+- within an entity, by splitting its own view, as this page shows.
+
+There is no global test set: every evaluation happens on the data of an entity.
+
+There are two ways to split a view:
+
+<div class="grid cards" markdown>
+
+-   **[Split by fractions](#split-by-fractions)**
+
+    ---
+
+    Use [FractionSplitter][flypse.data.splitter.FractionSplitter], the ready-made splitter.
+
+-   **[Write your own](#write-your-own-splitter)**
+
+    ---
+
+    Subclass [ViewSplitter][flypse.data.splitter.ViewSplitter].
+
+</div>
+
+## Split by fractions
+
+[FractionSplitter][flypse.data.splitter.FractionSplitter] sizes the parts by fractions, which
+must sum to 1. An entity calls it once its data is bound, in `on_deploy`:
+
+```python
+from flypse.data import FractionSplitter
+from flypse.federation import Entity
+
+
+class Client(Entity):
+    def on_deploy(self):
+        super().on_deploy()
+        splitter = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng)
+        self.splits = splitter.apply(self.data)
+        self.data = self.splits["train"]
+```
+
+Passing `self.rng` as the seed makes each entity split differently, but reproducibly.
+Storing the parts in `self.splits` makes them available to the
+[evaluation](../advanced/evaluation.md) of the entity by name.
+
+!!! note
+
+    Parts are sized with the largest remainder method, so a part can be empty when
+    the view is too small.
+
+### Stratify
+
+With `stratify`, a function returning the class of an item, the items are split
+class by class, so each part keeps the class proportions of the view:
+
+```python
+def label(item):
+    return item[1]
+
+
+splitter = FractionSplitter({"train": 0.8, "test": 0.2}, stratify=label, seed=self.rng)
+```
+
+### Keep the order
+
+With `order`, a function returning the sorting key of an item, the items are not
+shuffled: the first parts get the earliest items. For time series, no part then holds items
+earlier than those of the parts before it:
+
+```python
+def timestamp(item):
+    return item["time"]
+
+
+splitter = FractionSplitter({"train": 0.7, "test": 0.3}, order=timestamp)
+```
+
+`stratify` and `order` can be combined.
+
+### Split again
+
+A part is a view, so it can be split in turn:
+
+```python
+parts = FractionSplitter({"train": 0.8, "test": 0.2}, seed=self.rng).apply(self.data)
+parts |= FractionSplitter({"train": 0.75, "eval": 0.25}, seed=self.rng).apply(parts["train"])
+```
+
+Out of 100 items, this gives 60 for training, 20 for evaluation and 20 for test.
+
+## Write your own { #write-your-own-splitter }
+
+Implement [split][flypse.data.splitter.ViewSplitter.split], returning the positions
+within the view assigned to each part.
+[apply][flypse.data.splitter.ViewSplitter.apply] then builds the views:
+
+```python
+from flypse.data import ViewSplitter
+
+
+class LastItem(ViewSplitter):
+    """Keeps the last item of the view for test."""
+
+    def split(self, view):
+        n = len(view)
+        return {"train": range(n - 1), "test": [n - 1]}
+```
+
+!!! note "See also"
+
+    - [Federated data](data.md)
