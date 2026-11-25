@@ -157,19 +157,16 @@ async def test_neighbors_follow_the_federation_of_the_process(simulator):
         SimpleNamespace(placements={"Fed": SimpleNamespace(application=federation)}),
     )
 
-    async def neighbors(entity_id: str, *which: str) -> list[str]:
-        return await simulator.get_neighbors("Fed", entity_id, *which)
+    async def neighbors(entity_id: str, relation: str | None = None) -> list[str]:
+        return await simulator.get_neighbors("Fed", entity_id, relation)
 
     assert await neighbors("g") == ["r", "c", "d", "x"]
-    assert await neighbors("g", "out", "parent") == ["r"]
-    assert await neighbors("g", "out", "child") == ["c", "d"]
-    assert await neighbors("r", "out", "parent") == []
+    assert await neighbors("g", "parent") == ["r"]
+    assert await neighbors("g", "child") == ["c", "d"]
+    assert await neighbors("r", "parent") == []
 
     federation.remove_edge("g", "c")
-    assert await neighbors("g", "out", "child") == ["d"]
-    assert await neighbors("g", "in", "child") == ["c", "d"]
-    assert await neighbors("g", "in", "parent") == ["r"]
-    assert await neighbors("g", "in") == ["r", "c", "d", "x"]
+    assert await neighbors("g", "child") == ["d"]
 
 
 def test_device_follows_the_infrastructure_of_the_process(simulator):
