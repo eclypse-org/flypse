@@ -358,22 +358,16 @@ async def test_entity_asks_the_simulator_for_its_neighbors():
 
     assert await entity.get_neighbors() == ["b", "c"]
     assert await entity.get_neighbors(relation="child") == ["b", "c"]
-    assert await entity.get_neighbors("in", "parent") == ["b", "c"]
-    assert simulator.asked == [
-        ("Fed", "a", "out", None),
-        ("Fed", "a", "out", "child"),
-        ("Fed", "a", "in", "parent"),
-    ]
+    assert simulator.asked == [("Fed", "a", None), ("Fed", "a", "child")]
 
 
-@pytest.mark.parametrize("wrong", [{"direction": "both"}, {"relation": "boss"}])
-async def test_entity_refuses_an_unknown_kind_of_neighbors(wrong):
-    """A mistyped argument raises, rather than finding nobody."""
+async def test_entity_refuses_an_unknown_relation():
+    """A mistyped relation raises, rather than finding nobody."""
     entity = Entity("a")
     simulator = _connect(entity)
 
-    with pytest.raises(ValueError, match="unknown"):
-        await entity.get_neighbors(**wrong)
+    with pytest.raises(ValueError, match="relation"):
+        await entity.get_neighbors("boss")  # type: ignore[arg-type]
     assert simulator.asked == []
 
 

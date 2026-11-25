@@ -162,19 +162,11 @@ class Entity(Service):
         return cast("Device", self.node).concurrency.bind(self.id)
 
     async def get_neighbors(
-        self,
-        direction: Literal["out", "in"] = "out",
-        relation: Literal["parent", "child"] | None = None,
+        self, relation: Literal["parent", "child"] | None = None
     ) -> list[str]:
-        """Get the entities connected to this entity.
-
-        Connections are symmetric unless added otherwise, so that the entities an
-        entity sends to are usually the ones sending to it.
+        """Get the entities this entity sends to.
 
         Args:
-            direction (Literal["out", "in"]): ``"out"`` for the entities this
-                entity sends to, ``"in"`` for the ones sending to it. Defaults
-                to ``"out"``.
             relation (Literal["parent", "child"] | None): What the neighbours
                 are to this entity, in a hierarchy. Defaults to None, meaning all
                 of them.
@@ -184,7 +176,7 @@ class Entity(Service):
             connection has the relation.
 
         Raises:
-            ValueError: If the direction or the relation is unknown.
+            ValueError: If the relation is unknown.
 
         Example:
             ```python
@@ -192,13 +184,11 @@ class Entity(Service):
             children = await self.get_neighbors(relation="child")
             ```
         """
-        if direction not in ("out", "in"):
-            raise ValueError(f"unknown direction {direction!r}")
         if relation not in (None, "parent", "child"):
             raise ValueError(f"unknown relation {relation!r}")
         simulator = self.node.get_actor(self.node.manager_actor_name)
         return await simulator.get_neighbors.remote(
-            self.application_id, self.id, direction, relation
+            self.application_id, self.id, relation
         )
 
     async def get_connections(
